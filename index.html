@@ -487,8 +487,21 @@ const flag=t=>FLAGS[t]||'🏳';
 
 const R32_FIXED=[{i:0,c1:'2A',c2:'2B'},{i:2,c1:'1F',c2:'2C'},{i:3,c1:'1C',c2:'2F'},{i:5,c1:'2E',c2:'2I'},{i:10,c1:'2K',c2:'2L'},{i:11,c1:'1H',c2:'2J'},{i:13,c1:'1J',c2:'2H'},{i:15,c1:'2D',c2:'2G'}];
 const R32_THIRDS=[{i:1,c1:'1E'},{i:4,c1:'1I'},{i:6,c1:'1A'},{i:7,c1:'1L'},{i:8,c1:'1D'},{i:9,c1:'1G'},{i:12,c1:'1B'},{i:14,c1:'1K'}];
-const R16B=[[0,1],[2,3],[4,5],[6,7],[8,9],[10,11],[12,13],[14,15]];
+// R16B[i] = [r32 indices] feeding r16 partido i
+// Order chosen so qf cascade works with Math.floor(i/2)
+const R16B=[
+  [1,4],   // r16[0]=M89: M74 vs M77
+  [0,2],   // r16[1]=M90: M73 vs M75
+  [10,11], // r16[2]=M93: M83 vs M84
+  [8,9],   // r16[3]=M94: M81 vs M82
+  [3,5],   // r16[4]=M91: M76 vs M78
+  [6,7],   // r16[5]=M92: M79 vs M80
+  [13,15], // r16[6]=M95: M86 vs M88
+  [12,14], // r16[7]=M96: M85 vs M87
+];
 const QFB=[[0,1],[2,3],[4,5],[6,7]];
+// Maps r32 index → r16 index it feeds into (since R16B is non-sequential)
+const R32_TO_R16={0:1,1:0,2:1,3:4,4:0,5:4,6:5,7:5,8:3,9:3,10:2,11:2,12:7,13:6,14:7,15:6};
 const SFB=[[0,1],[2,3]];
 const PTS={p1:3,p2:2,t8:2,r32:2,r16:3,qf:4,sf:5,fin:8,thr:4};
 const TAB_ORDER=['grupos','r32','r16','qf','sf','final'];
@@ -812,13 +825,13 @@ function toggleAdmT8(team){
   saveAdminResults();render();
 }
 
-function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
 function setR16(mi,w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.r16[mi]=w;clrChain(p,'qf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
 function setQF(mi,w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.qf[mi]=w;clrChain(p,'sf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
 function setSF(mi,w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.sf[mi]=w;p.fin='';p.thr='';if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
 function setFin(w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.fin=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
 function setThr(w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.thr=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setT3(mi,v){if(!ME.isAdmin)return;S.thirds_bracket[mi]=v;const ridx=R32_THIRDS[mi].i;S.adminR.r32[ridx]='';clrChain(S.adminR,'r16',Math.floor(ridx/2));saveAdminResults();render();}
+function setT3(mi,v){if(!ME.isAdmin)return;S.thirds_bracket[mi]=v;const ridx=R32_THIRDS[mi].i;S.adminR.r32[ridx]='';clrChain(S.adminR,'r16',R32_TO_R16[ridx]);saveAdminResults();render();}
 
 // ══════════════════════════════════════════════════════
 // SCORING
@@ -1429,16 +1442,17 @@ function buildBracket(uid,u,col){
   }
   h+='</div></div>';
 
-  // Left R32 (fixed 0-3 + thirds 0-2)
+  // Left R32 — partidos M73, M74, M75, M77 + M81, M82, M83, M84
+  // Indices: r32[0,1,2,4] (top half) + r32[8,9,10,11] (bottom half)
   h+=`<div class="br-col"><div class="br-col-hdr">16avos</div>`;
-  const leftFixed=R32_FIXED.slice(0,4);
-  for(const{i,c1,c2}of leftFixed){
-    const t1=rc(c1,p)||'',t2=rc(c2,p)||'',w=p.r32[i];
-    h+=`<div class="br-match">${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;
-  }
-  for(let ti=0;ti<4;ti++){
-    const{i,c1}=R32_THIRDS[ti];
-    const t1=rc(c1,p)||'',t2=(p.t8||[])[ti]||'',w=p.r32[i];
+  const leftR32indices=[1,0,4,2,10,11,8,9];
+  for(const idx of leftR32indices){
+    let t1='',t2='';
+    const fx=R32_FIXED.find(x=>x.i===idx);
+    const th=R32_THIRDS.findIndex(x=>x.i===idx);
+    if(fx){t1=rc(fx.c1,p)||'';t2=rc(fx.c2,p)||'';}
+    else if(th>=0){t1=rc(R32_THIRDS[th].c1,p)||'';t2=(p.t8||[])[th]||'';}
+    const w=p.r32[idx];
     h+=`<div class="br-match">${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;
   }
   h+='</div>';
@@ -1500,15 +1514,17 @@ function buildBracket(uid,u,col){
   }
   h+='</div>';
 
-  // Right R32 (fixed 4-7 + thirds 4-7)
+  // Right R32 — partidos M76, M78, M79, M80 + M85, M86, M87, M88
+  // Indices: r32[3,5,6,7] (top half) + r32[12,13,14,15] (bottom half)
   h+=`<div class="br-col"><div class="br-col-hdr">16avos</div>`;
-  for(const{i,c1,c2}of R32_FIXED.slice(4)){
-    const t1=rc(c1,p)||'',t2=rc(c2,p)||'',w=p.r32[i];
-    h+=`<div class="br-match">${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;
-  }
-  for(let ti=4;ti<8;ti++){
-    const{i,c1}=R32_THIRDS[ti];
-    const t1=rc(c1,p)||'',t2=(p.t8||[])[ti]||'',w=p.r32[i];
+  const rightR32indices=[3,5,6,7,13,15,12,14];
+  for(const idx of rightR32indices){
+    let t1='',t2='';
+    const fx=R32_FIXED.find(x=>x.i===idx);
+    const th=R32_THIRDS.findIndex(x=>x.i===idx);
+    if(fx){t1=rc(fx.c1,p)||'';t2=rc(fx.c2,p)||'';}
+    else if(th>=0){t1=rc(R32_THIRDS[th].c1,p)||'';t2=(p.t8||[])[th]||'';}
+    const w=p.r32[idx];
     h+=`<div class="br-match">${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;
   }
   h+='</div>';
