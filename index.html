@@ -449,6 +449,12 @@ const auth=firebase.auth();
 const db=firebase.database();
 
 const ADMIN_SECRET='doggyesdios';
+const TOURNAMENT_START=new Date('2026-06-11T16:00:00Z'); // 11 Jun 2026 — locks picks
+
+function isLocked(){
+  // Once tournament starts, picks are frozen (admin can still edit results)
+  return new Date()>=TOURNAMENT_START;
+}
 
 // ══════════════════════════════════════════════════════
 // DATA
@@ -469,6 +475,46 @@ const GRP={
 };
 const ALL=Object.values(GRP).flat();
 const GKEYS=Object.keys(GRP);
+
+// 6 matches per group, each = [teamIdxA, teamIdxB]
+// Standard FIFA round-robin order: 1-2, 3-4, 1-3, 2-4, 1-4, 2-3 (0-indexed: 0-1, 2-3, 0-2, 1-3, 0-3, 1-2)
+const GROUP_MATCH_PAIRS=[[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
+
+// Tie-breakers for groups: points → goal difference → goals for
+function calcGroupTable(g, gp){
+  // gp: {matches: [{a:null,b:null}, ...] x6}  — null means not predicted
+  const teams=GRP[g].map(name=>({name,pts:0,pj:0,gf:0,ga:0,gd:0,w:0,d:0,l:0}));
+  if(!gp||!gp.matches)return teams; // empty group
+  GROUP_MATCH_PAIRS.forEach(([i,j],mi)=>{
+    const m=gp.matches[mi];
+    if(!m||m.a==null||m.b==null||m.a===''||m.b==='')return;
+    const a=parseInt(m.a),b=parseInt(m.b);
+    if(isNaN(a)||isNaN(b))return;
+    teams[i].pj++;teams[j].pj++;
+    teams[i].gf+=a;teams[i].ga+=b;teams[i].gd=teams[i].gf-teams[i].ga;
+    teams[j].gf+=b;teams[j].ga+=a;teams[j].gd=teams[j].gf-teams[j].ga;
+    if(a>b){teams[i].pts+=3;teams[i].w++;teams[j].l++;}
+    else if(a<b){teams[j].pts+=3;teams[j].w++;teams[i].l++;}
+    else{teams[i].pts++;teams[j].pts++;teams[i].d++;teams[j].d++;}
+  });
+  // Sort: pts desc → gd desc → gf desc → original order (no fair play in MVP)
+  teams.sort((x,y)=>y.pts-x.pts||y.gd-x.gd||y.gf-x.gf);
+  return teams;
+}
+
+// Compute the ranking of all 12 third-placed teams across groups
+// Returns array of {group, team, pts, gd, gf} sorted best-to-worst
+function calcAllThirds(allGroups){
+  const thirds=[];
+  for(const g of GKEYS){
+    const tbl=calcGroupTable(g,allGroups[g]);
+    if(tbl[2]&&tbl[2].pj>0){ // third place exists if matches played
+      thirds.push({group:g,...tbl[2]});
+    }
+  }
+  thirds.sort((x,y)=>y.pts-x.pts||y.gd-x.gd||y.gf-x.gf);
+  return thirds;
+}
 const FLAGS={
   'México':'🇲🇽','Corea del Sur':'🇰🇷','Sudáfrica':'🇿🇦','Rep. Checa':'🇨🇿',
   'Canadá':'🇨🇦','Suiza':'🇨🇭','Qatar':'🇶🇦','Bosnia y Herz.':'🇧🇦',
@@ -551,6 +597,19 @@ let S={
   sync:'idle',syncMsg:''
 };
 const _listeners=[];
+
+function showLocked(){
+  const modal=document.getElementById('modal-overlay');
+  const box=document.getElementById('modal-box');
+  if(!modal||!box)return;
+  box.innerHTML=`
+    <div class="m-ico">🔒</div>
+    <div class="m-ttl">Quiniela bloqueada</div>
+    <div class="m-sub">El torneo ya inició el <strong>11 de junio</strong>. Las predicciones ya no se pueden modificar para asegurar un juego justo.</div>
+    <button class="m-btn" onclick="document.getElementById('modal-overlay').classList.remove('on')">Entendido</button>
+  `;
+  modal.classList.add('on');
+}
 
 // ══════════════════════════════════════════════════════
 // SCREEN MGMT
@@ -717,12 +776,28 @@ function loadApp(forceAdmin){
 // ══════════════════════════════════════════════════════
 // DATA HELPERS
 // ══════════════════════════════════════════════════════
-function ep(){return{grupos:Object.fromEntries(GKEYS.map(g=>[g,{p1:'',p2:''}])),t8:[],r32:Array(16).fill(''),r16:Array(8).fill(''),qf:Array(4).fill(''),sf:Array(2).fill(''),fin:'',thr:''};}
-function eAdm(){return{grupos:Object.fromEntries(GKEYS.map(g=>[g,{p1:'',p2:'',p3:''}])),t8:[],r32:Array(16).fill(''),r16:Array(8).fill(''),qf:Array(4).fill(''),sf:Array(2).fill(''),fin:'',thr:''};}
+function emptyGroup(){
+  return{matches:Array.from({length:6},()=>({a:null,b:null}))};
+}
+function ep(){return{
+  grupos:Object.fromEntries(GKEYS.map(g=>[g,emptyGroup()])),
+  t8:[],r32:Array(16).fill(''),r16:Array(8).fill(''),qf:Array(4).fill(''),sf:Array(2).fill(''),fin:'',thr:''
+};}
+function eAdm(){return{
+  grupos:Object.fromEntries(GKEYS.map(g=>[g,emptyGroup()])),
+  t8:[],r32:Array(16).fill(''),r16:Array(8).fill(''),qf:Array(4).fill(''),sf:Array(2).fill(''),fin:'',thr:''
+};}
 
 function mergeP(v){
   const b=ep();if(!v)return b;
-  if(v.grupos)for(const g of GKEYS){if(v.grupos[g])b.grupos[g]={p1:v.grupos[g].p1||'',p2:v.grupos[g].p2||''};}
+  if(v.grupos)for(const g of GKEYS){
+    const vg=v.grupos[g];
+    if(!vg)continue;
+    if(vg.matches){
+      const mArr=Array.isArray(vg.matches)?vg.matches:Object.values(vg.matches);
+      mArr.forEach((m,i)=>{if(i<6&&m)b.grupos[g].matches[i]={a:m.a==null?null:m.a,b:m.b==null?null:m.b};});
+    }
+  }
   if(v.t8)b.t8=(Array.isArray(v.t8)?v.t8:Object.values(v.t8)).filter(Boolean);
   for(const k of['r32','r16','qf','sf']){
     if(v[k]){const a=Array.isArray(v[k])?v[k]:Object.values(v[k]);a.forEach((x,i)=>{if(i<b[k].length)b[k][i]=x||'';});}
@@ -732,7 +807,14 @@ function mergeP(v){
 }
 function mergeAdm(v){
   const b=eAdm();if(!v)return b;
-  if(v.grupos)for(const g of GKEYS){if(v.grupos[g])b.grupos[g]={p1:v.grupos[g].p1||'',p2:v.grupos[g].p2||'',p3:v.grupos[g].p3||''};}
+  if(v.grupos)for(const g of GKEYS){
+    const vg=v.grupos[g];
+    if(!vg)continue;
+    if(vg.matches){
+      const mArr=Array.isArray(vg.matches)?vg.matches:Object.values(vg.matches);
+      mArr.forEach((m,i)=>{if(i<6&&m)b.grupos[g].matches[i]={a:m.a==null?null:m.a,b:m.b==null?null:m.b};});
+    }
+  }
   if(v.t8)b.t8=(Array.isArray(v.t8)?v.t8:Object.values(v.t8)).filter(Boolean);
   for(const k of['r32','r16','qf','sf']){
     if(v[k]){const a=Array.isArray(v[k])?v[k]:Object.values(v[k]);a.forEach((x,i)=>{if(i<b[k].length)b[k][i]=x||'';});}
@@ -774,18 +856,34 @@ function saveAdminResults(){
 // ══════════════════════════════════════════════════════
 // MUTATIONS
 // ══════════════════════════════════════════════════════
-const rc=(code,p)=>parseInt(code[0])===1?p.grupos[code[1]].p1:p.grupos[code[1]].p2;
-const allFilled=p=>GKEYS.every(g=>p.grupos[g].p1&&p.grupos[g].p2);
+// rc('1A', p) = first place of group A; '2B' = second; '3C' = third
+function rc(code,p){
+  const pos=parseInt(code[0]),grp=code[1];
+  const tbl=calcGroupTable(grp,p.grupos[grp]);
+  if(!tbl||tbl.length<pos||!tbl[pos-1])return '';
+  // Must have played at least 1 match
+  if(tbl[pos-1].pj===0)return '';
+  return tbl[pos-1].name;
+}
+// All groups played all 6 matches?
+function allFilled(p){
+  return GKEYS.every(g=>{
+    const m=p.grupos[g].matches;
+    return m&&m.length===6&&m.every(x=>x&&x.a!=null&&x.b!=null&&x.a!==''&&x.b!=='');
+  });
+}
 
 function resetKO(p){p.r32=Array(16).fill('');p.r16=Array(8).fill('');p.qf=Array(4).fill('');p.sf=Array(2).fill('');p.fin='';p.thr='';}
 function clrChain(p,start,idx){const ch=['r16','qf','sf'];const ci=ch.indexOf(start);let i=idx;for(let c=ci;c<ch.length;c++){p[ch[c]][i]='';i=Math.floor(i/2);}p.fin='';p.thr='';}
 function cleanT8(p){
-  const taken=new Set(GKEYS.flatMap(g=>[p.grupos[g].p1,p.grupos[g].p2]).filter(Boolean));
-  p.t8=(p.t8||[]).filter(t=>!taken.has(t));
+  // T8 are now auto-calculated: top 8 thirds ranked across all groups
+  const ranking=calcAllThirds(p.grupos);
+  p.t8=ranking.slice(0,8).map(t=>t.name);
 }
 
 function clickTeam(g,team,adm){
   if(adm&&!ME.isAdmin)return;
+  if(!adm&&isLocked()){showLocked();return;}
   const p=adm?S.adminR:myPicks();
   const gr=p.grupos[g];
   const rks=adm?['p1','p2','p3']:['p1','p2'];
@@ -801,6 +899,8 @@ function clickTeam(g,team,adm){
 }
 
 function toggleT8(team,grp){
+  // Disabled: T8 now auto-calculated from group standings
+  return;
   const p=myPicks();
   const idx=p.t8.indexOf(team);
   if(idx>=0)p.t8.splice(idx,1);
@@ -817,20 +917,16 @@ function toggleT8(team,grp){
 }
 
 function toggleAdmT8(team){
-  if(!ME.isAdmin)return;
-  const r=S.adminR;
-  const idx=r.t8.indexOf(team);
-  if(idx>=0)r.t8.splice(idx,1);
-  else if(r.t8.length<8)r.t8.push(team);
-  saveAdminResults();render();
+  // Disabled: T8 auto-calculated for admin too
+  return;
 }
 
-function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setR16(mi,w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.r16[mi]=w;clrChain(p,'qf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setQF(mi,w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.qf[mi]=w;clrChain(p,'sf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setSF(mi,w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.sf[mi]=w;p.fin='';p.thr='';if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setFin(w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.fin=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setThr(w,adm){if(adm&&!ME.isAdmin)return;const p=adm?S.adminR:myPicks();p.thr=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setR16(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}const p=adm?S.adminR:myPicks();p.r16[mi]=w;clrChain(p,'qf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setQF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}const p=adm?S.adminR:myPicks();p.qf[mi]=w;clrChain(p,'sf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setSF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}const p=adm?S.adminR:myPicks();p.sf[mi]=w;p.fin='';p.thr='';if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setFin(w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}const p=adm?S.adminR:myPicks();p.fin=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setThr(w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}const p=adm?S.adminR:myPicks();p.thr=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
 function setT3(mi,v){if(!ME.isAdmin)return;S.thirds_bracket[mi]=v;const ridx=R32_THIRDS[mi].i;S.adminR.r32[ridx]='';clrChain(S.adminR,'r16',R32_TO_R16[ridx]);saveAdminResults();render();}
 
 // ══════════════════════════════════════════════════════
@@ -839,11 +935,28 @@ function setT3(mi,v){if(!ME.isAdmin)return;S.thirds_bracket[mi]=v;const ridx=R32
 function calcPts(uid){
   const p=userPicks(uid),r=S.adminR||eAdm();let tot=0;
   const bd={grp:0,t8:0,r32:0,r16:0,qf:0,sf:0,fin:0,thr:0};
+  // Group standings comparison: derive from match tables
   for(const g of GKEYS){
-    if(p.grupos[g].p1&&p.grupos[g].p1===r.grupos[g].p1){tot+=PTS.p1;bd.grp+=PTS.p1;}
-    if(p.grupos[g].p2&&p.grupos[g].p2===r.grupos[g].p2){tot+=PTS.p2;bd.grp+=PTS.p2;}
+    const myTable=calcGroupTable(g,p.grupos[g]);
+    const adminTable=calcGroupTable(g,r.grupos[g]);
+    if(myTable[0]&&adminTable[0]&&myTable[0].pj>0&&adminTable[0].pj>0&&myTable[0].name===adminTable[0].name){tot+=PTS.p1;bd.grp+=PTS.p1;}
+    if(myTable[1]&&adminTable[1]&&myTable[1].pj>0&&adminTable[1].pj>0&&myTable[1].name===adminTable[1].name){tot+=PTS.p2;bd.grp+=PTS.p2;}
   }
-  if(r.t8&&r.t8.length>0)for(const t of(p.t8||[])){if(r.t8.includes(t)){tot+=PTS.t8;bd.t8+=PTS.t8;}}
+  // Bonus: exact score predictions for group matches (1 pt each)
+  for(const g of GKEYS){
+    const myMs=(p.grupos[g].matches)||[];
+    const admMs=(r.grupos[g].matches)||[];
+    for(let mi=0;mi<6;mi++){
+      const my=myMs[mi],adm=admMs[mi];
+      if(!my||!adm||my.a==null||adm.a==null||adm.a==='')continue;
+      if(my.a===adm.a&&my.b===adm.b){tot+=1;bd.grp+=1;}
+    }
+  }
+  // T8 scoring: how many of user's auto-calculated thirds match the real ones
+  if(r.t8&&r.t8.length>0){
+    const realSet=new Set(r.t8);
+    for(const t of(p.t8||[])){if(realSet.has(t)){tot+=PTS.t8;bd.t8+=PTS.t8;}}
+  }
   for(let i=0;i<16;i++)if(p.r32[i]&&p.r32[i]===r.r32[i]){tot+=PTS.r32;bd.r32+=PTS.r32;}
   for(let i=0;i<8;i++) if(p.r16[i]&&p.r16[i]===r.r16[i]){tot+=PTS.r16;bd.r16+=PTS.r16;}
   for(let i=0;i<4;i++) if(p.qf[i] &&p.qf[i] ===r.qf[i] ){tot+=PTS.qf;bd.qf+=PTS.qf;}
@@ -854,7 +967,11 @@ function calcPts(uid){
 }
 
 function calcProgress(p){
-  const grpFilled=GKEYS.filter(g=>p.grupos[g].p1&&p.grupos[g].p2).length;
+  let grpFilled=0;
+  for(const g of GKEYS){
+    const m=p.grupos[g].matches;
+    if(m&&m.length===6&&m.every(x=>x&&x.a!=null&&x.b!=null&&x.a!==''&&x.b!=='')){grpFilled++;}
+  }
   const t8cnt=(p.t8||[]).length;
   const r32done=R32_FIXED.filter(({i})=>p.r32[i]).length+R32_THIRDS.filter(({i})=>p.r32[i]).length;
   const r16done=p.r16.filter(Boolean).length;
@@ -1089,7 +1206,7 @@ function rR32(adm){
   h+=`</div></div><div class="phase"><div class="phdr">Mejores Terceros <span class="ptag">${PTS.r32} pts c/u</span></div>`;
   if(!adm){
     const t8=p.t8||[];
-    if(t8.length<8){h+=`<div class="t8-hint">Primero selecciona tus 8 terceros en Grupos.</div>`;}
+    if(t8.length<8){h+=`<div class="t8-hint">Termina de predecir los 72 partidos de grupos. Tus 8 mejores terceros se calculan automáticamente y aparecerán aquí.</div>`;}
     else{
       h+='<div class="mgrid">';
       for(let ti=0;ti<8;ti++){
@@ -1190,8 +1307,15 @@ function cdHtml(t){
 
 function rDashboard(){
   const ct=getCountdown();
+  let lockedBanner='';
+  if(isLocked()&&!ME.isAdmin){
+    lockedBanner=`<div style="padding:12px 16px;background:var(--g1b);border:1.5px solid var(--g1d);border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:22px">🔒</span>
+      <div style="font-size:13px;color:var(--g1t)"><strong>Quiniela bloqueada</strong> — El torneo ya empezó. Solo puedes consultar tus predicciones.</div>
+    </div>`;
+  }
   const comm=S.communities[ME.communityId];
-  let h=`<div class="cd-wrap">
+  let h=lockedBanner+`<div class="cd-wrap">
     <div class="cd-label">⚽ Mundial 2026 · 11 Jun</div>
     <div class="cd-units" id="cd-nums">${cdHtml(ct)}</div>
   </div>`;
@@ -1263,8 +1387,18 @@ function rAdmin(){
 }
 
 function rAdmCommunities(){
-  let h=`<button class="m-btn" style="width:auto;padding:9px 16px;margin-bottom:16px" onclick="showCreateCommunity()">+ Crear nueva comunidad</button>`;
+  // Admin's own community picker
   const comms=Object.entries(S.communities);
+  const myComm=S.communities[ME.communityId];
+  let h=`<div style="background:var(--card);border:1.5px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="font-size:12px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px">Mi comunidad:</span>
+    <select onchange="setMyCommunity(this.value)" style="padding:7px 12px;border:1.5px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;flex:1;max-width:280px">
+      <option value="">— Sin comunidad —</option>
+      ${comms.map(([cid,c])=>`<option value="${cid}"${ME.communityId===cid?' selected':''}>${esc(c.name)}</option>`).join('')}
+    </select>
+    ${myComm?`<span style="font-size:11px;color:var(--gnd);font-weight:600">✓ Juegas en ${esc(myComm.name)}</span>`:'<span style="font-size:11px;color:var(--am);font-weight:600">Sin asignar — no apareces en ninguna leaderboard</span>'}
+  </div>
+  <button class="m-btn" style="width:auto;padding:9px 16px;margin-bottom:16px" onclick="showCreateCommunity()">+ Crear nueva comunidad</button>`;
   if(comms.length===0){
     h+=`<div style="padding:24px;text-align:center;color:var(--mt)">No hay comunidades aún. Crea la primera arriba.</div>`;
   }else{
@@ -1388,6 +1522,13 @@ function deleteCommunity(cid,name){
   for(const[uid,u]of Object.entries(S.users)){
     if(u.communityId===cid)db.ref('users/'+uid+'/communityId').set('');
   }
+}
+
+function setMyCommunity(cid){
+  db.ref('users/'+ME.uid+'/communityId').set(cid||'').then(()=>{
+    ME.communityId=cid||'';
+    render();
+  }).catch(e=>alert('Error: '+e.message));
 }
 
 function moveMember(uid,name){
