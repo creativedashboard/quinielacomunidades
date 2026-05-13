@@ -881,21 +881,38 @@ function cleanT8(p){
   p.t8=ranking.slice(0,8).map(t=>t.name);
 }
 
-function clickTeam(g,team,adm){
+function setGroupMatch(g,mi,side,val,adm){
   if(adm&&!ME.isAdmin)return;
   if(!adm&&isLocked()){showLocked();return;}
   const p=adm?S.adminR:myPicks();
-  const gr=p.grupos[g];
-  const rks=adm?['p1','p2','p3']:['p1','p2'];
-  const cur=rks.find(r=>gr[r]===team);
-  if(cur){const i=rks.indexOf(cur);for(let x=i;x<rks.length-1;x++)gr[rks[x]]=gr[rks[x+1]];gr[rks[rks.length-1]]='';}
-  else{const nx=rks.find(r=>!gr[r]);if(nx)gr[nx]=team;}
+  if(!p.grupos[g])p.grupos[g]=emptyGroup();
+  if(!p.grupos[g].matches)p.grupos[g].matches=Array.from({length:6},()=>({a:null,b:null}));
+  if(!p.grupos[g].matches[mi])p.grupos[g].matches[mi]={a:null,b:null};
+  // Validate: must be a number 0-99 or empty
+  if(val===''||val==null){p.grupos[g].matches[mi][side]=null;}
+  else{
+    const n=parseInt(val);
+    if(isNaN(n)||n<0||n>99)return;
+    p.grupos[g].matches[mi][side]=n;
+  }
   if(!adm)cleanT8(p);
   resetKO(p);
-  if(adm)saveAdminResults();else scheduleSavePicks(p);
   // Optimistic update
   if(adm)S.adminR=p;else S.picks[ME.uid]=p;
-  render();
+  if(adm)saveAdminResults();else scheduleSavePicks(p);
+  // Debounced render to avoid jank while typing
+  scheduleRerender();
+}
+
+let _renderTimer=null;
+function scheduleRerender(){
+  clearTimeout(_renderTimer);
+  _renderTimer=setTimeout(()=>render(),250);
+}
+
+// Backward compat: rebuild from possibly-old picks structure
+function clickTeam(g,team,adm){
+  // No-op — old API. Groups are now score-based.
 }
 
 function toggleT8(team,grp){
