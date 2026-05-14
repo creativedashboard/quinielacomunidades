@@ -483,8 +483,8 @@ const GROUP_MATCH_PAIRS=[[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
 // Tie-breakers for groups: points → goal difference → goals for
 function calcGroupTable(g, gp){
   // gp: {matches: [{a:null,b:null}, ...] x6}  — null means not predicted
-  const teams=GRP[g].map(name=>({name,pts:0,pj:0,gf:0,ga:0,gd:0,w:0,d:0,l:0}));
-  if(!gp||!gp.matches)return teams; // empty group
+  const teams=GRP[g].map((name,idx)=>({name,idx,pts:0,pj:0,gf:0,ga:0,gd:0,w:0,d:0,l:0}));
+  if(!gp||!gp.matches)return teams;
   GROUP_MATCH_PAIRS.forEach(([i,j],mi)=>{
     const m=gp.matches[mi];
     if(!m||m.a==null||m.b==null||m.a===''||m.b==='')return;
@@ -497,8 +497,30 @@ function calcGroupTable(g, gp){
     else if(a<b){teams[j].pts+=3;teams[j].w++;teams[i].l++;}
     else{teams[i].pts++;teams[j].pts++;teams[i].d++;teams[j].d++;}
   });
-  // Sort: pts desc → gd desc → gf desc → original order (no fair play in MVP)
-  teams.sort((x,y)=>y.pts-x.pts||y.gd-x.gd||y.gf-x.gf);
+  // Head-to-head helper: given two team indices, who won the direct match?
+  function headToHead(idxA,idxB){
+    for(let mi=0;mi<GROUP_MATCH_PAIRS.length;mi++){
+      const[i,j]=GROUP_MATCH_PAIRS[mi];
+      const m=gp.matches[mi];if(!m||m.a==null||m.b==null)continue;
+      const a=parseInt(m.a),b=parseInt(m.b);if(isNaN(a)||isNaN(b))continue;
+      if((i===idxA&&j===idxB)||(i===idxB&&j===idxA)){
+        const aIsA=(i===idxA);
+        if(a===b)return 0;
+        if((aIsA&&a>b)||(!aIsA&&b>a))return -1; // idxA wins
+        return 1; // idxB wins
+      }
+    }
+    return 0;
+  }
+  // FIFA tie-breakers: pts → gd → gf → head-to-head → original group order
+  teams.sort((x,y)=>{
+    if(y.pts!==x.pts)return y.pts-x.pts;
+    if(y.gd!==x.gd)return y.gd-x.gd;
+    if(y.gf!==x.gf)return y.gf-x.gf;
+    const h2h=headToHead(x.idx,y.idx);
+    if(h2h!==0)return h2h;
+    return x.idx-y.idx; // fallback: original group order
+  });
   return teams;
 }
 
@@ -777,7 +799,8 @@ function loadApp(forceAdmin){
 // DATA HELPERS
 // ══════════════════════════════════════════════════════
 function emptyGroup(){
-  return{matches:Array.from({length:6},()=>({a:null,b:null}))};
+  // Default 0-0 for all matches so the table starts realistic
+  return{matches:Array.from({length:6},()=>({a:0,b:0}))};
 }
 function ep(){return{
   grupos:Object.fromEntries(GKEYS.map(g=>[g,emptyGroup()])),
@@ -959,14 +982,21 @@ function calcPts(uid){
     if(myTable[0]&&adminTable[0]&&myTable[0].pj>0&&adminTable[0].pj>0&&myTable[0].name===adminTable[0].name){tot+=PTS.p1;bd.grp+=PTS.p1;}
     if(myTable[1]&&adminTable[1]&&myTable[1].pj>0&&adminTable[1].pj>0&&myTable[1].name===adminTable[1].name){tot+=PTS.p2;bd.grp+=PTS.p2;}
   }
-  // Bonus: exact score predictions for group matches (1 pt each)
+  // Match prediction bonus: 3 pts exact score, 1 pt just-correct-winner
   for(const g of GKEYS){
     const myMs=(p.grupos[g].matches)||[];
     const admMs=(r.grupos[g].matches)||[];
     for(let mi=0;mi<6;mi++){
       const my=myMs[mi],adm=admMs[mi];
-      if(!my||!adm||my.a==null||adm.a==null||adm.a==='')continue;
-      if(my.a===adm.a&&my.b===adm.b){tot+=1;bd.grp+=1;}
+      if(!my||!adm||my.a==null||adm.a==null||adm.a===''||my.a==='')continue;
+      const ma=parseInt(my.a),mb=parseInt(my.b),aa=parseInt(adm.a),ab=parseInt(adm.b);
+      if(isNaN(ma)||isNaN(mb)||isNaN(aa)||isNaN(ab))continue;
+      if(ma===aa&&mb===ab){tot+=3;bd.grp+=3;} // exact score
+      else{
+        // Just-correct-winner: same sign of difference
+        const myDiff=Math.sign(ma-mb),admDiff=Math.sign(aa-ab);
+        if(myDiff===admDiff){tot+=1;bd.grp+=1;}
+      }
     }
   }
   // T8 scoring: how many of user's auto-calculated thirds match the real ones
@@ -1121,6 +1151,38 @@ function rProgStrip(){
   inner.innerHTML=h;el.style.display='block';
 }
 
+// Auto-advance input when pressing Enter/Tab
+function focusNextGoalInput(currentEl){
+  const all=Array.from(document.querySelectorAll('input[data-goalinput="1"]'));
+  const idx=all.indexOf(currentEl);
+  if(idx>=0&&idx<all.length-1){
+    const next=all[idx+1];
+    next.focus();
+    next.select();
+  }else if(idx===all.length-1){
+    currentEl.blur(); // last input — just unfocus
+  }
+}
+
+// Random-fill all group matches (testing helper)
+function randomFillGroups(){
+  if(isLocked()){showLocked();return;}
+  if(!confirm('Esto va a rellenar TODOS los partidos de grupos con marcadores random. ¿Continuar?'))return;
+  const p=myPicks();
+  for(const g of GKEYS){
+    if(!p.grupos[g])p.grupos[g]=emptyGroup();
+    if(!p.grupos[g].matches)p.grupos[g].matches=Array.from({length:6},()=>({a:0,b:0}));
+    for(let mi=0;mi<6;mi++){
+      p.grupos[g].matches[mi]={a:Math.floor(Math.random()*5),b:Math.floor(Math.random()*5)};
+    }
+  }
+  cleanT8(p);
+  resetKO(p);
+  S.picks[ME.uid]=p;
+  scheduleSavePicks(p);
+  render();
+}
+
 // ══════════════════════════════════════════════════════
 // PARTICIPANTS BAR (members of my community)
 // ══════════════════════════════════════════════════════
@@ -1150,7 +1212,10 @@ function rGrupos(adm){
     const prog=calcProgress(p);
     const pct=Math.round((prog.grpFilled/12)*100);
     h+=`<div class="prog-wrap"><div class="prog-lbl"><span>Grupos</span><span>${prog.grpFilled}/12</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
-    h+=`<div style="font-size:12px;color:var(--mt);margin-bottom:14px;padding:10px 14px;background:var(--acl);border-radius:8px;line-height:1.5">💡 Predice los goles de cada partido. La tabla del grupo y los terceros se calculan automáticamente.</div>`;
+    h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+      <div style="flex:1;min-width:240px;font-size:12px;color:var(--mt);padding:10px 14px;background:var(--acl);border-radius:8px;line-height:1.5">💡 Predice los goles de cada partido. La tabla y los terceros se calculan automáticamente.</div>
+      <button onclick="randomFillGroups()" style="padding:9px 14px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap" title="Solo para pruebas">🎲 Rellenar al azar</button>
+    </div>`;
   }
   h+='<div class="ggrid">';
   for(const[g,teams]of Object.entries(GRP)){
@@ -1200,9 +1265,9 @@ function rGrupos(adm){
       const va=m.a==null?'':m.a,vb=m.b==null?'':m.b;
       h+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px">
         <span style="flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t1)}</span> ${esc(t1)}</span>
-        <input type="number" min="0" max="99" value="${va}" placeholder="—" style="width:36px;padding:5px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:13px;font-family:'DM Sans',sans-serif" onchange="setGroupMatch('${g}',${mi},'a',this.value,${a})">
-        <span style="color:var(--mt);font-size:10px">-</span>
-        <input type="number" min="0" max="99" value="${vb}" placeholder="—" style="width:36px;padding:5px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:13px;font-family:'DM Sans',sans-serif" onchange="setGroupMatch('${g}',${mi},'b',this.value,${a})">
+        <input type="text" inputmode="numeric" maxlength="2" value="${m.a==null?'0':va}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'a',this.value,${a})" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();focusNextGoalInput(this)}">
+        <span style="color:var(--mt);font-size:11px;font-weight:600">-</span>
+        <input type="text" inputmode="numeric" maxlength="2" value="${m.b==null?'0':vb}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'b',this.value,${a})" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();focusNextGoalInput(this)}">
         <span style="flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t2)}</span> ${esc(t2)}</span>
       </div>`;
     });
@@ -1792,15 +1857,15 @@ function rInstrucciones(){
   return`<div class="ins-wrap">
     <div class="ins-card"><div class="ins-step"><div class="ins-num">1</div><div>
       <div class="ins-title">Entrar a tu comunidad</div>
-      <div class="ins-desc">Inicia sesión con Google y pide el <strong>código de invitación</strong> a quien te invitó. Solo se entra a una comunidad con código.</div>
+      <div class="ins-desc">Inicia sesión con Google y pide el <strong>código de invitación</strong> a quien te invitó.</div>
     </div></div></div>
     <div class="ins-card"><div class="ins-step"><div class="ins-num">2</div><div>
-      <div class="ins-title">Elige 1° y 2° en cada grupo</div>
-      <div class="ins-desc">En <strong>Mi Quiniela</strong>, toca el equipo que crees que queda <strong>primero</strong> (dorado) y luego el <strong>segundo</strong> (gris). 12 grupos. Toca de nuevo para quitar.</div>
+      <div class="ins-title">Predice los marcadores de los 72 partidos de grupos</div>
+      <div class="ins-desc">En <strong>Mi Quiniela</strong>, ingresa los goles de cada equipo en cada partido. La tabla del grupo se calcula automáticamente con las reglas oficiales de FIFA: <strong>Puntos → Diferencia de goles → Goles a favor → Resultado directo</strong>.</div>
     </div></div></div>
     <div class="ins-card"><div class="ins-step"><div class="ins-num">3</div><div>
-      <div class="ins-title">Elige tus 8 mejores terceros</div>
-      <div class="ins-desc">Cuando termines los grupos aparece la sección de terceros. Elige exactamente <strong>8 equipos</strong>, máximo <strong>1 por grupo</strong>.</div>
+      <div class="ins-title">Tus 8 mejores terceros (automático)</div>
+      <div class="ins-desc">Al terminar tus predicciones de grupos, los <strong>8 mejores terceros</strong> se calculan solos basados en los puntos que les diste. Aparecen en la sección inferior con su ranking.</div>
     </div></div></div>
     <div class="ins-card"><div class="ins-step"><div class="ins-num">4</div><div>
       <div class="ins-title">Avanza por el bracket</div>
@@ -1810,6 +1875,8 @@ function rInstrucciones(){
       <div class="ins-title" style="margin-bottom:10px">⭐ Puntuación</div>
       <table class="pts-table">
         <tr><th>Predicción</th><th style="text-align:right">Pts</th></tr>
+        <tr><td><strong>Marcador exacto</strong> de partido de grupos</td><td class="pts-val">3</td></tr>
+        <tr><td>Solo acertar al ganador del partido</td><td class="pts-val">1</td></tr>
         <tr><td>1° de grupo correcto</td><td class="pts-val">${PTS.p1}</td></tr>
         <tr><td>2° de grupo correcto</td><td class="pts-val">${PTS.p2}</td></tr>
         <tr><td>Cada mejor tercero correcto</td><td class="pts-val">${PTS.t8}</td></tr>
@@ -1817,7 +1884,7 @@ function rInstrucciones(){
         <tr><td>Ganador de Octavos</td><td class="pts-val">${PTS.r16}</td></tr>
         <tr><td>Ganador de Cuartos</td><td class="pts-val">${PTS.qf}</td></tr>
         <tr><td>Ganador de Semis</td><td class="pts-val">${PTS.sf}</td></tr>
-        <tr><td>Campeón correcto</td><td class="pts-val">${PTS.fin}</td></tr>
+        <tr><td><strong>Campeón correcto</strong></td><td class="pts-val">${PTS.fin}</td></tr>
         <tr><td>3er lugar correcto</td><td class="pts-val">${PTS.thr}</td></tr>
       </table>
     </div>
