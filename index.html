@@ -6,7 +6,7 @@
 <title>Quiniela Comunidades 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=Anton&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 
 <!-- Firebase v10 compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
@@ -264,19 +264,24 @@ html[data-ucolor] .lbbar-fill{background:var(--uc)}
 .br-col-hdr{text-align:center;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--mt);padding:0 8px 10px;white-space:nowrap}
 .br-match{display:flex;flex-direction:column;gap:1px;margin:2px 0}
 .br-team{display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:6px;background:var(--card);border:1.5px solid var(--bd);font-size:13px;font-weight:500;white-space:nowrap;min-width:78px;max-width:96px;letter-spacing:.5px}
-.br-team .br-tname{font-family:'Anton',sans-serif;font-weight:400;letter-spacing:1px}
+.br-team .br-tname{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.3px}
 .br-team.winner .br-tname{color:var(--uc,var(--ac))}
 .br-team.winner{font-weight:700;border-color:var(--uc,var(--ac));background:var(--uc-l,var(--acl));color:var(--uc,var(--ac))}
 .br-team.empty{color:var(--mt);border-style:dashed;opacity:.5}
 .br-flag{font-size:14px;flex-shrink:0}
 .br-tname{flex:1;overflow:hidden;text-overflow:ellipsis}
-.br-champion{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 16px;gap:8px;flex-shrink:0}
-.br-trophy{font-size:40px;line-height:1}
-.br-champ-team{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;background:var(--g1b);border:2px solid var(--g1d);font-size:15px;font-family:'Anton',sans-serif;font-weight:400;letter-spacing:1px;white-space:nowrap}
+.br-champion{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;gap:10px;flex-shrink:0;min-width:180px;position:relative}
+.br-champion-glow{position:absolute;inset:-10px;background:radial-gradient(circle,var(--g1b) 0%,transparent 70%);pointer-events:none;z-index:-1}
+.br-champion-banner{font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:var(--g1t);text-transform:uppercase;letter-spacing:1.5px;text-align:center;padding:5px 14px;background:linear-gradient(135deg,var(--g1b),#fde68a);border-radius:6px;border:1px solid var(--g1d);white-space:nowrap}
+.br-thirdplace-section{display:flex;flex-direction:column;align-items:center;gap:5px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--bd2);width:100%}
+.br-thirdplace-lbl{font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:var(--mt);text-transform:uppercase;letter-spacing:1px;text-align:center}
+.br-trophy{font-size:54px;line-height:1;filter:drop-shadow(0 4px 12px rgba(252,211,77,.5));animation:trophyPulse 3s ease-in-out infinite}
+@keyframes trophyPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.br-champ-team{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;background:var(--g1b);border:2px solid var(--g1d);font-size:15px;font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.3px;white-space:nowrap}
 .br-groups-col{display:flex;flex-direction:column;gap:4px;flex-shrink:0;padding:0 4px}
 .br-group-box{background:var(--card);border:1.5px solid var(--bd);border-radius:7px;padding:6px 8px;min-width:92px;max-width:108px}
 .br-group-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--mt);margin-bottom:5px}
-.br-group-team{display:flex;align-items:center;gap:5px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--bg);font-family:'Anton',sans-serif;font-weight:400;letter-spacing:.7px}
+.br-group-team{display:flex;align-items:center;gap:5px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--bg);font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.2px}
 .br-group-team:last-child{border-bottom:none}
 
 /* ── EDITABLE BRACKET (Mi Quiniela alternative view) ─── */
@@ -286,10 +291,13 @@ html[data-ucolor] .br-team.clickable:hover:not(.empty):not(.locked){border-color
 .br-team.empty.clickable{cursor:default}
 .br-team.locked{opacity:.5;cursor:not-allowed;background:var(--bg)}
 .br-team.locked.empty{opacity:.3}
-.br-view-toggle{display:inline-flex;gap:0;border:1.5px solid var(--bd);border-radius:9px;overflow:hidden;background:var(--card)}
-.br-view-toggle button{padding:7px 14px;border:none;background:transparent;color:var(--mt);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .12s}
+.br-view-toggle{display:inline-flex;gap:0;border:1.5px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--card)}
+.br-view-toggle button{padding:10px 22px;border:none;background:transparent;color:var(--mt);font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;letter-spacing:.2px}
+.br-view-toggle button:hover{background:var(--bg);color:var(--tx)}
 .br-view-toggle button.active{background:var(--ac);color:#fff}
+.br-view-toggle button.active:hover{background:var(--acd)}
 html[data-ucolor] .br-view-toggle button.active{background:var(--uc)}
+html[data-ucolor] .br-view-toggle button.active:hover{background:var(--uc-d)}
 
 /* Topbar bracket button */
 .tb-bracket-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1.5px solid var(--ac);border-radius:8px;background:var(--acl);color:var(--ac);cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;transition:all .12s}
@@ -1176,6 +1184,8 @@ function rProgStrip(){
   const el=document.getElementById('prog-strip');
   const inner=document.getElementById('pstrip-inner');
   if(!TAB_ORDER.includes(S.tab)){el.style.display='none';return;}
+  // Hide in bracket view (full-bracket = self-contained)
+  if(S.bracketView==='bracket'&&S.tab!=='grupos'){el.style.display='none';return;}
   const p=myPicks();
   const{grpFilled,t8cnt,r32done,r16done,qfDone,sfDone,finDone}=calcProgress(p);
   const steps=[
@@ -1427,13 +1437,11 @@ function rAdminT8(){
 
 
 function rViewToggle(){
-  // Only show toggle in player view, not admin
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-    <div class="br-view-toggle">
-      <button class="${S.bracketView==='cards'?'active':''}" onclick="S.bracketView='cards';render()">📋 Tarjetas</button>
-      <button class="${S.bracketView==='bracket'?'active':''}" onclick="S.bracketView='bracket';render()">🏆 Bracket</button>
+  return `<div style="display:flex;justify-content:center;margin-bottom:16px">
+    <div class="br-view-toggle" style="box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <button class="${S.bracketView==='cards'?'active':''}" onclick="S.bracketView='cards';render()">📋 Vista Tarjetas</button>
+      <button class="${S.bracketView==='bracket'?'active':''}" onclick="S.bracketView='bracket';render()">🏆 Vista Bracket</button>
     </div>
-    <span style="font-size:11px;color:var(--mt);font-weight:600">Vista alternativa · Selecciona ganadores en cualquiera</span>
   </div>`;
 }
 
@@ -1529,19 +1537,39 @@ function buildEditableBracket(p){
     h+=`<div class="br-match">${tc(t1,w===t1&&!!w,cellClick('sf',0,t1),isRoundLocked('sf'))}${tc(t2,w===t2&&!!w,cellClick('sf',0,t2),isRoundLocked('sf'))}</div>`;}
   h+='</div>';
 
-  // Champion
+  // Champion glorified — with 3rd place match too
   const sf1=p.sf[0]||'',sf2=p.sf[1]||'';
+  // 3rd place: losers of semifinals
+  // We don't store them as separate slots — derive from QF picks that didn't advance to SF
+  const l0=[p.qf[0]||'',p.qf[1]||''].find(t=>t&&t!==p.sf[0])||'';
+  const l1=[p.qf[2]||'',p.qf[3]||''].find(t=>t&&t!==p.sf[1])||'';
+  function thrClick(team){
+    if(!team)return '';
+    if(isRoundLocked('fin'))return '';
+    return `setThr('${js(team)}',false)`;
+  }
   h+='<div class="br-champion">';
-  h+='<div class="br-col-hdr">Gran Final</div>';
+  h+='<div class="br-champion-glow"></div>';
+  h+='<div class="br-champion-banner">🏆 Gran Final</div>';
   h+='<div class="br-trophy">🏆</div>';
-  // Final: clickable buttons
   h+=`<div style="display:flex;flex-direction:column;gap:4px;width:100%">
     ${tc(sf1,p.fin===sf1&&!!p.fin,sf1?cellClick('fin',0,sf1):'',isRoundLocked('fin'))}
-    <span style="text-align:center;font-size:9px;color:var(--mt);font-weight:800">VS</span>
+    <span style="text-align:center;font-size:9px;color:var(--mt);font-weight:800;font-family:'DM Sans',sans-serif">VS</span>
     ${tc(sf2,p.fin===sf2&&!!p.fin,sf2?cellClick('fin',0,sf2):'',isRoundLocked('fin'))}
   </div>`;
-  if(p.fin)h+=`<div class="br-champ-team" style="margin-top:6px"><span>${flag(p.fin)}</span><span>${esc(p.fin)}</span></div>`;
-  h+='</div>';
+  if(p.fin)h+=`<div class="br-champ-team" style="margin-top:6px" title="${esc(p.fin)}"><span style="font-size:22px">${flag(p.fin)}</span><span>${esc(abbr(p.fin))}</span></div><div style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:800;color:var(--g1t);text-transform:uppercase;letter-spacing:1.2px">★ Campeón ★</div>`;
+  // 3rd place picker
+  h+='<div class="br-thirdplace-section"><div class="br-thirdplace-lbl">🥉 3er Lugar</div>';
+  if(l0||l1){
+    h+=`<div style="display:flex;flex-direction:column;gap:3px;width:100%">
+      ${tc(l0,p.thr===l0&&!!p.thr,thrClick(l0),isRoundLocked('fin'))}
+      <span style="text-align:center;font-size:9px;color:var(--mt);font-weight:800;font-family:'DM Sans',sans-serif">VS</span>
+      ${tc(l1,p.thr===l1&&!!p.thr,thrClick(l1),isRoundLocked('fin'))}
+    </div>`;
+  }else{
+    h+='<div style="font-size:11px;color:var(--mt);font-family:\'DM Sans\',sans-serif">Completa Semis primero</div>';
+  }
+  h+='</div></div>';
 
   // Right SF
   h+='<div class="br-col"><div class="br-col-hdr">Semis</div>';
@@ -2033,13 +2061,19 @@ function buildBracket(uid,u,col){
     h+=`<div class="br-match">${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;}
   h+='</div>';
 
-  // Champion
+  // Champion (glorified)
   h+=`<div class="br-champion">
-    <div class="br-col-hdr">Gran Final</div>
+    <div class="br-champion-glow"></div>
+    <div class="br-champion-banner">🏆 Gran Final</div>
     <div class="br-trophy">🏆</div>
-    <div class="br-champ-team">${p.fin?`<span>${flag(p.fin)}</span><span>${esc(p.fin)}</span>`:'<span style="color:var(--mt);font-weight:500">Por definir</span>'}</div>
-    <div style="font-size:10px;color:var(--mt)">Campeón</div>
-    ${p.thr?`<div style="font-size:11px;color:var(--mt);margin-top:6px">🥉 ${flag(p.thr)} ${esc(p.thr)}</div>`:''}
+    ${p.fin
+      ?`<div class="br-champ-team" title="${esc(p.fin)}"><span style="font-size:22px">${flag(p.fin)}</span><span>${esc(abbr(p.fin))}</span></div><div style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:800;color:var(--g1t);text-transform:uppercase;letter-spacing:1.2px">★ Campeón ★</div>`
+      :`<div class="br-champ-team" style="opacity:.5;background:var(--bg);box-shadow:none;border-style:dashed"><span>—</span></div>`
+    }
+    <div class="br-thirdplace-section">
+      <div class="br-thirdplace-lbl">🥉 3er Lugar</div>
+      ${p.thr?`<div class="br-team winner" title="${esc(p.thr)}" style="min-width:auto"><span class="br-flag">${flag(p.thr)}</span><span class="br-tname">${esc(abbr(p.thr))}</span></div>`:`<div class="br-team empty" style="min-width:auto"><span class="br-flag">—</span><span class="br-tname">—</span></div>`}
+    </div>
   </div>`;
 
   // Right SF
@@ -2183,6 +2217,8 @@ function renderFloatNext(){
   const back=document.getElementById('fn-back');
   if(!el||!txt||!btn||!back)return;
   if(!TAB_ORDER.includes(S.tab)){el.style.display='none';return;}
+  // Hide in bracket view (no need for next/back since everything visible)
+  if(S.bracketView==='bracket'&&S.tab!=='grupos'){el.style.display='none';return;}
   const p=myPicks();
   const{grpFilled,t8cnt,r32done,r16done,qfDone,sfDone,finDone}=calcProgress(p);
   const idx=TAB_ORDER.indexOf(S.tab);
