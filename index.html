@@ -799,8 +799,8 @@ function loadApp(forceAdmin){
 // DATA HELPERS
 // ══════════════════════════════════════════════════════
 function emptyGroup(){
-  // Default 0-0 for all matches so the table starts realistic
-  return{matches:Array.from({length:6},()=>({a:0,b:0}))};
+  // Empty by default — null means user hasn't predicted yet
+  return{matches:Array.from({length:6},()=>({a:null,b:null}))};
 }
 function ep(){return{
   grupos:Object.fromEntries(GKEYS.map(g=>[g,emptyGroup()])),
@@ -975,25 +975,33 @@ function setT3(mi,v){if(!ME.isAdmin)return;S.thirds_bracket[mi]=v;const ridx=R32
 function calcPts(uid){
   const p=userPicks(uid),r=S.adminR||eAdm();let tot=0;
   const bd={grp:0,t8:0,r32:0,r16:0,qf:0,sf:0,fin:0,thr:0};
-  // Group standings comparison: derive from match tables
+  // Group standings comparison: must have ALL 6 matches played by both sides
+  function groupComplete(p,g){
+    const m=p.grupos&&p.grupos[g]&&p.grupos[g].matches;
+    return m&&m.length===6&&m.every(x=>x&&x.a!=null&&x.b!=null&&x.a!==''&&x.b!=='');
+  }
   for(const g of GKEYS){
+    if(!groupComplete(p,g)||!groupComplete(r,g))continue;
     const myTable=calcGroupTable(g,p.grupos[g]);
     const adminTable=calcGroupTable(g,r.grupos[g]);
-    if(myTable[0]&&adminTable[0]&&myTable[0].pj>0&&adminTable[0].pj>0&&myTable[0].name===adminTable[0].name){tot+=PTS.p1;bd.grp+=PTS.p1;}
-    if(myTable[1]&&adminTable[1]&&myTable[1].pj>0&&adminTable[1].pj>0&&myTable[1].name===adminTable[1].name){tot+=PTS.p2;bd.grp+=PTS.p2;}
+    if(myTable[0]&&adminTable[0]&&myTable[0].name===adminTable[0].name){tot+=PTS.p1;bd.grp+=PTS.p1;}
+    if(myTable[1]&&adminTable[1]&&myTable[1].name===adminTable[1].name){tot+=PTS.p2;bd.grp+=PTS.p2;}
   }
   // Match prediction bonus: 3 pts exact score, 1 pt just-correct-winner
+  // Both my pick AND admin result must be PRESENT (not null/empty) for any points
   for(const g of GKEYS){
-    const myMs=(p.grupos[g].matches)||[];
-    const admMs=(r.grupos[g].matches)||[];
+    const myMs=(p.grupos[g]&&p.grupos[g].matches)||[];
+    const admMs=(r.grupos[g]&&r.grupos[g].matches)||[];
     for(let mi=0;mi<6;mi++){
       const my=myMs[mi],adm=admMs[mi];
-      if(!my||!adm||my.a==null||adm.a==null||adm.a===''||my.a==='')continue;
+      // Skip if either side has not predicted/registered this match
+      if(!my||!adm)continue;
+      if(my.a==null||my.b==null||my.a===''||my.b==='')continue;
+      if(adm.a==null||adm.b==null||adm.a===''||adm.b==='')continue;
       const ma=parseInt(my.a),mb=parseInt(my.b),aa=parseInt(adm.a),ab=parseInt(adm.b);
       if(isNaN(ma)||isNaN(mb)||isNaN(aa)||isNaN(ab))continue;
       if(ma===aa&&mb===ab){tot+=3;bd.grp+=3;} // exact score
       else{
-        // Just-correct-winner: same sign of difference
         const myDiff=Math.sign(ma-mb),admDiff=Math.sign(aa-ab);
         if(myDiff===admDiff){tot+=1;bd.grp+=1;}
       }
@@ -1281,9 +1289,9 @@ function rGrupos(adm){
       const va=m.a==null?'':m.a,vb=m.b==null?'':m.b;
       h+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px">
         <span style="flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t1)}</span> ${esc(t1)}</span>
-        <input type="text" inputmode="numeric" maxlength="2" value="${m.a==null?'0':va}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'a',this.value,${a})" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();focusNextGoalInput(this)}">
+        <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.a==null?'':va}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'a',this.value,${a})" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();focusNextGoalInput(this)}">
         <span style="color:var(--mt);font-size:11px;font-weight:600">-</span>
-        <input type="text" inputmode="numeric" maxlength="2" value="${m.b==null?'0':vb}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'b',this.value,${a})" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();focusNextGoalInput(this)}">
+        <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.b==null?'':vb}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'b',this.value,${a})" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();focusNextGoalInput(this)}">
         <span style="flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t2)}</span> ${esc(t2)}</span>
       </div>`;
     });
