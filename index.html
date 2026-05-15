@@ -266,16 +266,18 @@ html[data-ucolor] .lbbar-fill{background:var(--uc)}
 .cnf-btn.ok{background:var(--ac);color:#fff}
 .cnf-btn.danger{background:var(--rd);color:#fff}
 #bracket-overlay.on{display:flex}
-.br-topbar{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--card);border-bottom:1.5px solid var(--bd);flex-shrink:0}
-.br-avatar{width:36px;height:36px;border-radius:10px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;font-family:'Outfit',sans-serif;flex-shrink:0;background-color:var(--ac)}
-.br-name{font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;flex:1}
-.br-close{padding:7px 14px;border:1.5px solid var(--bd);border-radius:8px;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--mt)}
+.br-topbar{display:flex;align-items:center;gap:14px;padding:14px 24px;background:var(--card);border-bottom:1.5px solid var(--bd);flex-shrink:0}
+.br-avatar{width:44px;height:44px;border-radius:12px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;font-family:'Outfit',sans-serif;flex-shrink:0;background-color:var(--ac)}
+.br-name{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;flex:1;color:var(--tx);letter-spacing:-.2px}
+.br-close{padding:8px 16px;border:1.5px solid var(--bd);border-radius:8px;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--mt)}
 .br-close:hover{border-color:var(--bd2);color:var(--tx)}
 .br-action{padding:8px 14px;border:1.5px solid var(--ac);border-radius:8px;background:var(--ac);cursor:pointer;font-size:13px;font-weight:700;color:#fff;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:5px}
 .br-action:hover{background:var(--acd)}
 .br-action:disabled{opacity:.6;cursor:wait}
-.br-scroll{flex:1;overflow:auto;padding:14px 12px}
-.br-wrap{display:flex;gap:0;align-items:stretch;min-width:max-content}
+.br-scroll{flex:1;overflow:auto;padding:20px 12px}
+.br-wrap{display:flex;gap:0;align-items:stretch;min-width:max-content;margin:0 auto;padding:0 20px}
+.br-capture-header{display:none;padding:18px 24px;border-bottom:2px solid var(--bd);background:linear-gradient(135deg,var(--card),var(--card2));text-align:center;align-items:center;justify-content:center;gap:14px}
+.br-capture-header.show{display:flex}
 .br-col{display:flex;flex-direction:column;justify-content:space-around;flex-shrink:0}
 .br-col-hdr{text-align:center;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--mt);padding:0 8px 10px;white-space:nowrap}
 .br-match{display:flex;flex-direction:column;gap:1px;margin:2px 0}
@@ -665,6 +667,8 @@ const MATCH_INFO={
   fin:{d:'19 Jul',c:'Nueva York (MetLife)'},
   thr:{d:'18 Jul',c:'Miami'}
 };
+// Per-group match dates (6 matches per group, order matches GROUP_MATCH_PAIRS)
+const GROUP_DATES={"A":[{"d":"11 Jun","c":"CDMX"},{"d":"11 Jun","c":"Guadalajara"},{"d":"18 Jun","c":"Atlanta"},{"d":"18 Jun","c":"Guadalajara"},{"d":"24 Jun","c":"CDMX"},{"d":"24 Jun","c":"Monterrey"}],"B":[{"d":"12 Jun","c":"Toronto"},{"d":"13 Jun","c":"SF Bay"},{"d":"18 Jun","c":"Los Angeles"},{"d":"18 Jun","c":"Vancouver"},{"d":"24 Jun","c":"Vancouver"},{"d":"24 Jun","c":"Seattle"}],"C":[{"d":"13 Jun","c":"Boston"},{"d":"13 Jun","c":"Nueva York"},{"d":"19 Jun","c":"Philadelphia"},{"d":"19 Jun","c":"Boston"},{"d":"24 Jun","c":"Miami"},{"d":"24 Jun","c":"Atlanta"}],"D":[{"d":"12 Jun","c":"Los Angeles"},{"d":"13 Jun","c":"Vancouver"},{"d":"19 Jun","c":"SF Bay"},{"d":"19 Jun","c":"Seattle"},{"d":"25 Jun","c":"Los Angeles"},{"d":"25 Jun","c":"SF Bay"}],"E":[{"d":"14 Jun","c":"Philadelphia"},{"d":"14 Jun","c":"Houston"},{"d":"20 Jun","c":"Toronto"},{"d":"20 Jun","c":"Kansas City"},{"d":"25 Jun","c":"Philadelphia"},{"d":"25 Jun","c":"Nueva York"}],"F":[{"d":"14 Jun","c":"Dallas"},{"d":"14 Jun","c":"Monterrey"},{"d":"20 Jun","c":"Houston"},{"d":"20 Jun","c":"Monterrey"},{"d":"25 Jun","c":"Dallas"},{"d":"25 Jun","c":"Kansas City"}],"G":[{"d":"15 Jun","c":"Los Angeles"},{"d":"15 Jun","c":"Seattle"},{"d":"21 Jun","c":"Los Angeles"},{"d":"21 Jun","c":"Vancouver"},{"d":"26 Jun","c":"Seattle"},{"d":"26 Jun","c":"Vancouver"}],"H":[{"d":"15 Jun","c":"Miami"},{"d":"15 Jun","c":"Atlanta"},{"d":"21 Jun","c":"Miami"},{"d":"21 Jun","c":"Atlanta"},{"d":"26 Jun","c":"Houston"},{"d":"26 Jun","c":"Guadalajara"}],"I":[{"d":"16 Jun","c":"Nueva York"},{"d":"16 Jun","c":"Boston"},{"d":"22 Jun","c":"Nueva York"},{"d":"22 Jun","c":"Philadelphia"},{"d":"26 Jun","c":"Boston"},{"d":"26 Jun","c":"Toronto"}],"J":[{"d":"16 Jun","c":"Kansas City"},{"d":"16 Jun","c":"SF Bay"},{"d":"22 Jun","c":"Dallas"},{"d":"22 Jun","c":"SF Bay"},{"d":"27 Jun","c":"Kansas City"},{"d":"27 Jun","c":"Dallas"}],"K":[{"d":"17 Jun","c":"Houston"},{"d":"17 Jun","c":"CDMX"},{"d":"23 Jun","c":"Houston"},{"d":"23 Jun","c":"Guadalajara"},{"d":"27 Jun","c":"Miami"},{"d":"27 Jun","c":"Atlanta"}],"L":[{"d":"17 Jun","c":"Toronto"},{"d":"17 Jun","c":"Dallas"},{"d":"23 Jun","c":"Boston"},{"d":"23 Jun","c":"Toronto"},{"d":"27 Jun","c":"Nueva York"},{"d":"27 Jun","c":"Philadelphia"}]};
 const TAB_ORDER=['grupos','r32','r16','qf','sf','final'];
 
 const UCOLORS=[
@@ -1419,12 +1423,13 @@ function rGrupos(adm){
     h+=`<div class="prog-wrap"><div class="prog-lbl"><span>Grupos</span><span>${prog.grpFilled}/12</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
       <button onclick="openMyBracket()" style="padding:11px 18px;background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:800;font-family:'DM Sans',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(37,99,235,.3);display:inline-flex;align-items:center;gap:7px">🏆 Ver mi bracket completo</button>
+      <button onclick="captureGroups()" style="padding:12px 16px;background:var(--card);color:var(--ac);border:1.5px solid var(--ac);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Descargar tus picks de grupos como imagen">📸 Capturar grupos</button>
       <button onclick="randomFillGroups()" style="padding:12px 16px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Solo para pruebas">🎲 Rellenar al azar</button>
       <button onclick="clearAllPicks()" style="padding:12px 16px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Solo para pruebas">🗑 Borrar todo</button>
     </div>
     <div style="font-size:12px;color:var(--mt);margin-bottom:14px;padding:10px 14px;background:var(--acl);border-radius:8px;line-height:1.5">💡 Predice los goles de cada partido. La tabla y los terceros se calculan automáticamente.</div>`;
   }
-  h+='<div class="ggrid">';
+  h+='<div id="groups-capturable" class="ggrid">';
   for(const[g,teams]of Object.entries(GRP)){
     const matches=(p.grupos[g]&&p.grupos[g].matches)||[];
     const playedAll=matches.length===6&&matches.every(m=>m&&m.a!=null&&m.b!=null&&m.a!==''&&m.b!=='');
@@ -1443,7 +1448,9 @@ function rGrupos(adm){
       const m=matches[mi]||{a:null,b:null};
       const va=m.a==null?'':m.a,vb=m.b==null?'':m.b;
       const kbHandler="if(event.key==='Enter'||event.key==='Tab'||event.key===' '){event.preventDefault();focusNextGoalInput(this)}";
-      h+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px">
+      const gd=GROUP_DATES[g]&&GROUP_DATES[g][mi];
+      const dateLbl=gd?`<div style="font-size:9.5px;color:var(--mt);font-weight:600;margin-top:6px;margin-bottom:2px;letter-spacing:.2px">📅 ${gd.d} · 📍 ${gd.c}</div>`:'';
+      h+=`${dateLbl}<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px">
         <span style="flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t1)}</span> ${esc(t1)}</span>
         <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.a==null?'':va}" data-goalinput="1" data-g="${g}" data-mi="${mi}" data-side="a" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'a',this.value,${a})" onkeydown="${kbHandler}">
         <span style="color:var(--mt);font-size:11px;font-weight:600">-</span>
@@ -2064,7 +2071,16 @@ function rAdmCommunities(){
     </select>
     ${myComm?`<span style="font-size:11px;color:var(--gnd);font-weight:600">✓ Juegas en ${esc(myComm.name)}</span>`:'<span style="font-size:11px;color:var(--am);font-weight:600">Sin asignar — no apareces en ninguna leaderboard</span>'}
   </div>
-  <button class="m-btn" style="width:auto;padding:9px 16px;margin-bottom:16px" onclick="showCreateCommunity()">+ Crear nueva comunidad</button>`;
+  <button class="m-btn" style="width:auto;padding:9px 16px;margin-bottom:16px" onclick="showCreateCommunity()">+ Crear nueva comunidad</button>
+  <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #fcd34d;border-radius:var(--r);padding:14px;margin-bottom:16px">
+    <div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:8px;font-family:'Outfit',sans-serif">💾 Respaldos y exportar</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="adminDownloadBackup()" style="padding:9px 14px;background:#fff;border:1.5px solid #fcd34d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;font-family:'DM Sans',sans-serif" title="Descarga JSON con TODOS los datos">💾 Descargar respaldo (JSON)</button>
+      <button onclick="adminRestoreBackup()" style="padding:9px 14px;background:#fff;border:1.5px solid #fcd34d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;font-family:'DM Sans',sans-serif" title="Restaurar desde archivo JSON">📂 Restaurar desde archivo</button>
+      <button onclick="adminGeneratePDF()" style="padding:9px 14px;background:#fff;border:1.5px solid #fcd34d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;font-family:'DM Sans',sans-serif" title="PDF con todos los brackets">📄 PDF de todos los brackets</button>
+    </div>
+    <div style="font-size:10.5px;color:#a16207;margin-top:8px;line-height:1.5">💡 Descarga el JSON cada cierto tiempo como respaldo. Si algo pasa, usa "Restaurar" para volver a este estado.</div>
+  </div>`;
   if(comms.length===0){
     h+=`<div style="padding:24px;text-align:center;color:var(--mt)">No hay comunidades aún. Crea la primera arriba.</div>`;
   }else{
@@ -2256,6 +2272,199 @@ function openBracket(uid){
 }
 function closeBracket(){document.getElementById('bracket-overlay').classList.remove('on');}
 
+// Capture user's groups section as PNG
+async function captureGroups(){
+  if(typeof html2canvas==='undefined'){alert('No se pudo cargar la herramienta de captura.');return;}
+  const groupsEl=document.getElementById('groups-capturable');
+  if(!groupsEl){alert('No se encontró la sección de grupos.');return;}
+  const u={name:ME.name,photo:ME.photo,color:ME.color};
+  const col=u.color?UCOLORS.find(c=>c.id===u.color):null;
+  const ac=col?col.ac:'#2563eb';
+  const initial=(u.name[0]||'?').toUpperCase();
+  // Build temporary wrapper with header
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:fixed;left:-9999px;top:0;background:#f9fafb;padding:20px;width:'+Math.max(groupsEl.scrollWidth,700)+'px';
+  const header=document.createElement('div');
+  header.style.cssText='display:flex;align-items:center;gap:18px;padding:20px 24px;background:linear-gradient(135deg,#fff,#f9fafb);border-radius:14px;border:2px solid #e5e7eb;margin-bottom:18px';
+  header.innerHTML=`
+    <div style="width:60px;height:60px;border-radius:14px;background:${ac};display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;overflow:hidden;flex-shrink:0">
+      ${u.photo?`<img src="${esc(u.photo)}" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${esc(initial)}</span>`:`<span>${esc(initial)}</span>`}
+    </div>
+    <div style="text-align:left">
+      <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#0f172a;line-height:1.2">${esc(u.name)}</div>
+      <div style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:#64748b;margin-top:2px">🌎 Mundial 2026 · Fase de Grupos</div>
+    </div>
+  `;
+  wrap.appendChild(header);
+  const clone=groupsEl.cloneNode(true);
+  wrap.appendChild(clone);
+  document.body.appendChild(wrap);
+  try{
+    await new Promise(r=>requestAnimationFrame(r));
+    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false});
+    document.body.removeChild(wrap);
+    const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
+    const fileName=`grupos-mundial2026-${safeName}.png`;
+    canvas.toBlob(async(blob)=>{
+      if(!blob){alert('Error generando la imagen.');return;}
+      const file=new File([blob],fileName,{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        try{await navigator.share({files:[file],title:'Mis picks de grupos · Mundial 2026'});return;}
+        catch(e){if(e&&e.name==='AbortError')return;}
+      }
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download=fileName;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+    },'image/png');
+  }catch(err){
+    console.error(err);
+    if(wrap.parentNode)document.body.removeChild(wrap);
+    alert('Error: '+(err.message||err));
+  }
+}
+
+// ─── ADMIN: Download full backup as JSON ───
+function adminDownloadBackup(){
+  const backup={
+    version:'1.0',
+    generated_at:new Date().toISOString(),
+    note:'Respaldo completo de la quiniela Mundial 2026',
+    data:{
+      users:S.users||{},
+      picks:S.picks||{},
+      communities:S.communities||{},
+      admin_results:S.adminR||{},
+    }
+  };
+  const json=JSON.stringify(backup,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  a.href=url;a.download=`quiniela-mundial2026-backup-${ts}.json`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
+// ─── ADMIN: Restore from JSON ───
+function adminRestoreBackup(){
+  if(!ME.isAdmin){alert('Solo el admin puede restaurar.');return;}
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='application/json,.json';
+  inp.onchange=function(e){
+    const f=e.target.files[0];if(!f)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(!data||!data.data){alert('Archivo de respaldo inválido (estructura no reconocida).');return;}
+        const d=data.data;
+        const numUsers=Object.keys(d.users||{}).length;
+        const numPicks=Object.keys(d.picks||{}).length;
+        const numComms=Object.keys(d.communities||{}).length;
+        showConfirm({
+          title:'⚠️ RESTAURAR RESPALDO',
+          msg:`Esto va a SOBREESCRIBIR todos los datos actuales con el respaldo:\n\n• ${numUsers} usuarios\n• ${numPicks} quinielas\n• ${numComms} comunidades\n• Resultados oficiales\n\nGenerado: ${data.generated_at||'desconocido'}\n\nEsta acción NO se puede deshacer. ¿Continuar?`,
+          okText:'Sí, RESTAURAR',
+          danger:true,
+          onOk:async()=>{
+            try{
+              if(d.users)await db.ref('users').set(d.users);
+              if(d.picks)await db.ref('picks').set(d.picks);
+              if(d.communities)await db.ref('communities').set(d.communities);
+              if(d.admin_results)await db.ref('admin').set(d.admin_results);
+              alert('✅ Respaldo restaurado correctamente.');
+              location.reload();
+            }catch(err){alert('❌ Error al restaurar: '+(err.message||err));}
+          }
+        });
+      }catch(err){alert('Archivo inválido: '+err.message);}
+    };
+    reader.readAsText(f);
+  };
+  inp.click();
+}
+
+// ─── ADMIN: Generate PDF with all participants' brackets ───
+async function adminGeneratePDF(){
+  if(typeof html2canvas==='undefined'){alert('No se pudo cargar la herramienta. Recarga la página.');return;}
+  // Get all users with picks
+  const allUsers=Object.entries(S.users||{}).map(([uid,u])=>({uid,...u})).filter(u=>S.picks&&S.picks[u.uid]);
+  if(allUsers.length===0){alert('No hay usuarios con picks todavía.');return;}
+  showConfirm({
+    title:'📄 Generar PDF de todos los brackets',
+    msg:`Esto generará un PDF con los brackets de ${allUsers.length} jugadores. Tomará aproximadamente ${Math.ceil(allUsers.length*8/60)} minutos.\n\nNo cambies de pestaña ni cierres la ventana mientras se genera.\n\n¿Continuar?`,
+    okText:'Sí, generar',
+    onOk:async()=>{
+      // Use jsPDF (load on-demand)
+      if(typeof jspdf==='undefined'&&typeof window.jspdf==='undefined'){
+        await new Promise((resolve,reject)=>{
+          const s=document.createElement('script');
+          s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+          s.onload=resolve;s.onerror=()=>reject(new Error('No se pudo cargar jsPDF'));
+          document.head.appendChild(s);
+        }).catch(err=>{alert('Error: '+err.message);return;});
+      }
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({orientation:'landscape',unit:'pt',format:'a4'});
+      const pdfW=pdf.internal.pageSize.getWidth();
+      const pdfH=pdf.internal.pageSize.getHeight();
+      // Generate progress modal
+      const prog=document.createElement('div');
+      prog.style.cssText='position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;font-family:DM Sans,sans-serif';
+      prog.innerHTML='<div style="background:#fff;padding:30px;border-radius:12px;max-width:380px;width:90%;text-align:center"><div style="font-size:18px;font-weight:800;margin-bottom:12px">📄 Generando PDF...</div><div id="pdf-prog-txt" style="font-size:14px;color:#666;margin-bottom:14px">Preparando...</div><div style="background:#e5e7eb;border-radius:6px;height:8px;overflow:hidden"><div id="pdf-prog-bar" style="background:#2563eb;height:100%;width:0%;transition:width .3s"></div></div></div>';
+      document.body.appendChild(prog);
+      const progTxt=document.getElementById('pdf-prog-txt');
+      const progBar=document.getElementById('pdf-prog-bar');
+      try{
+        for(let i=0;i<allUsers.length;i++){
+          const u=allUsers[i];
+          progTxt.textContent=`${i+1}/${allUsers.length} · ${u.name}`;
+          progBar.style.width=((i/allUsers.length)*100)+'%';
+          // Open bracket
+          openBracket(u.uid);
+          await new Promise(r=>setTimeout(r,300));
+          const ov=document.getElementById('bracket-overlay');
+          const scrollEl=ov.querySelector('.br-scroll');
+          const wrapEl=ov.querySelector('.br-wrap');
+          if(!wrapEl)continue;
+          const origOverflow=scrollEl.style.overflow,origW=scrollEl.style.width,origH=scrollEl.style.height;
+          scrollEl.style.overflow='visible';
+          scrollEl.style.width=wrapEl.scrollWidth+'px';
+          scrollEl.style.height=wrapEl.scrollHeight+'px';
+          await new Promise(r=>requestAnimationFrame(r));
+          const canvas=await html2canvas(wrapEl,{backgroundColor:'#ffffff',scale:1.5,useCORS:true,logging:false});
+          scrollEl.style.overflow=origOverflow;scrollEl.style.width=origW;scrollEl.style.height=origH;
+          const imgData=canvas.toDataURL('image/jpeg',0.85);
+          if(i>0)pdf.addPage();
+          // Add header text
+          pdf.setFontSize(18);pdf.setFont('helvetica','bold');
+          pdf.text(u.name,pdfW/2,30,{align:'center'});
+          pdf.setFontSize(11);pdf.setFont('helvetica','normal');pdf.setTextColor(100);
+          pdf.text('🏆 Mundial 2026 · Quiniela',pdfW/2,48,{align:'center'});
+          pdf.setTextColor(0);
+          // Fit image
+          const ratio=canvas.width/canvas.height;
+          const margin=20,topOffset=60;
+          let imgW=pdfW-margin*2,imgH=imgW/ratio;
+          if(imgH>pdfH-topOffset-margin){imgH=pdfH-topOffset-margin;imgW=imgH*ratio;}
+          pdf.addImage(imgData,'JPEG',(pdfW-imgW)/2,topOffset,imgW,imgH);
+        }
+        closeBracket();
+        progBar.style.width='100%';progTxt.textContent='Guardando archivo...';
+        const ts=new Date().toISOString().slice(0,10);
+        pdf.save(`quiniela-mundial2026-todos-${ts}.pdf`);
+        document.body.removeChild(prog);
+      }catch(err){
+        console.error(err);
+        document.body.removeChild(prog);
+        alert('Error generando PDF: '+(err.message||err));
+      }
+    }
+  });
+}
+
 // Capture bracket as PNG image — uses html2canvas
 async function captureBracket(uid){
   const u=S.users[uid];if(!u)return;
@@ -2267,38 +2476,52 @@ async function captureBracket(uid){
   const scrollEl=ov.querySelector('.br-scroll');
   const wrapEl=ov.querySelector('.br-wrap');
   if(!wrapEl){alert('Abre el bracket primero antes de capturar.');return;}
-  // Get the capture button and show loading state
   const btn=ov.querySelector('.br-action');
   const origText=btn?btn.textContent:'';
   if(btn){btn.disabled=true;btn.textContent='⏳ Generando...';}
+  // Inject a bigger, prettier header just for the capture (will be removed after)
+  const col=u.color?UCOLORS.find(c=>c.id===u.color):null;
+  const ac=col?col.ac:'#2563eb';
+  const initial=(u.name[0]||'?').toUpperCase();
+  const captureHeader=document.createElement('div');
+  captureHeader.className='br-capture-header show';
+  captureHeader.style.cssText='display:flex;padding:24px;border-bottom:2px solid #e5e7eb;background:linear-gradient(135deg,#fff,#f9fafb);align-items:center;justify-content:center;gap:18px';
+  captureHeader.innerHTML=`
+    <div style="width:64px;height:64px;border-radius:16px;background:${ac};display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;overflow:hidden;flex-shrink:0">
+      ${u.photo?`<img src="${esc(u.photo)}" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${esc(initial)}</span>`:`<span>${esc(initial)}</span>`}
+    </div>
+    <div style="text-align:left">
+      <div style="font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;color:#0f172a;line-height:1.2">${esc(u.name)}</div>
+      <div style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:#64748b;margin-top:2px">🏆 Mundial 2026 · Quiniela</div>
+    </div>
+  `;
+  wrapEl.parentNode.insertBefore(captureHeader,wrapEl);
   try{
-    // Temporarily expand the scroll container so the entire bracket is captured (not just visible part)
+    // Temporarily expand the scroll container so the entire bracket is captured
     const origScrollOverflow=scrollEl.style.overflow;
     const origScrollW=scrollEl.style.width;
     const origScrollH=scrollEl.style.height;
     scrollEl.style.overflow='visible';
-    scrollEl.style.width=wrapEl.scrollWidth+'px';
-    scrollEl.style.height=wrapEl.scrollHeight+'px';
-    // Wait one frame for layout
+    scrollEl.style.width=Math.max(wrapEl.scrollWidth,captureHeader.scrollWidth)+'px';
+    scrollEl.style.height=(wrapEl.scrollHeight+captureHeader.offsetHeight)+'px';
     await new Promise(r=>requestAnimationFrame(r));
-    const canvas=await html2canvas(wrapEl,{
+    // Capture both header + bracket together (use scrollEl as the root)
+    const canvas=await html2canvas(scrollEl,{
       backgroundColor:getComputedStyle(document.body).backgroundColor||'#ffffff',
       scale:2,
       useCORS:true,
       allowTaint:false,
       logging:false
     });
-    // Restore scroll container
     scrollEl.style.overflow=origScrollOverflow;
     scrollEl.style.width=origScrollW;
     scrollEl.style.height=origScrollH;
-    // Build filename
+    // Remove the capture header
+    captureHeader.remove();
     const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
     const fileName=`bracket-mundial2026-${safeName}.png`;
-    // Convert to blob and download / share
     canvas.toBlob(async(blob)=>{
       if(!blob){alert('Error generando la imagen.');return;}
-      // Try Web Share API (mobile-friendly: opens share sheet to save / WhatsApp / etc.)
       const file=new File([blob],fileName,{type:'image/png'});
       if(navigator.canShare&&navigator.canShare({files:[file]})){
         try{
@@ -2306,11 +2529,9 @@ async function captureBracket(uid){
           if(btn){btn.disabled=false;btn.textContent=origText;}
           return;
         }catch(e){
-          // User cancelled share — fall through to download
           if(e&&e.name==='AbortError'){if(btn){btn.disabled=false;btn.textContent=origText;}return;}
         }
       }
-      // Fallback: download directly
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a');
       a.href=url;a.download=fileName;
@@ -2321,6 +2542,7 @@ async function captureBracket(uid){
     },'image/png');
   }catch(err){
     console.error('Capture failed:',err);
+    captureHeader.remove();
     alert('No se pudo generar la imagen: '+(err.message||err));
     if(btn){btn.disabled=false;btn.textContent=origText;}
   }
