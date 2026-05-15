@@ -1697,11 +1697,32 @@ function rR32(adm){
     const t8=p.t8||[];
     if(t8.length<8){h+=`<div class="t8-hint">Termina de predecir los 72 partidos de grupos. Tus 8 mejores terceros se calculan automáticamente y aparecerán aquí.</div>`;}
     else{
+      // Calculate which Annex C scenario applies
+      const ranking=calcAllThirds(p.grupos);
+      const top8Groups=ranking.slice(0,8).map(t=>t.group).sort();
+      const annexKey=top8Groups.map(g=>'3'+g).join('-');
+      const annexMatchups=ANNEX_C_TABLE[annexKey];
+      const optionNum=annexMatchups?Object.keys(ANNEX_C_TABLE).indexOf(annexKey)+1:null;
+      if(annexMatchups){
+        h+=`<div style="background:linear-gradient(135deg,#dbeafe,#e0f2fe);border:1.5px solid #93c5fd;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#1e40af;line-height:1.5">
+          <div style="font-weight:800;margin-bottom:6px;font-family:'Outfit',sans-serif">🎯 Escenario FIFA Annex C #${optionNum} de 495</div>
+          <div style="font-size:11px;opacity:.85;margin-bottom:8px">Los emparejamientos siguen la tabla oficial FIFA según los 8 grupos cuyos 3ros clasificaron.</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:5px;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif">
+            ${R32_THIRDS.map(({c1})=>{
+              const t3code=annexMatchups[c1];
+              return `<div style="background:rgba(255,255,255,.6);padding:4px 8px;border-radius:5px;text-align:center">${c1} <span style="color:#6b7280">vs</span> ${t3code}</div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }
       h+='<div class="mgrid">';
       for(let ti=0;ti<8;ti++){
         const{i,c1}=R32_THIRDS[ti];
         const t1=rc(c1,p)||'',t2=t8[ti]||'';
-        h+=mc({lbl:`${c1} vs 3ro #${ti+1}`,t1:t1||c1,t2:t2||'Por definir',w:p.r32[i],dis:!t1||!t2,
+        // Build label with Annex C info
+        const t3code=annexMatchups?annexMatchups[c1]:null;
+        const lbl=t3code?`${c1} vs ${t3code}`:`${c1} vs 3ro #${ti+1}`;
+        h+=mc({lbl:lbl,t1:t1||c1,t2:t2||'Por definir',w:p.r32[i],dis:!t1||!t2,
           f1:t1&&t2?`setR32(${i},'${js(t1)}',false)`:'',
           f2:t1&&t2?`setR32(${i},'${js(t2)}',false)`:''});
       }
@@ -1709,12 +1730,30 @@ function rR32(adm){
     }
   }else{
     // Admin sees auto-calculated thirds matchups from Annex C
+    const ranking=calcAllThirds(p.grupos);
+    const top8Groups=ranking.length===12?ranking.slice(0,8).map(t=>t.group).sort():[];
+    const annexKey=top8Groups.length===8?top8Groups.map(g=>'3'+g).join('-'):null;
+    const annexMatchups=annexKey?ANNEX_C_TABLE[annexKey]:null;
+    const optionNum=annexMatchups?Object.keys(ANNEX_C_TABLE).indexOf(annexKey)+1:null;
+    if(annexMatchups){
+      h+=`<div style="background:linear-gradient(135deg,#dbeafe,#e0f2fe);border:1.5px solid #93c5fd;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#1e40af;line-height:1.5">
+        <div style="font-weight:800;margin-bottom:6px;font-family:'Outfit',sans-serif">🎯 Escenario FIFA Annex C #${optionNum} de 495</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:5px;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif">
+          ${R32_THIRDS.map(({c1})=>{
+            const t3code=annexMatchups[c1];
+            return `<div style="background:rgba(255,255,255,.6);padding:4px 8px;border-radius:5px;text-align:center">${c1} <span style="color:#6b7280">vs</span> ${t3code}</div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }
     h+='<div class="mgrid">';
     for(let ti=0;ti<8;ti++){
       const{i,c1}=R32_THIRDS[ti];
       const t1=rc(c1,p)||'';
-      const t2=p.t8[ti]||''; // auto-calculated from Annex C
-      h+=`<div class="mcard"><div class="mlbl">${c1} vs 3ro (Annex C)</div>
+      const t2=p.t8[ti]||'';
+      const t3code=annexMatchups?annexMatchups[c1]:null;
+      const lbl=t3code?`${c1} vs ${t3code}`:`${c1} vs 3ro (Annex C)`;
+      h+=`<div class="mcard"><div class="mlbl">${lbl}</div>
         <div class="mrow">
           <button class="mbtn${p.r32[i]===t1&&t1?' on':''}" ${!t1||!t2?'disabled':''} onclick="${t1&&t2?`setR32(${i},'${js(t1)}',true)`:''}">${t1?`<span class="flag">${flag(t1)}</span>`:''}<span>${esc(t1)||c1}</span></button>
           <div class="vsbdg">vs</div>
