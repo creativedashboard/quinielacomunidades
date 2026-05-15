@@ -254,6 +254,16 @@ html[data-ucolor] .lbbar-fill{background:var(--uc)}
 
 /* ── BRACKET OVERLAY ─────────────────────────────────── */
 #bracket-overlay{position:fixed;inset:0;z-index:700;background:var(--bg);display:none;flex-direction:column}
+#confirm-modal{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:20px}
+#confirm-modal.on{display:flex}
+.cnf-box{background:var(--card);border-radius:14px;max-width:380px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.cnf-ttl{font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;color:var(--tx);margin-bottom:10px}
+.cnf-msg{font-size:14px;color:var(--mt);line-height:1.5;margin-bottom:22px}
+.cnf-row{display:flex;gap:10px}
+.cnf-btn{flex:1;padding:13px 16px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;min-height:48px}
+.cnf-btn.cancel{background:var(--bg);color:var(--tx);border:1.5px solid var(--bd)}
+.cnf-btn.ok{background:var(--ac);color:#fff}
+.cnf-btn.danger{background:var(--rd);color:#fff}
 #bracket-overlay.on{display:flex}
 .br-topbar{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--card);border-bottom:1.5px solid var(--bd);flex-shrink:0}
 .br-avatar{width:36px;height:36px;border-radius:10px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;font-family:'Outfit',sans-serif;flex-shrink:0;background-color:var(--ac)}
@@ -449,6 +459,7 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
 
 <!-- ── BRACKET OVERLAY ─────────────────────────────── -->
 <div id="bracket-overlay"></div>
+<div id="confirm-modal"><div class="cnf-box"><div class="cnf-ttl" id="cnf-ttl"></div><div class="cnf-msg" id="cnf-msg"></div><div class="cnf-row"><button class="cnf-btn cancel" onclick="closeConfirm(false)">Cancelar</button><button class="cnf-btn" id="cnf-ok" onclick="closeConfirm(true)">Confirmar</button></div></div></div>
 
 <!-- ── MODAL ───────────────────────────────────────── -->
 <div id="modal-overlay"><div id="modal-box"></div></div>
@@ -1023,8 +1034,8 @@ function setGroupMatch(g,mi,side,val,adm){
   // Optimistic update
   if(adm)S.adminR=p;else S.picks[ME.uid]=p;
   if(adm)saveAdminResults();else scheduleSavePicks(p);
-  // Debounced render to avoid jank while typing
-  scheduleRerender();
+  // Selective DOM update — does NOT touch the input elements, preserves focus
+  updateAfterScore(g,p);
 }
 
 let _renderTimer=null;
@@ -1281,8 +1292,6 @@ function rProgStrip(){
 
 // Auto-advance input when pressing Enter/Tab
 function focusNextGoalInput(currentEl){
-  // Cancel any pending rerender so it doesn't blow away focus mid-navigation
-  clearTimeout(_renderTimer);
   const all=Array.from(document.querySelectorAll('input[data-goalinput="1"]'));
   const idx=all.indexOf(currentEl);
   if(idx>=0&&idx<all.length-1){
@@ -1290,38 +1299,67 @@ function focusNextGoalInput(currentEl){
     next.focus();
     next.select();
   }else if(idx===all.length-1){
-    currentEl.blur(); // last input — just unfocus
+    currentEl.blur();
   }
-  // Re-trigger rerender after a moment so points still update
-  scheduleRerender();
 }
 
 // Random-fill all group matches (testing helper)
 function randomFillGroups(){
   if(isLocked()){showLocked();return;}
-  if(!confirm('Esto va a rellenar TODOS los partidos de grupos con marcadores random. ¿Continuar?'))return;
-  const p=myPicks();
-  for(const g of GKEYS){
-    if(!p.grupos[g])p.grupos[g]=emptyGroup();
-    if(!p.grupos[g].matches)p.grupos[g].matches=Array.from({length:6},()=>({a:0,b:0}));
-    for(let mi=0;mi<6;mi++){
-      p.grupos[g].matches[mi]={a:Math.floor(Math.random()*5),b:Math.floor(Math.random()*5)};
+  showConfirm({
+    title:'🎲 Rellenar al azar',
+    msg:'Esto va a rellenar TODOS los partidos de grupos con marcadores aleatorios. ¿Continuar?',
+    okText:'Sí, rellenar',
+    danger:false,
+    onOk:()=>{
+      const p=myPicks();
+      for(const g of GKEYS){
+        if(!p.grupos[g])p.grupos[g]=emptyGroup();
+        if(!p.grupos[g].matches)p.grupos[g].matches=Array.from({length:6},()=>({a:0,b:0}));
+        for(let mi=0;mi<6;mi++){
+          p.grupos[g].matches[mi]={a:Math.floor(Math.random()*5),b:Math.floor(Math.random()*5)};
+        }
+      }
+      cleanT8(p);
+      resetKO(p);
+      S.picks[ME.uid]=p;
+      scheduleSavePicks(p);
+      render();
     }
-  }
-  cleanT8(p);
-  resetKO(p);
-  S.picks[ME.uid]=p;
-  scheduleSavePicks(p);
-  render();
+  });
 }
 
 function clearAllPicks(){
   if(isLocked()){showLocked();return;}
-  if(!confirm('⚠️ Esto va a BORRAR TODAS tus predicciones (grupos y bracket). ¿Estás seguro?'))return;
-  const p=ep();
-  S.picks[ME.uid]=p;
-  scheduleSavePicks(p);
-  render();
+  showConfirm({
+    title:'⚠️ Borrar todas las predicciones',
+    msg:'Esto va a BORRAR TODAS tus predicciones (grupos y bracket). Esta acción no se puede deshacer.',
+    okText:'Sí, borrar todo',
+    danger:true,
+    onOk:()=>{
+      const p=ep();
+      S.picks[ME.uid]=p;
+      scheduleSavePicks(p);
+      render();
+    }
+  });
+}
+
+// Custom confirm modal (cross-platform reliable, replaces native confirm())
+let _confirmCb=null;
+function showConfirm({title,msg,okText,danger,onOk}){
+  document.getElementById('cnf-ttl').textContent=title||'¿Confirmar?';
+  document.getElementById('cnf-msg').textContent=msg||'';
+  const okBtn=document.getElementById('cnf-ok');
+  okBtn.textContent=okText||'Confirmar';
+  okBtn.className='cnf-btn '+(danger?'danger':'ok');
+  _confirmCb=onOk||null;
+  document.getElementById('confirm-modal').classList.add('on');
+}
+function closeConfirm(ok){
+  document.getElementById('confirm-modal').classList.remove('on');
+  const cb=_confirmCb;_confirmCb=null;
+  if(ok&&cb)cb();
 }
 
 // Open MY OWN bracket as visual overlay
@@ -1355,56 +1393,33 @@ function rGrupos(adm){
   else{p=myPicks();a='false';}
   let h=rParticipants();
   if(!adm){
+    // Community banner (if set by admin)
+    const myComm=S.communities[ME.communityId];
+    if(myComm&&myComm.bannerUrl){
+      h+=`<div style="margin-bottom:14px;border-radius:var(--r);overflow:hidden;border:1.5px solid var(--bd);background:var(--card)"><img src="${esc(myComm.bannerUrl)}" alt="Banner de ${esc(myComm.name)}" style="width:100%;height:auto;display:block" onerror="this.parentElement.style.display='none'"></div>`;
+    }
     const prog=calcProgress(p);
     const pct=Math.round((prog.grpFilled/12)*100);
     h+=`<div class="prog-wrap"><div class="prog-lbl"><span>Grupos</span><span>${prog.grpFilled}/12</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
       <button onclick="openMyBracket()" style="padding:11px 18px;background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:800;font-family:'DM Sans',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(37,99,235,.3);display:inline-flex;align-items:center;gap:7px">🏆 Ver mi bracket completo</button>
-      <button onclick="randomFillGroups()" style="padding:9px 14px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap" title="Solo para pruebas">🎲 Rellenar al azar</button>
-      <button onclick="clearAllPicks()" style="padding:9px 14px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap" title="Solo para pruebas">🗑 Borrar todo</button>
+      <button onclick="randomFillGroups()" style="padding:12px 16px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Solo para pruebas">🎲 Rellenar al azar</button>
+      <button onclick="clearAllPicks()" style="padding:12px 16px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Solo para pruebas">🗑 Borrar todo</button>
     </div>
     <div style="font-size:12px;color:var(--mt);margin-bottom:14px;padding:10px 14px;background:var(--acl);border-radius:8px;line-height:1.5">💡 Predice los goles de cada partido. La tabla y los terceros se calculan automáticamente.</div>`;
   }
   h+='<div class="ggrid">';
   for(const[g,teams]of Object.entries(GRP)){
-    const table=calcGroupTable(g,p.grupos[g]);
     const matches=(p.grupos[g]&&p.grupos[g].matches)||[];
     const playedAll=matches.length===6&&matches.every(m=>m&&m.a!=null&&m.b!=null&&m.a!==''&&m.b!=='');
     h+=`<div class="gcard" style="padding:0;overflow:hidden">
-      <div class="ghdr" style="padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--card2)">
+      <div class="ghdr" style="padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--card2)" id="ghdr-${g}">
         <span class="glbl" style="font-size:14px;font-weight:800;color:var(--tx)">Grupo ${g}</span>
         ${playedAll?'<span class="gok">✓ Completo</span>':''}
       </div>`;
-    // ── Standings table ──
-    h+=`<div style="padding:10px 12px 6px"><table style="width:100%;font-size:11px;border-collapse:collapse">
-      <thead><tr style="color:var(--mt);font-size:10px;text-align:left">
-        <th style="padding:3px 4px;width:18px">#</th>
-        <th style="padding:3px 4px">Equipo</th>
-        <th style="padding:3px 4px;text-align:center">PTS</th>
-        <th style="padding:3px 4px;text-align:center">PJ</th>
-        <th style="padding:3px 4px;text-align:center">G</th>
-        <th style="padding:3px 4px;text-align:center">E</th>
-        <th style="padding:3px 4px;text-align:center">P</th>
-        <th style="padding:3px 4px;text-align:center">DG</th>
-      </tr></thead><tbody>`;
-    table.forEach((t,i)=>{
-      const bg=i===0?'var(--g1b)':i===1?'var(--g2b)':(i===2&&t.pj>0)?'#fff7ed':'transparent';
-      const tcol=i===0?'var(--g1t)':i===1?'var(--g2t)':(i===2&&t.pj>0)?'#9a3412':'var(--mt)';
-      const bdg=i<3?`<span style="display:inline-block;padding:1px 5px;border-radius:4px;font-weight:800;font-size:9px;${i===0?'background:var(--g1d);color:var(--g1t)':i===1?'background:var(--g2d);color:var(--g2t)':'background:#fed7aa;color:#9a3412'}">${i+1}°</span>`:`<span style="color:var(--mt)">${i+1}</span>`;
-      const gd=t.gd>0?`+${t.gd}`:t.gd;
-      h+=`<tr style="background:${bg};color:${tcol}">
-        <td style="padding:4px;font-weight:800">${bdg}</td>
-        <td style="padding:4px;font-weight:600"><span class="flag" style="margin-right:4px">${flag(t.name)}</span>${esc(t.name)}</td>
-        <td style="padding:4px;text-align:center;font-weight:700">${t.pts}</td>
-        <td style="padding:4px;text-align:center;color:var(--mt)">${t.pj}</td>
-        <td style="padding:4px;text-align:center;color:var(--mt)">${t.w}</td>
-        <td style="padding:4px;text-align:center;color:var(--mt)">${t.d}</td>
-        <td style="padding:4px;text-align:center;color:var(--mt)">${t.l}</td>
-        <td style="padding:4px;text-align:center;color:var(--mt)">${gd}</td>
-      </tr>`;
-    });
-    h+='</tbody></table></div>';
-    // ── Match score inputs ──
+    // ── Standings table (wrapped for selective rerender) ──
+    h+=`<div id="gtbl-${g}">${renderGroupTable(g,p)}</div>`;
+    // ── Match score inputs (NEVER re-rendered while typing — focus is preserved) ──
     h+=`<div style="padding:6px 12px 12px;border-top:1px dashed var(--bd);margin-top:4px">
       <div style="font-size:10px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 6px">Partidos · pon los goles</div>`;
     GROUP_MATCH_PAIRS.forEach(([i,j],mi)=>{
@@ -1414,9 +1429,9 @@ function rGrupos(adm){
       const kbHandler="if(event.key==='Enter'||event.key==='Tab'||event.key===' '){event.preventDefault();focusNextGoalInput(this)}";
       h+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px">
         <span style="flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t1)}</span> ${esc(t1)}</span>
-        <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.a==null?'':va}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'a',this.value,${a})" onkeydown="${kbHandler}">
+        <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.a==null?'':va}" data-goalinput="1" data-g="${g}" data-mi="${mi}" data-side="a" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'a',this.value,${a})" onkeydown="${kbHandler}">
         <span style="color:var(--mt);font-size:11px;font-weight:600">-</span>
-        <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.b==null?'':vb}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'b',this.value,${a})" onkeydown="${kbHandler}">
+        <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.b==null?'':vb}" data-goalinput="1" data-g="${g}" data-mi="${mi}" data-side="b" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'b',this.value,${a})" onkeydown="${kbHandler}">
         <span style="flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t2)}</span> ${esc(t2)}</span>
       </div>`;
     });
@@ -1426,38 +1441,7 @@ function rGrupos(adm){
 
   // ─── Best Thirds Ranking ───
   if(!adm){
-    const thirdsRanking=calcAllThirds(p.grupos);
-    if(thirdsRanking.length===0){
-      h+='<div class="t8-hint">Predice al menos un partido de cada grupo para empezar a ver el ranking de terceros.</div>';
-    }else if(thirdsRanking.length<12){
-      h+=`<div class="t8-hint">Faltan grupos por completar. Los <strong>8 mejores terceros</strong> se calculan automáticamente al terminar todos los partidos.</div>`;
-    }else{
-      h+=`<div class="t8-section">
-        <div class="t8-hdr">
-          <div class="t8-ttl">Ranking de Terceros lugares</div>
-          <span style="font-size:11px;color:var(--mt);font-weight:600">Top 8 clasifican</span>
-        </div>
-        <div class="t8-sub">Calculado por: <strong>Puntos → Diferencia de goles → Goles a favor</strong>. Estos 8 jugarán en 16avos.</div>
-        <div style="margin-top:10px">`;
-      thirdsRanking.forEach((t,i)=>{
-        const qualifies=i<8;
-        const gd=t.gd>0?`+${t.gd}`:t.gd;
-        h+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${qualifies?'var(--gnl)':'var(--bg)'};border:1.5px solid ${qualifies?'#a7f3d0':'var(--bd)'};border-radius:8px;margin-bottom:5px;${qualifies?'':'opacity:.6'}">
-          <span style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:${qualifies?'var(--gnd)':'var(--mt)'};min-width:24px;text-align:center">${i+1}°</span>
-          <span class="flag" style="font-size:18px">${flag(t.name)}</span>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700">${esc(t.name)}</div>
-            <div style="font-size:10px;color:var(--mt)">Grupo ${t.group}</div>
-          </div>
-          <div style="font-size:11px;color:var(--mt);text-align:right">
-            <div><strong style="color:var(--tx);font-size:13px">${t.pts} pts</strong></div>
-            <div>DG ${gd} · GF ${t.gf}</div>
-          </div>
-          ${qualifies?`<span style="padding:3px 9px;background:var(--gn);color:#fff;border-radius:14px;font-size:10px;font-weight:700">✓ CLASIFICA</span>`:`<span style="padding:3px 9px;background:var(--card);color:var(--mt);border:1px solid var(--bd);border-radius:14px;font-size:10px;font-weight:700">FUERA</span>`}
-        </div>`;
-      });
-      h+='</div></div>';
-    }
+    h+=`<div id="thirds-ranking">${renderThirdsRanking(p)}</div>`;
   }else{
     const thirdsRanking=calcAllThirds(S.adminR.grupos);
     if(thirdsRanking.length>0){
@@ -1477,6 +1461,90 @@ function rGrupos(adm){
     }
   }
   return h;
+}
+
+// ── Render helpers for selective updates (preserve focus on inputs while typing) ──
+function renderGroupTable(g,p){
+  const table=calcGroupTable(g,p.grupos[g]);
+  let h=`<div style="padding:10px 12px 6px"><table style="width:100%;font-size:11px;border-collapse:collapse">
+    <thead><tr style="color:var(--mt);font-size:10px;text-align:left">
+      <th style="padding:3px 4px;width:18px">#</th>
+      <th style="padding:3px 4px">Equipo</th>
+      <th style="padding:3px 4px;text-align:center">PTS</th>
+      <th style="padding:3px 4px;text-align:center">PJ</th>
+      <th style="padding:3px 4px;text-align:center">G</th>
+      <th style="padding:3px 4px;text-align:center">E</th>
+      <th style="padding:3px 4px;text-align:center">P</th>
+      <th style="padding:3px 4px;text-align:center">DG</th>
+    </tr></thead><tbody>`;
+  table.forEach((t,i)=>{
+    const bg=i===0?'var(--g1b)':i===1?'var(--g2b)':(i===2&&t.pj>0)?'#fff7ed':'transparent';
+    const tcol=i===0?'var(--g1t)':i===1?'var(--g2t)':(i===2&&t.pj>0)?'#9a3412':'var(--mt)';
+    const bdg=i<3?`<span style="display:inline-block;padding:1px 5px;border-radius:4px;font-weight:800;font-size:9px;${i===0?'background:var(--g1d);color:var(--g1t)':i===1?'background:var(--g2d);color:var(--g2t)':'background:#fed7aa;color:#9a3412'}">${i+1}°</span>`:`<span style="color:var(--mt)">${i+1}</span>`;
+    const gd=t.gd>0?`+${t.gd}`:t.gd;
+    h+=`<tr style="background:${bg};color:${tcol}">
+      <td style="padding:4px;font-weight:800">${bdg}</td>
+      <td style="padding:4px;font-weight:600"><span class="flag" style="margin-right:4px">${flag(t.name)}</span>${esc(t.name)}</td>
+      <td style="padding:4px;text-align:center;font-weight:700">${t.pts}</td>
+      <td style="padding:4px;text-align:center;color:var(--mt)">${t.pj}</td>
+      <td style="padding:4px;text-align:center;color:var(--mt)">${t.w}</td>
+      <td style="padding:4px;text-align:center;color:var(--mt)">${t.d}</td>
+      <td style="padding:4px;text-align:center;color:var(--mt)">${t.l}</td>
+      <td style="padding:4px;text-align:center;color:var(--mt)">${gd}</td>
+    </tr>`;
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+
+function renderThirdsRanking(p){
+  const thirdsRanking=calcAllThirds(p.grupos);
+  if(thirdsRanking.length===0){
+    return '<div class="t8-hint">Predice al menos un partido de cada grupo para empezar a ver el ranking de terceros.</div>';
+  }
+  if(thirdsRanking.length<12){
+    return `<div class="t8-hint">Faltan grupos por completar. Los <strong>8 mejores terceros</strong> se calculan automáticamente al terminar todos los partidos.</div>`;
+  }
+  let h=`<div class="t8-section">
+    <div class="t8-hdr">
+      <div class="t8-ttl">Ranking de Terceros lugares</div>
+      <span style="font-size:11px;color:var(--mt);font-weight:600">Top 8 clasifican</span>
+    </div>
+    <div class="t8-sub">Calculado por: <strong>Puntos → Diferencia de goles → Goles a favor</strong>. Estos 8 jugarán en 16avos.</div>
+    <div style="margin-top:10px">`;
+  thirdsRanking.forEach((t,i)=>{
+    const qualifies=i<8;
+    const gd=t.gd>0?`+${t.gd}`:t.gd;
+    h+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${qualifies?'var(--gnl)':'var(--bg)'};border:1.5px solid ${qualifies?'#a7f3d0':'var(--bd)'};border-radius:8px;margin-bottom:5px;${qualifies?'':'opacity:.6'}">
+      <span style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:${qualifies?'var(--gnd)':'var(--mt)'};min-width:24px;text-align:center">${i+1}°</span>
+      <span class="flag" style="font-size:18px">${flag(t.name)}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700">${esc(t.name)}</div>
+        <div style="font-size:10px;color:var(--mt)">Grupo ${t.group}</div>
+      </div>
+      <div style="font-size:11px;color:var(--mt);text-align:right">
+        <div><strong style="color:var(--tx);font-size:13px">${t.pts} pts</strong></div>
+        <div>DG ${gd} · GF ${t.gf}</div>
+      </div>
+      ${qualifies?`<span style="padding:3px 9px;background:var(--gn);color:#fff;border-radius:14px;font-size:10px;font-weight:700">✓ CLASIFICA</span>`:`<span style="padding:3px 9px;background:var(--card);color:var(--mt);border:1px solid var(--bd);border-radius:14px;font-size:10px;font-weight:700">FUERA</span>`}
+    </div>`;
+  });
+  h+='</div></div>';
+  return h;
+}
+
+// Update only the parts affected by a score change — preserves focus on inputs
+function updateAfterScore(g,p){
+  const tblEl=document.getElementById('gtbl-'+g);
+  if(tblEl)tblEl.innerHTML=renderGroupTable(g,p);
+  const hdrEl=document.getElementById('ghdr-'+g);
+  if(hdrEl){
+    const matches=(p.grupos[g]&&p.grupos[g].matches)||[];
+    const playedAll=matches.length===6&&matches.every(m=>m&&m.a!=null&&m.b!=null&&m.a!==''&&m.b!=='');
+    hdrEl.innerHTML=`<span class="glbl" style="font-size:14px;font-weight:800;color:var(--tx)">Grupo ${g}</span>${playedAll?'<span class="gok">✓ Completo</span>':''}`;
+  }
+  const thirdsEl=document.getElementById('thirds-ranking');
+  if(thirdsEl)thirdsEl.innerHTML=renderThirdsRanking(p);
 }
 
 function rAdminT8(){
@@ -2008,13 +2076,28 @@ function rAdmCommunities(){
       }
       h+=`<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
           <button onclick="renameCommunity('${js(cid)}','${js(c.name)}')" style="padding:5px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--mt)">✏ Renombrar</button>
+          <button onclick="setBannerUrl('${js(cid)}','${js(c.bannerUrl||'')}')" style="padding:5px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--mt)">🖼 Banner</button>
           <button onclick="regenInviteCode('${js(cid)}')" style="padding:5px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--mt)">🔄 Nuevo código</button>
           <button onclick="deleteCommunity('${js(cid)}','${js(c.name)}')" style="padding:5px 11px;background:var(--bg);border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--rd);margin-left:auto">🗑 Eliminar</button>
         </div>
+        ${c.bannerUrl?`<div style="margin-top:10px;padding:8px;background:var(--bg);border-radius:8px;border:1px dashed var(--bd2)"><div style="font-size:10px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Banner actual:</div><img src="${esc(c.bannerUrl)}" alt="Banner" style="max-width:100%;height:auto;border-radius:6px;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div style="display:none;font-size:11px;color:var(--rd);padding:6px">❌ No se pudo cargar la imagen. Verifica la URL.</div></div>`:''}
       </div>`;
     }
   }
   return h;
+}
+
+function setBannerUrl(cid,currentUrl){
+  const url=prompt('URL de la imagen del banner (Google Drive, Imgur, etc.):\n\nDeja vacío para quitar el banner.',currentUrl||'');
+  if(url===null)return; // cancelled
+  const trimmed=(url||'').trim();
+  // Convert Google Drive sharing link to direct view link if needed
+  let finalUrl=trimmed;
+  const gdMatch=trimmed.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if(gdMatch){
+    finalUrl='https://drive.google.com/uc?export=view&id='+gdMatch[1];
+  }
+  db.ref('communities/'+cid+'/bannerUrl').set(finalUrl||null);
 }
 
 function rAdmLeaderboard(){
