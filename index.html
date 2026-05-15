@@ -355,6 +355,34 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
   #mob-ovr{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:250;display:none}
   #mob-ovr.on{display:block}
 }
+
+.comm-banner{
+  width:100%;
+  height:180px;
+  border-radius:14px;
+  overflow:hidden;
+  margin-bottom:16px;
+  position:relative;
+  background:#111;
+}
+.comm-banner img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.comm-banner-overlay{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.65),rgba(0,0,0,.15));
+  display:flex;
+  align-items:flex-end;
+  padding:18px;
+  color:#fff;
+  font-family:'Outfit',sans-serif;
+  font-size:24px;
+  font-weight:800;
+}
+
 </style>
 </head>
 <body>
@@ -688,7 +716,7 @@ function applyUserColor(id){
 // ══════════════════════════════════════════════════════
 let ME={uid:'',name:'',email:'',photo:'',color:'blue',isAdmin:false,communityId:''};
 let S={
-  tab:'dashboard',sub:'communities',
+  tab:'mypicks',sub:'communities',
   bracketView:'cards', // 'cards' or 'bracket' — for r32/r16/qf/sf/final tabs
   users:{},        // {uid: profileObj}
   picks:{},        // {uid: picksObj}
@@ -2379,6 +2407,62 @@ function renderFloatNext(){
   if(action){btn.style.display='inline-flex';btn.textContent=btnLbl;_floatNextAction=action;btn.onclick=action;}
   else{btn.style.display='none';_floatNextAction=null;}
 }
+
+// ── QUICK INPUT NAVIGATION ───────────────────────────
+document.addEventListener('keydown',e=>{
+  const el=e.target;
+  if(!el || el.tagName!=='INPUT') return;
+
+  const isScoreInput =
+    el.type==='number' ||
+    el.inputMode==='numeric' ||
+    (el.className||'').toLowerCase().includes('goal');
+
+  if(!isScoreInput) return;
+
+  const inputs=[...document.querySelectorAll('input')]
+    .filter(i=>!i.disabled && i.offsetParent!==null);
+
+  const idx=inputs.indexOf(el);
+  if(idx===-1) return;
+
+  const next=()=>inputs[idx+1] && inputs[idx+1].focus();
+  const prev=()=>inputs[idx-1] && inputs[idx-1].focus();
+
+  if(e.key==='Enter' || e.key===' '){
+    e.preventDefault();
+    next();
+  }
+
+  if(e.key==='Backspace' && !el.value){
+    e.preventDefault();
+    prev();
+  }
+});
+
+document.addEventListener('input',e=>{
+  const el=e.target;
+  if(!el || el.tagName!=='INPUT') return;
+
+  const isScoreInput =
+    el.type==='number' ||
+    el.inputMode==='numeric' ||
+    (el.className||'').toLowerCase().includes('goal');
+
+  if(!isScoreInput) return;
+
+  if(el.value.length>=1){
+    const inputs=[...document.querySelectorAll('input')]
+      .filter(i=>!i.disabled && i.offsetParent!==null);
+
+    const idx=inputs.indexOf(el);
+
+    if(idx!==-1 && inputs[idx+1]){
+      setTimeout(()=>inputs[idx+1].focus(),40);
+    }
+  }
+});
+
 </script>
 </body>
 </html>
