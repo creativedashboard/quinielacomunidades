@@ -355,34 +355,6 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
   #mob-ovr{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:250;display:none}
   #mob-ovr.on{display:block}
 }
-
-.comm-banner{
-  width:100%;
-  height:180px;
-  border-radius:14px;
-  overflow:hidden;
-  margin-bottom:16px;
-  position:relative;
-  background:#111;
-}
-.comm-banner img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-.comm-banner-overlay{
-  position:absolute;
-  inset:0;
-  background:linear-gradient(to top,rgba(0,0,0,.65),rgba(0,0,0,.15));
-  display:flex;
-  align-items:flex-end;
-  padding:18px;
-  color:#fff;
-  font-family:'Outfit',sans-serif;
-  font-size:24px;
-  font-weight:800;
-}
-
 </style>
 </head>
 <body>
@@ -716,7 +688,7 @@ function applyUserColor(id){
 // ══════════════════════════════════════════════════════
 let ME={uid:'',name:'',email:'',photo:'',color:'blue',isAdmin:false,communityId:''};
 let S={
-  tab:'mypicks',sub:'communities',
+  tab:'grupos',sub:'communities',
   bracketView:'cards', // 'cards' or 'bracket' — for r32/r16/qf/sf/final tabs
   users:{},        // {uid: profileObj}
   picks:{},        // {uid: picksObj}
@@ -880,6 +852,7 @@ function showAdminUnlock(){
 function loadApp(forceAdmin){
   showScreen('app');
   if(forceAdmin)S.tab='admin';
+  else S.tab='grupos'; // regular users land on "Mi Quiniela"
 
   // Subscribe to all needed data
   const refs=[
@@ -1057,7 +1030,20 @@ function setGroupMatch(g,mi,side,val,adm){
 let _renderTimer=null;
 function scheduleRerender(){
   clearTimeout(_renderTimer);
-  _renderTimer=setTimeout(()=>render(),250);
+  _renderTimer=setTimeout(()=>{
+    // Preserve focus on goal inputs across rerenders
+    const focused=document.activeElement;
+    let focusIdx=-1;
+    if(focused&&focused.matches&&focused.matches('input[data-goalinput="1"]')){
+      const all=Array.from(document.querySelectorAll('input[data-goalinput="1"]'));
+      focusIdx=all.indexOf(focused);
+    }
+    render();
+    if(focusIdx>=0){
+      const all=Array.from(document.querySelectorAll('input[data-goalinput="1"]'));
+      if(all[focusIdx]){all[focusIdx].focus();}
+    }
+  },350);
 }
 
 // Backward compat: rebuild from possibly-old picks structure
@@ -1295,6 +1281,8 @@ function rProgStrip(){
 
 // Auto-advance input when pressing Enter/Tab
 function focusNextGoalInput(currentEl){
+  // Cancel any pending rerender so it doesn't blow away focus mid-navigation
+  clearTimeout(_renderTimer);
   const all=Array.from(document.querySelectorAll('input[data-goalinput="1"]'));
   const idx=all.indexOf(currentEl);
   if(idx>=0&&idx<all.length-1){
@@ -1304,6 +1292,8 @@ function focusNextGoalInput(currentEl){
   }else if(idx===all.length-1){
     currentEl.blur(); // last input — just unfocus
   }
+  // Re-trigger rerender after a moment so points still update
+  scheduleRerender();
 }
 
 // Random-fill all group matches (testing helper)
@@ -1421,11 +1411,12 @@ function rGrupos(adm){
       const t1=teams[i],t2=teams[j];
       const m=matches[mi]||{a:null,b:null};
       const va=m.a==null?'':m.a,vb=m.b==null?'':m.b;
+      const kbHandler="if(event.key==='Enter'||event.key==='Tab'||event.key===' '){event.preventDefault();focusNextGoalInput(this)}";
       h+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px">
         <span style="flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t1)}</span> ${esc(t1)}</span>
-        <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.a==null?'':va}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'a',this.value,${a})" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();focusNextGoalInput(this)}">
+        <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.a==null?'':va}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'a',this.value,${a})" onkeydown="${kbHandler}">
         <span style="color:var(--mt);font-size:11px;font-weight:600">-</span>
-        <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.b==null?'':vb}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'b',this.value,${a})" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();focusNextGoalInput(this)}">
+        <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${m.b==null?'':vb}" data-goalinput="1" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'b',this.value,${a})" onkeydown="${kbHandler}">
         <span style="flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t2)}</span> ${esc(t2)}</span>
       </div>`;
     });
@@ -1991,7 +1982,7 @@ function rAdmCommunities(){
     h+=`<div style="padding:24px;text-align:center;color:var(--mt)">No hay comunidades aún. Crea la primera arriba.</div>`;
   }else{
     for(const[cid,c]of comms){
-      const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===cid).map(([uid,u])=>({uid,...u}));
+      const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>b.tot-a.tot);
       h+=`<div class="commcard">
         <div class="commhdr">
           <div class="commname">${esc(c.name)}</div>
@@ -1999,17 +1990,23 @@ function rAdmCommunities(){
             <span class="commcode" onclick="navigator.clipboard.writeText('${esc(c.inviteCode)}').then(()=>alert('Código copiado: ${esc(c.inviteCode)}'))">📋 ${esc(c.inviteCode)}</span>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--mt);margin-bottom:6px">${members.length} miembro${members.length!==1?'s':''}</div>
-        <div class="commmem">`;
-      for(const m of members){
-        h+=`<span class="commmem-item">
-          ${userPic(m,18).replace('class="lbpic"','class="commmem-pic"')}
-          <span>${esc(m.name)}</span>
-          <button onclick="moveMember('${js(m.uid)}','${js(m.name)}')" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:0;margin-left:4px;font-size:11px" title="Mover">⇄</button>
-        </span>`;
+        <div style="font-size:11px;color:var(--mt);margin-bottom:8px">${members.length} miembro${members.length!==1?'s':''}</div>`;
+      if(members.length>0){
+        h+=`<div style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px;margin-bottom:10px">`;
+        members.forEach((m,i)=>{
+          const medal=['🥇','🥈','🥉'][i]||`<span style="color:var(--mt);font-weight:700;font-size:11px;width:18px;display:inline-block;text-align:center">${i+1}</span>`;
+          h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .12s" onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background='transparent'" onclick="openBracket('${js(m.uid)}')">
+            <div style="width:22px;display:flex;align-items:center;justify-content:center;font-size:14px">${medal}</div>
+            ${userPic(m,26).replace('class="lbpic"','class="commmem-pic" style="width:26px;height:26px;border-radius:50%;flex-shrink:0"')}
+            <div style="flex:1;font-size:12px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</div>
+            <div style="font-size:13px;font-weight:800;color:var(--ac)">${m.tot}<span style="font-size:10px;color:var(--mt);font-weight:500;margin-left:2px">pts</span></div>
+            <button onclick="event.stopPropagation();moveMember('${js(m.uid)}','${js(m.name)}')" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:2px 4px;font-size:13px" title="Mover de comunidad">⇄</button>
+          </div>`;
+        });
+        h+=`</div>
+          <div style="font-size:10px;color:var(--mt);text-align:center;margin-bottom:8px;font-style:italic">👆 Click en un miembro para ver su quiniela</div>`;
       }
-      h+=`</div>
-        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+      h+=`<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
           <button onclick="renameCommunity('${js(cid)}','${js(c.name)}')" style="padding:5px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--mt)">✏ Renombrar</button>
           <button onclick="regenInviteCode('${js(cid)}')" style="padding:5px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--mt)">🔄 Nuevo código</button>
           <button onclick="deleteCommunity('${js(cid)}','${js(c.name)}')" style="padding:5px 11px;background:var(--bg);border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--rd);margin-left:auto">🗑 Eliminar</button>
@@ -2407,62 +2404,6 @@ function renderFloatNext(){
   if(action){btn.style.display='inline-flex';btn.textContent=btnLbl;_floatNextAction=action;btn.onclick=action;}
   else{btn.style.display='none';_floatNextAction=null;}
 }
-
-// ── QUICK INPUT NAVIGATION ───────────────────────────
-document.addEventListener('keydown',e=>{
-  const el=e.target;
-  if(!el || el.tagName!=='INPUT') return;
-
-  const isScoreInput =
-    el.type==='number' ||
-    el.inputMode==='numeric' ||
-    (el.className||'').toLowerCase().includes('goal');
-
-  if(!isScoreInput) return;
-
-  const inputs=[...document.querySelectorAll('input')]
-    .filter(i=>!i.disabled && i.offsetParent!==null);
-
-  const idx=inputs.indexOf(el);
-  if(idx===-1) return;
-
-  const next=()=>inputs[idx+1] && inputs[idx+1].focus();
-  const prev=()=>inputs[idx-1] && inputs[idx-1].focus();
-
-  if(e.key==='Enter' || e.key===' '){
-    e.preventDefault();
-    next();
-  }
-
-  if(e.key==='Backspace' && !el.value){
-    e.preventDefault();
-    prev();
-  }
-});
-
-document.addEventListener('input',e=>{
-  const el=e.target;
-  if(!el || el.tagName!=='INPUT') return;
-
-  const isScoreInput =
-    el.type==='number' ||
-    el.inputMode==='numeric' ||
-    (el.className||'').toLowerCase().includes('goal');
-
-  if(!isScoreInput) return;
-
-  if(el.value.length>=1){
-    const inputs=[...document.querySelectorAll('input')]
-      .filter(i=>!i.disabled && i.offsetParent!==null);
-
-    const idx=inputs.indexOf(el);
-
-    if(idx!==-1 && inputs[idx+1]){
-      setTimeout(()=>inputs[idx+1].focus(),40);
-    }
-  }
-});
-
 </script>
 </body>
 </html>
