@@ -865,17 +865,25 @@ function loadApp(forceAdmin){
   if(forceAdmin)S.tab='admin';
   else S.tab='grupos'; // regular users land on "Mi Quiniela"
 
+  // Helper: check if user is actively typing in a goal input
+  // (skip render() in that case to avoid destroying inputs and losing focus)
+  function isTypingScore(){
+    const f=document.activeElement;
+    return f&&f.matches&&f.matches('input[data-goalinput="1"]');
+  }
+  function safeRender(){if(!isTypingScore())render();}
+
   // Subscribe to all needed data
   const refs=[
-    {path:'users',                handler:snap=>{S.users=snap.val()||{};render();}},
-    {path:'picks',                handler:snap=>{S.picks=snap.val()||{};render();}},
-    {path:'communities',          handler:snap=>{S.communities=snap.val()||{};render();}},
-    {path:'admin',                handler:snap=>{S.adminR=mergeAdm(snap.val()||{});render();}},
+    {path:'users',                handler:snap=>{S.users=snap.val()||{};safeRender();}},
+    {path:'picks',                handler:snap=>{S.picks=snap.val()||{};safeRender();}},
+    {path:'communities',          handler:snap=>{S.communities=snap.val()||{};safeRender();}},
+    {path:'admin',                handler:snap=>{S.adminR=mergeAdm(snap.val()||{});safeRender();}},
     {path:'thirds_bracket',       handler:snap=>{
       const v=snap.val()||[];
       S.thirds_bracket=Array.isArray(v)?v:Object.values(v);
       while(S.thirds_bracket.length<8)S.thirds_bracket.push('');
-      render();
+      safeRender();
     }},
   ];
   for(const{path,handler}of refs){
@@ -1545,6 +1553,9 @@ function updateAfterScore(g,p){
   }
   const thirdsEl=document.getElementById('thirds-ranking');
   if(thirdsEl)thirdsEl.innerHTML=renderThirdsRanking(p);
+  // Also update the top progress strip + bottom float-next (these update independently, don't touch inputs)
+  try{rProgStrip();}catch(e){}
+  try{renderFloatNext();}catch(e){}
 }
 
 function rAdminT8(){
@@ -2088,16 +2099,30 @@ function rAdmCommunities(){
 }
 
 function setBannerUrl(cid,currentUrl){
-  const url=prompt('URL de la imagen del banner (Google Drive, Imgur, etc.):\n\nDeja vacío para quitar el banner.',currentUrl||'');
+  const help='📌 INSTRUCCIONES:\n\n1) Ve a https://imgur.com (no necesitas cuenta)\n2) Arrastra tu imagen y suéltala\n3) Click derecho sobre la imagen subida\n4) Selecciona "Copiar dirección de la imagen"\n5) Pégala aquí abajo\n\n📐 Tamaño ideal: 1500x500 px, formato JPG/PNG\n⚠ Google Drive YA NO funciona (cambió políticas)\n\nDeja vacío para quitar el banner.\n\nURL:';
+  const url=prompt(help,currentUrl||'');
   if(url===null)return; // cancelled
   const trimmed=(url||'').trim();
-  // Convert Google Drive sharing link to direct view link if needed
-  let finalUrl=trimmed;
-  const gdMatch=trimmed.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if(gdMatch){
-    finalUrl='https://drive.google.com/uc?export=view&id='+gdMatch[1];
+  // Empty = remove banner
+  if(trimmed===''){
+    db.ref('communities/'+cid+'/bannerUrl').remove();
+    return;
   }
-  db.ref('communities/'+cid+'/bannerUrl').set(finalUrl||null);
+  // Reject Google Drive (it stopped serving images directly)
+  if(/drive\.google\.com|docs\.google\.com/.test(trimmed)){
+    alert('❌ Google Drive ya no permite mostrar imágenes directamente.\n\nUsa Imgur:\n1) imgur.com\n2) Sube tu imagen\n3) Click derecho → "Copiar dirección de la imagen"\n4) Pega aquí esa URL (debe terminar en .jpg o .png)');
+    return;
+  }
+  // Validate the URL by trying to load it as an image
+  const testImg=new Image();
+  testImg.onload=function(){
+    db.ref('communities/'+cid+'/bannerUrl').set(trimmed);
+    alert('✅ Banner guardado correctamente.\n\nLos miembros de la comunidad lo verán cuando entren a "Mi Quiniela".');
+  };
+  testImg.onerror=function(){
+    alert('❌ No se pudo cargar la imagen desde esa URL.\n\nVerifica que:\n• La URL termine en .jpg, .png o .webp\n• El archivo sea público (no requiera login)\n• La copiaste con "Copiar dirección de la imagen" (no la del navegador)\n\nRecomendado: usa imgur.com');
+  };
+  testImg.src=trimmed;
 }
 
 function rAdmLeaderboard(){
