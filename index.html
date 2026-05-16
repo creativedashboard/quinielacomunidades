@@ -286,7 +286,6 @@ html[data-ucolor] .lbbar-fill{background:var(--uc)}
 
 /* Side container (left/right) */
 .br-side{display:flex;flex-direction:row;align-items:stretch;flex-shrink:0}
-.br-side-right{flex-direction:row-reverse}
 
 /* Column */
 .br-col{display:flex;flex-direction:column;flex-shrink:0;padding:0 12px}
@@ -1882,15 +1881,16 @@ function buildEditableBracket(p){
   h+='</div></div>';
   
   // ─── RIGHT SIDE ───
+  // Order: SF closest to center → QF → R16 → R32 at far edge
   h+='<div class="br-side br-side-right">';
   
-  // SF column (match 1, standalone)
+  // SF (closest to center)
   h+='<div class="br-col br-col-sf"><div class="br-pair">';
   {const[s1,s2]=SFB[1];
    h+=renderMatchRight(MATCH_INFO.sf[1],p.qf[s1]||'',p.qf[s2]||'',p.sf[1],'sf',1);}
   h+='</div></div>';
   
-  // QF column (pair indices 2,3)
+  // QF
   h+='<div class="br-col br-col-qf"><div class="br-pair">';
   for(const i of[2,3]){
     const[s1,s2]=QFB[i];
@@ -1898,7 +1898,7 @@ function buildEditableBracket(p){
   }
   h+='</div></div>';
   
-  // R16 column (2 pairs from indices [4,5] and [6,7])
+  // R16
   h+='<div class="br-col br-col-r16">';
   for(const pair of[[4,5],[6,7]]){
     h+='<div class="br-pair">';
@@ -1910,7 +1910,7 @@ function buildEditableBracket(p){
   }
   h+='</div>';
   
-  // R32 column (4 pairs)
+  // R32 at far right edge
   h+='<div class="br-col br-col-r32">';
   for(const[a,b]of rightR32Pairs){
     h+='<div class="br-pair">';
