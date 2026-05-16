@@ -279,25 +279,113 @@ html[data-ucolor] .lbbar-fill{background:var(--uc)}
 .br-action{padding:8px 14px;border:1.5px solid var(--ac);border-radius:8px;background:var(--ac);cursor:pointer;font-size:13px;font-weight:700;color:#fff;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:5px}
 .br-action:hover{background:var(--acd)}
 .br-action:disabled{opacity:.6;cursor:wait}
-.br-scroll{flex:1;overflow:auto;padding:20px 12px}
+.br-scroll{flex:1;overflow:auto;padding:20px 12px;background:var(--bg)}
 .br-wrap{display:flex;gap:0;align-items:stretch;min-width:max-content;margin:0 auto;padding:0 20px}
 .br-capture-header{display:none;padding:18px 24px;border-bottom:2px solid var(--bd);background:linear-gradient(135deg,var(--card),var(--card2));text-align:center;align-items:center;justify-content:center;gap:14px}
 .br-capture-header.show{display:flex}
-.br-col{display:flex;flex-direction:column;justify-content:space-around;flex-shrink:0}
-.br-col-hdr{text-align:center;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--mt);padding:0 8px 10px;white-space:nowrap}
-.br-match{display:flex;flex-direction:column;gap:1px;margin:2px 0}
-.br-team{display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:6px;background:var(--card);border:1.5px solid var(--bd);font-size:13px;font-weight:500;white-space:nowrap;min-width:78px;max-width:96px;letter-spacing:.5px}
-.br-team .br-tname{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.3px}
-.br-team.winner .br-tname{color:var(--uc,var(--ac))}
+
+/* Side container (left/right) */
+.br-side{display:flex;flex-direction:row;align-items:stretch;flex-shrink:0}
+.br-side-right{flex-direction:row-reverse}
+
+/* Column header */
+.br-col-headers{display:flex;align-items:flex-start;min-width:max-content;margin:0 auto;padding:0 20px;margin-bottom:10px}
+.br-col-hdr{text-align:center;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--mt);white-space:nowrap}
+
+/* Column */
+.br-col{display:flex;flex-direction:column;flex-shrink:0;padding:0 14px}
+.br-col-r32{width:130px}
+.br-col-r16{width:130px}
+.br-col-qf{width:130px}
+.br-col-sf{width:130px}
+
+/* Pair container — flex 1 makes each pair take equal space within col */
+.br-pair{flex:1;display:flex;flex-direction:column;justify-content:space-around;position:relative}
+
+/* Connector lines — LEFT side: bracket "]" pointing right */
+.br-side-left .br-col-r32 .br-pair::after,
+.br-side-left .br-col-r16 .br-pair::after,
+.br-side-left .br-col-qf .br-pair::after{
+  content:'';position:absolute;right:-14px;
+  top:25%;bottom:25%;width:10px;
+  border:1.5px solid var(--bd2);border-left:none;border-radius:0 4px 4px 0;
+  pointer-events:none;
+}
+.br-side-left .br-col-r32 .br-pair::before,
+.br-side-left .br-col-r16 .br-pair::before,
+.br-side-left .br-col-qf .br-pair::before{
+  content:'';position:absolute;right:-24px;
+  top:calc(50% - 1px);width:10px;height:2px;
+  background:var(--bd2);pointer-events:none;
+}
+/* Standalone SF (1 match, no pair) — line connects from match to final */
+.br-side-left .br-col-sf .br-match-wrap{position:relative}
+.br-side-left .br-col-sf .br-match-wrap::after{
+  content:'';position:absolute;right:-14px;
+  top:50%;width:14px;height:2px;
+  background:var(--bd2);pointer-events:none;
+}
+
+/* RIGHT side mirror */
+.br-side-right .br-col-r32 .br-pair::after,
+.br-side-right .br-col-r16 .br-pair::after,
+.br-side-right .br-col-qf .br-pair::after{
+  content:'';position:absolute;left:-14px;
+  top:25%;bottom:25%;width:10px;
+  border:1.5px solid var(--bd2);border-right:none;border-radius:4px 0 0 4px;
+  pointer-events:none;
+}
+.br-side-right .br-col-r32 .br-pair::before,
+.br-side-right .br-col-r16 .br-pair::before,
+.br-side-right .br-col-qf .br-pair::before{
+  content:'';position:absolute;left:-24px;
+  top:calc(50% - 1px);width:10px;height:2px;
+  background:var(--bd2);pointer-events:none;
+}
+.br-side-right .br-col-sf .br-match-wrap{position:relative}
+.br-side-right .br-col-sf .br-match-wrap::before{
+  content:'';position:absolute;left:-14px;
+  top:50%;width:14px;height:2px;
+  background:var(--bd2);pointer-events:none;
+}
+
+/* Individual match wrapper (with side label) */
+.br-match-wrap{display:flex;align-items:center;gap:6px;margin:6px 0;position:relative}
+.br-side-right .br-match-wrap{flex-direction:row-reverse}
+.br-match-num{font-family:'Outfit',sans-serif;font-size:9.5px;font-weight:800;color:var(--ac);background:var(--acl);padding:3px 6px;border-radius:4px;letter-spacing:.4px;text-decoration:underline;text-underline-offset:1px;white-space:nowrap;flex-shrink:0;cursor:default}
+html[data-ucolor] .br-match-num{color:var(--uc);background:var(--uc-l)}
+.br-match{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;background:var(--card);border:1.5px solid var(--bd);border-radius:7px;padding:4px;position:relative}
+.br-match-info{font-size:8.5px;color:var(--mt);text-align:center;font-weight:600;font-family:'DM Sans',sans-serif;opacity:.85;letter-spacing:.2px;line-height:1.2;padding:1px 0 2px}
+
+/* Team cells inside match */
+.br-team{display:flex;align-items:center;gap:5px;padding:4px 7px;border-radius:5px;background:var(--bg);border:1px solid transparent;font-size:12px;font-weight:500;white-space:nowrap;min-width:0;letter-spacing:.3px}
+.br-team .br-tname{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.3px;flex:1;overflow:hidden;text-overflow:ellipsis;font-size:13px}
 .br-team.winner{font-weight:700;border-color:var(--uc,var(--ac));background:var(--uc-l,var(--acl));color:var(--uc,var(--ac))}
-.br-team.empty{color:var(--mt);border-style:dashed;opacity:.5}
+.br-team.winner .br-tname{color:var(--uc,var(--ac))}
+.br-team.empty{color:var(--mt);opacity:.4}
 .br-flag{font-size:14px;flex-shrink:0}
-.br-tname{flex:1;overflow:hidden;text-overflow:ellipsis}
-.br-champion{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;gap:10px;flex-shrink:0;min-width:180px;position:relative}
-.br-champion-glow{position:absolute;inset:-10px;background:radial-gradient(circle,var(--g1b) 0%,transparent 70%);pointer-events:none;z-index:-1}
-.br-champion-banner{font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:var(--g1t);text-transform:uppercase;letter-spacing:1.5px;text-align:center;padding:5px 14px;background:linear-gradient(135deg,var(--g1b),#fde68a);border-radius:6px;border:1px solid var(--g1d);white-space:nowrap}
-.br-thirdplace-section{display:flex;flex-direction:column;align-items:center;gap:5px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--bd2);width:100%}
-.br-thirdplace-lbl{font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:var(--mt);text-transform:uppercase;letter-spacing:1px;text-align:center}
+.br-team.clickable{cursor:pointer;transition:all .12s}
+.br-team.clickable:hover:not(.empty):not(.locked){border-color:var(--ac);background:var(--acl);color:var(--ac)}
+html[data-ucolor] .br-team.clickable:hover:not(.empty):not(.locked){border-color:var(--uc);background:var(--uc-l);color:var(--uc)}
+.br-team.empty.clickable{cursor:default}
+.br-team.locked{opacity:.4;cursor:not-allowed;background:var(--bg)}
+.br-team.locked.empty{opacity:.2}
+
+/* CENTER: Final box */
+.br-final-center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 30px;flex-shrink:0;gap:14px;min-width:210px;position:relative}
+.br-final-glow{position:absolute;inset:-20px;background:radial-gradient(circle,var(--g1b) 0%,transparent 65%);pointer-events:none;z-index:-1}
+.br-final-banner{font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:1.5px;text-align:center;padding:6px 16px;background:linear-gradient(135deg,#fde68a,#fbbf24);border-radius:8px;border:1.5px solid #d97706;white-space:nowrap;box-shadow:0 2px 8px rgba(217,119,6,.25)}
+.br-final-banner-sub{display:block;font-size:9px;font-weight:600;color:#92400e;opacity:.9;margin-top:2px;letter-spacing:.5px;text-transform:none}
+.br-final-box{background:#fff;border:2px solid #fbbf24;border-radius:12px;padding:10px;width:100%;box-shadow:0 4px 14px rgba(217,119,6,.15)}
+.br-trophy{font-size:46px;line-height:1;filter:drop-shadow(0 4px 12px rgba(252,211,77,.6));animation:trophyPulse 3s ease-in-out infinite;text-align:center}
+@keyframes trophyPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.br-champ-team{display:flex;align-items:center;gap:10px;padding:11px 18px;border-radius:11px;background:linear-gradient(135deg,#fbbf24,#fde68a);border:2px solid #d97706;font-size:17px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.4px;white-space:nowrap;box-shadow:0 4px 14px rgba(217,119,6,.35);color:#78350f}
+.br-runnerup-card{margin-top:6px;padding:7px 14px;border-radius:9px;background:linear-gradient(135deg,#e5e7eb,#f3f4f6);border:1.5px solid #9ca3af;display:flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.3px;font-size:14px;color:#4b5563}
+.br-thirdplace-box{margin-top:14px;background:#fff;border:1.5px dashed var(--bd2);border-radius:10px;padding:10px;width:100%}
+.br-thirdplace-lbl{font-family:'Outfit',sans-serif;font-size:9.5px;font-weight:800;color:var(--mt);text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:6px}
+.br-thirdplace-lbl small{display:block;font-size:8.5px;font-weight:600;text-transform:none;letter-spacing:.3px;opacity:.85;margin-top:1px}
+.br-final-lbl{font-family:'Outfit',sans-serif;font-size:9.5px;font-weight:800;color:#92400e;text-align:center;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.br-final-lbl small{display:block;font-size:8.5px;font-weight:600;text-transform:none;letter-spacing:.3px;opacity:.85;margin-top:1px}
 .br-trophy{font-size:54px;line-height:1;filter:drop-shadow(0 4px 12px rgba(252,211,77,.5));animation:trophyPulse 3s ease-in-out infinite}
 @keyframes trophyPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 .br-champ-team{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;background:var(--g1b);border:2px solid var(--g1d);font-size:15px;font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.3px;white-space:nowrap}
@@ -1642,15 +1730,13 @@ function rEditableBracket(){
 }
 
 function buildEditableBracket(p){
-  // Compute completion of each phase
   const prog=calcProgress(p);
   const r32Complete=prog.r32done===16;
   const r16Complete=prog.r16done===8;
   const qfComplete=prog.qfDone===4;
   const sfComplete=prog.sfDone===2;
-  // Determine if a round is locked (depends on previous)
   function isRoundLocked(rnd){
-    if(rnd==='r32')return prog.t8cnt<8; // need all groups done
+    if(rnd==='r32')return prog.t8cnt<8;
     if(rnd==='r16')return !r32Complete;
     if(rnd==='qf')return !r16Complete;
     if(rnd==='sf')return !qfComplete;
@@ -1672,67 +1758,93 @@ function buildEditableBracket(p){
     if(disabled)return `<div class="br-team locked${winner?' winner':''}" title="${esc(name)}"><span class="br-flag">${flag(name)}</span><span class="br-tname">${esc(abbr(name))}</span></div>`;
     return `<div class="br-team clickable${winner?' winner':''}" onclick="${clickFn}" title="${esc(name)}"><span class="br-flag">${flag(name)}</span><span class="br-tname">${esc(abbr(name))}</span></div>`;
   }
-  let h='<div class="br-scroll" style="overflow:auto;max-height:none;padding:14px 0"><div class="br-wrap" style="min-width:max-content">';
-
-  // Left groups A-F (read-only summary)
-  h+='<div class="br-col"><div class="br-col-hdr">Grupos</div><div class="br-groups-col">';
-  for(const g of['A','B','C','D','E','F']){
-    const tbl=calcGroupTable(g,p.grupos[g]);
-    const p1=tbl[0]&&tbl[0].pj>0?tbl[0].name:'';
-    const p2=tbl[1]&&tbl[1].pj>0?tbl[1].name:'';
-    h+=`<div class="br-group-box"><div class="br-group-lbl">Grupo ${g}</div>`;
-    for(const[t,lbl]of[[p1,'1°'],[p2,'2°']]){
-      h+=`<div class="br-group-team" title="${esc(t)}">${t?`<span class="br-flag">${flag(t)}</span><span style="flex:1">${esc(abbr(t))}</span><span style="font-size:8px;font-weight:800;color:var(--mt);font-family:'DM Sans',sans-serif">${lbl}</span>`:`<span style="color:var(--mt);font-size:10px;font-family:'DM Sans',sans-serif">—</span>`}</div>`;
-    }
-    h+='</div>';
+  
+  // Helper: render a match card with its label (match number on outside)
+  function renderMatchLeft(mi_info,team1,team2,winner,rndKey,matchIdx){
+    return `<div class="br-match-wrap">
+      <a class="br-match-num">M${mi_info.m}</a>
+      <div class="br-match">
+        <div class="br-match-info">${mi_info.d} · ${mi_info.t}<br>📍 ${mi_info.c}</div>
+        ${tc(team1,winner===team1&&!!winner,cellClick(rndKey,matchIdx,team1),isRoundLocked(rndKey))}
+        ${tc(team2,winner===team2&&!!winner,cellClick(rndKey,matchIdx,team2),isRoundLocked(rndKey))}
+      </div>
+    </div>`;
   }
-  h+='</div></div>';
-
-  // Left R32
-  h+='<div class="br-col"><div class="br-col-hdr">16avos</div>';
-  const leftR32indices=[1,4,0,2,10,11,8,9];
-  for(const idx of leftR32indices){
+  function renderMatchRight(mi_info,team1,team2,winner,rndKey,matchIdx){
+    return `<div class="br-match-wrap">
+      <a class="br-match-num">M${mi_info.m}</a>
+      <div class="br-match">
+        <div class="br-match-info">${mi_info.d} · ${mi_info.t}<br>📍 ${mi_info.c}</div>
+        ${tc(team1,winner===team1&&!!winner,cellClick(rndKey,matchIdx,team1),isRoundLocked(rndKey))}
+        ${tc(team2,winner===team2&&!!winner,cellClick(rndKey,matchIdx,team2),isRoundLocked(rndKey))}
+      </div>
+    </div>`;
+  }
+  
+  // Get teams for R32 matches
+  function getR32Teams(idx){
     let t1='',t2='';
     const fx=R32_FIXED.find(x=>x.i===idx);
     const th=R32_THIRDS.findIndex(x=>x.i===idx);
     if(fx){t1=rc(fx.c1,p)||'';t2=rc(fx.c2,p)||'';}
     else if(th>=0){t1=rc(R32_THIRDS[th].c1,p)||'';t2=(p.t8||[])[th]||'';}
-    const w=p.r32[idx];
-    const mi=MATCH_INFO.r32[idx];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${tc(t1,w===t1&&!!w,cellClick('r32',idx,t1),isRoundLocked('r32'))}${tc(t2,w===t2&&!!w,cellClick('r32',idx,t2),isRoundLocked('r32'))}</div>`;
+    return[t1,t2];
+  }
+  
+  // R32 ordering (pairs feeding into R16):
+  // Left pairs: (1,4)→M89, (0,2)→M90, (10,11)→M93, (8,9)→M94
+  // Right pairs: (3,5)→M91, (6,7)→M92, (13,15)→M95, (12,14)→M96
+  const leftR32Pairs=[[1,4],[0,2],[10,11],[8,9]];
+  const rightR32Pairs=[[3,5],[6,7],[13,15],[12,14]];
+  
+  let h='<div class="br-wrap">';
+  
+  // ─── LEFT SIDE ───
+  h+='<div class="br-side br-side-left">';
+  
+  // R32 column (4 pairs)
+  h+='<div class="br-col br-col-r32">';
+  for(const[a,b]of leftR32Pairs){
+    h+='<div class="br-pair">';
+    for(const idx of[a,b]){
+      const[t1,t2]=getR32Teams(idx);
+      h+=renderMatchLeft(MATCH_INFO.r32[idx],t1,t2,p.r32[idx],'r32',idx);
+    }
+    h+='</div>';
   }
   h+='</div>';
-
-  // Left R16 (matches 0-3)
-  h+='<div class="br-col"><div class="br-col-hdr">Octavos</div>';
-  for(let i=0;i<4;i++){
-    const[s1,s2]=R16B[i];
-    const t1=p.r32[s1]||'',t2=p.r32[s2]||'',w=p.r16[i];
-    const mi=MATCH_INFO.r16[i];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${tc(t1,w===t1&&!!w,cellClick('r16',i,t1),isRoundLocked('r16'))}${tc(t2,w===t2&&!!w,cellClick('r16',i,t2),isRoundLocked('r16'))}</div>`;
+  
+  // R16 column (2 pairs from indices [0,1] and [2,3])
+  h+='<div class="br-col br-col-r16">';
+  for(const pair of[[0,1],[2,3]]){
+    h+='<div class="br-pair">';
+    for(const i of pair){
+      const[s1,s2]=R16B[i];
+      h+=renderMatchLeft(MATCH_INFO.r16[i],p.r32[s1]||'',p.r32[s2]||'',p.r16[i],'r16',i);
+    }
+    h+='</div>';
   }
   h+='</div>';
-
-  // Left QF
-  h+='<div class="br-col"><div class="br-col-hdr">Cuartos</div>';
-  for(let i=0;i<2;i++){
+  
+  // QF column (1 pair: indices 0,1)
+  h+='<div class="br-col br-col-qf">';
+  h+='<div class="br-pair">';
+  for(const i of[0,1]){
     const[s1,s2]=QFB[i];
-    const t1=p.r16[s1]||'',t2=p.r16[s2]||'',w=p.qf[i];
-    const mi=MATCH_INFO.qf[i];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${tc(t1,w===t1&&!!w,cellClick('qf',i,t1),isRoundLocked('qf'))}${tc(t2,w===t2&&!!w,cellClick('qf',i,t2),isRoundLocked('qf'))}</div>`;
+    h+=renderMatchLeft(MATCH_INFO.qf[i],p.r16[s1]||'',p.r16[s2]||'',p.qf[i],'qf',i);
   }
-  h+='</div>';
-
-  // Left SF
-  h+='<div class="br-col"><div class="br-col-hdr">Semis</div>';
-  {const[s1,s2]=SFB[0];const t1=p.qf[s1]||'',t2=p.qf[s2]||'',w=p.sf[0];const mi=MATCH_INFO.sf[0];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${tc(t1,w===t1&&!!w,cellClick('sf',0,t1),isRoundLocked('sf'))}${tc(t2,w===t2&&!!w,cellClick('sf',0,t2),isRoundLocked('sf'))}</div>`;}
-  h+='</div>';
-
-  // Champion glorified — with 3rd place match too
+  h+='</div></div>';
+  
+  // SF column (just match 0, standalone)
+  h+='<div class="br-col br-col-sf"><div class="br-pair">';
+  {const[s1,s2]=SFB[0];
+   h+=renderMatchLeft(MATCH_INFO.sf[0],p.qf[s1]||'',p.qf[s2]||'',p.sf[0],'sf',0);}
+  h+='</div></div>';
+  
+  h+='</div>'; // end left side
+  
+  // ─── CENTER: FINAL + 3RD PLACE ───
   const sf1=p.sf[0]||'',sf2=p.sf[1]||'';
-  // 3rd place: losers of semifinals
-  // We don't store them as separate slots — derive from QF picks that didn't advance to SF
   const l0=[p.qf[0]||'',p.qf[1]||''].find(t=>t&&t!==p.sf[0])||'';
   const l1=[p.qf[2]||'',p.qf[3]||''].find(t=>t&&t!==p.sf[1])||'';
   function thrClick(team){
@@ -1740,90 +1852,86 @@ function buildEditableBracket(p){
     if(isRoundLocked('fin'))return '';
     return `setThr('${js(team)}',false)`;
   }
-  h+='<div class="br-champion">';
-  h+='<div class="br-champion-glow"></div>';
-  h+=`<div class="br-champion-banner">🏆 Gran Final<br><span style="font-size:9px;opacity:.85">${MATCH_INFO.fin.d} · ${MATCH_INFO.fin.t} · ${MATCH_INFO.fin.c}</span></div>`;
+  const runnerUp=p.fin?(p.fin===sf1?sf2:(p.fin===sf2?sf1:'')):'';
+  
+  h+='<div class="br-final-center">';
+  h+='<div class="br-final-glow"></div>';
+  h+=`<div class="br-final-banner">🏆 Gran Final<span class="br-final-banner-sub">M${MATCH_INFO.fin.m} · ${MATCH_INFO.fin.d} · ${MATCH_INFO.fin.t}<br>📍 ${MATCH_INFO.fin.c}</span></div>`;
   h+='<div class="br-trophy">🏆</div>';
-  h+=`<div style="display:flex;flex-direction:column;gap:4px;width:100%">
+  h+='<div class="br-final-box">';
+  h+='<div class="br-final-lbl">Final<small>Selecciona el campeón</small></div>';
+  h+=`<div style="display:flex;flex-direction:column;gap:5px">
     ${tc(sf1,p.fin===sf1&&!!p.fin,sf1?cellClick('fin',0,sf1):'',isRoundLocked('fin'))}
     <span style="text-align:center;font-size:9px;color:var(--mt);font-weight:800;font-family:'DM Sans',sans-serif">VS</span>
     ${tc(sf2,p.fin===sf2&&!!p.fin,sf2?cellClick('fin',0,sf2):'',isRoundLocked('fin'))}
   </div>`;
+  h+='</div>';
+  // Champion display
   if(p.fin){
-    h+=`<div class="br-champ-team" style="margin-top:6px" title="${esc(p.fin)}"><span style="font-size:22px">${flag(p.fin)}</span><span>${esc(abbr(p.fin))}</span></div><div style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:800;color:var(--g1t);text-transform:uppercase;letter-spacing:1.2px">★ Campeón ★</div>`;
-    // 2nd place (runner-up) — the team that lost the Final
-    const runnerUp=p.fin===sf1?sf2:(p.fin===sf2?sf1:'');
+    h+=`<div class="br-champ-team" title="${esc(p.fin)}"><span style="font-size:22px">${flag(p.fin)}</span><span>${esc(abbr(p.fin))}</span></div>`;
+    h+=`<div style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:800;color:#78350f;text-transform:uppercase;letter-spacing:1.2px;margin-top:-6px">★ Campeón ★</div>`;
     if(runnerUp){
-      h+=`<div style="margin-top:8px;padding:6px 12px;border-radius:8px;background:linear-gradient(135deg,#e5e7eb,#f3f4f6);border:1.5px solid #d1d5db;display:flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.3px;font-size:14px" title="${esc(runnerUp)}"><span style="font-size:18px">${flag(runnerUp)}</span><span>${esc(abbr(runnerUp))}</span></div><div style="font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px">🥈 Subcampeón</div>`;
+      h+=`<div class="br-runnerup-card" title="${esc(runnerUp)}"><span style="font-size:18px">${flag(runnerUp)}</span><span>${esc(abbr(runnerUp))}</span></div>`;
+      h+=`<div style="font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;margin-top:-3px">🥈 Subcampeón</div>`;
     }
   }
-  // 3rd place picker
-  h+=`<div class="br-thirdplace-section"><div class="br-thirdplace-lbl">🥉 3er Lugar · ${MATCH_INFO.thr.d} · ${MATCH_INFO.thr.t}</div>`;
+  // 3rd place box
+  h+='<div class="br-thirdplace-box">';
+  h+=`<div class="br-thirdplace-lbl">🥉 3er Lugar<small>M${MATCH_INFO.thr.m} · ${MATCH_INFO.thr.d} · ${MATCH_INFO.thr.t}</small></div>`;
   if(l0||l1){
-    h+=`<div style="display:flex;flex-direction:column;gap:3px;width:100%">
+    h+=`<div style="display:flex;flex-direction:column;gap:4px">
       ${tc(l0,p.thr===l0&&!!p.thr,thrClick(l0),isRoundLocked('fin'))}
       <span style="text-align:center;font-size:9px;color:var(--mt);font-weight:800;font-family:'DM Sans',sans-serif">VS</span>
       ${tc(l1,p.thr===l1&&!!p.thr,thrClick(l1),isRoundLocked('fin'))}
     </div>`;
   }else{
-    h+='<div style="font-size:11px;color:var(--mt);font-family:\'DM Sans\',sans-serif">Completa Semis primero</div>';
+    h+='<div style="font-size:11px;color:var(--mt);font-family:\'DM Sans\',sans-serif;text-align:center">Completa Semis primero</div>';
   }
   h+='</div></div>';
-
-  // Right SF
-  h+='<div class="br-col"><div class="br-col-hdr">Semis</div>';
-  {const[s1,s2]=SFB[1];const t1=p.qf[s1]||'',t2=p.qf[s2]||'',w=p.sf[1];const mi=MATCH_INFO.sf[1];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${tc(t1,w===t1&&!!w,cellClick('sf',1,t1),isRoundLocked('sf'))}${tc(t2,w===t2&&!!w,cellClick('sf',1,t2),isRoundLocked('sf'))}</div>`;}
-  h+='</div>';
-
-  // Right QF
-  h+='<div class="br-col"><div class="br-col-hdr">Cuartos</div>';
-  for(let i=2;i<4;i++){
+  
+  // ─── RIGHT SIDE ───
+  h+='<div class="br-side br-side-right">';
+  
+  // SF column (match 1, standalone)
+  h+='<div class="br-col br-col-sf"><div class="br-pair">';
+  {const[s1,s2]=SFB[1];
+   h+=renderMatchRight(MATCH_INFO.sf[1],p.qf[s1]||'',p.qf[s2]||'',p.sf[1],'sf',1);}
+  h+='</div></div>';
+  
+  // QF column (pair indices 2,3)
+  h+='<div class="br-col br-col-qf"><div class="br-pair">';
+  for(const i of[2,3]){
     const[s1,s2]=QFB[i];
-    const t1=p.r16[s1]||'',t2=p.r16[s2]||'',w=p.qf[i];
-    const mi=MATCH_INFO.qf[i];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${tc(t1,w===t1&&!!w,cellClick('qf',i,t1),isRoundLocked('qf'))}${tc(t2,w===t2&&!!w,cellClick('qf',i,t2),isRoundLocked('qf'))}</div>`;
+    h+=renderMatchRight(MATCH_INFO.qf[i],p.r16[s1]||'',p.r16[s2]||'',p.qf[i],'qf',i);
   }
-  h+='</div>';
-
-  // Right R16
-  h+='<div class="br-col"><div class="br-col-hdr">Octavos</div>';
-  for(let i=4;i<8;i++){
-    const[s1,s2]=R16B[i];
-    const t1=p.r32[s1]||'',t2=p.r32[s2]||'',w=p.r16[i];
-    const mi=MATCH_INFO.r16[i];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${tc(t1,w===t1&&!!w,cellClick('r16',i,t1),isRoundLocked('r16'))}${tc(t2,w===t2&&!!w,cellClick('r16',i,t2),isRoundLocked('r16'))}</div>`;
-  }
-  h+='</div>';
-
-  // Right R32
-  h+='<div class="br-col"><div class="br-col-hdr">16avos</div>';
-  const rightR32indices=[3,5,6,7,13,15,12,14];
-  for(const idx of rightR32indices){
-    let t1='',t2='';
-    const fx=R32_FIXED.find(x=>x.i===idx);
-    const th=R32_THIRDS.findIndex(x=>x.i===idx);
-    if(fx){t1=rc(fx.c1,p)||'';t2=rc(fx.c2,p)||'';}
-    else if(th>=0){t1=rc(R32_THIRDS[th].c1,p)||'';t2=(p.t8||[])[th]||'';}
-    const w=p.r32[idx];
-    const mi=MATCH_INFO.r32[idx];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${tc(t1,w===t1&&!!w,cellClick('r32',idx,t1),isRoundLocked('r32'))}${tc(t2,w===t2&&!!w,cellClick('r32',idx,t2),isRoundLocked('r32'))}</div>`;
-  }
-  h+='</div>';
-
-  // Right groups
-  h+='<div class="br-col"><div class="br-col-hdr">Grupos</div><div class="br-groups-col">';
-  for(const g of['G','H','I','J','K','L']){
-    const tbl=calcGroupTable(g,p.grupos[g]);
-    const p1=tbl[0]&&tbl[0].pj>0?tbl[0].name:'';
-    const p2=tbl[1]&&tbl[1].pj>0?tbl[1].name:'';
-    h+=`<div class="br-group-box"><div class="br-group-lbl">Grupo ${g}</div>`;
-    for(const[t,lbl]of[[p1,'1°'],[p2,'2°']]){
-      h+=`<div class="br-group-team" title="${esc(t)}">${t?`<span class="br-flag">${flag(t)}</span><span style="flex:1">${esc(abbr(t))}</span><span style="font-size:8px;font-weight:800;color:var(--mt);font-family:'DM Sans',sans-serif">${lbl}</span>`:`<span style="color:var(--mt);font-size:10px;font-family:'DM Sans',sans-serif">—</span>`}</div>`;
+  h+='</div></div>';
+  
+  // R16 column (2 pairs from indices [4,5] and [6,7])
+  h+='<div class="br-col br-col-r16">';
+  for(const pair of[[4,5],[6,7]]){
+    h+='<div class="br-pair">';
+    for(const i of pair){
+      const[s1,s2]=R16B[i];
+      h+=renderMatchRight(MATCH_INFO.r16[i],p.r32[s1]||'',p.r32[s2]||'',p.r16[i],'r16',i);
     }
     h+='</div>';
   }
-  h+='</div></div></div>';
+  h+='</div>';
+  
+  // R32 column (4 pairs)
+  h+='<div class="br-col br-col-r32">';
+  for(const[a,b]of rightR32Pairs){
+    h+='<div class="br-pair">';
+    for(const idx of[a,b]){
+      const[t1,t2]=getR32Teams(idx);
+      h+=renderMatchRight(MATCH_INFO.r32[idx],t1,t2,p.r32[idx],'r32',idx);
+    }
+    h+='</div>';
+  }
+  h+='</div>';
+  
+  h+='</div>'; // end right side
+  h+='</div>'; // end br-wrap
   return h;
 }
 
@@ -2689,135 +2797,147 @@ function buildBracket(uid,u,col){
     <button class="br-action" onclick="captureBracket('${js(uid)}')" title="Descargar bracket como imagen">📸 Capturar</button>
     <button class="br-close" onclick="closeBracket()">✕ Cerrar</button>
   </div>
-  <div class="br-scroll" id="br-scroll-${js(uid)}"><div class="br-wrap">`;
-
-  // Left groups A-F
-  h+=`<div class="br-col"><div class="br-col-hdr">Grupos</div><div class="br-groups-col">`;
-  for(const g of['A','B','C','D','E','F']){
-    const tbl=calcGroupTable(g,p.grupos[g]);
-    const p1=tbl[0]&&tbl[0].pj>0?tbl[0].name:'';
-    const p2=tbl[1]&&tbl[1].pj>0?tbl[1].name:'';
-    h+=`<div class="br-group-box"><div class="br-group-lbl">Grupo ${g}</div>`;
-    for(const[t,lbl]of[[p1,'1°'],[p2,'2°']]){
-      h+=`<div class="br-group-team" title="${esc(t)}">${t?`<span class="br-flag">${flag(t)}</span><span style="flex:1">${esc(abbr(t))}</span><span style="font-size:9px;font-weight:800;color:var(--mt);font-family:'DM Sans',sans-serif">${lbl}</span>`:`<span style="color:var(--mt);font-family:'DM Sans',sans-serif">—</span>`}</div>`;
+  <div class="br-scroll" id="br-scroll-${js(uid)}">`;
+  
+  function teamCell(name,winner){
+    if(!name)return `<div class="br-team empty"><span class="br-flag">—</span><span class="br-tname">—</span></div>`;
+    return `<div class="br-team${winner?' winner':''}" title="${esc(name)}"><span class="br-flag">${flag(name)}</span><span class="br-tname">${esc(abbr(name))}</span></div>`;
+  }
+  function getR32Teams(idx){
+    let t1='',t2='';
+    const fx=R32_FIXED.find(x=>x.i===idx);
+    const th=R32_THIRDS.findIndex(x=>x.i===idx);
+    if(fx){t1=rc(fx.c1,p)||'';t2=rc(fx.c2,p)||'';}
+    else if(th>=0){t1=rc(R32_THIRDS[th].c1,p)||'';t2=(p.t8||[])[th]||'';}
+    return[t1,t2];
+  }
+  function renderMatch(mi_info,team1,team2,winner){
+    return `<div class="br-match-wrap">
+      <a class="br-match-num">M${mi_info.m}</a>
+      <div class="br-match">
+        <div class="br-match-info">${mi_info.d} · ${mi_info.t}<br>📍 ${mi_info.c}</div>
+        ${teamCell(team1,winner===team1&&!!winner)}
+        ${teamCell(team2,winner===team2&&!!winner)}
+      </div>
+    </div>`;
+  }
+  
+  const leftR32Pairs=[[1,4],[0,2],[10,11],[8,9]];
+  const rightR32Pairs=[[3,5],[6,7],[13,15],[12,14]];
+  
+  h+='<div class="br-wrap">';
+  
+  // ─── LEFT SIDE ───
+  h+='<div class="br-side br-side-left">';
+  h+='<div class="br-col br-col-r32">';
+  for(const[a,b]of leftR32Pairs){
+    h+='<div class="br-pair">';
+    for(const idx of[a,b]){
+      const[t1,t2]=getR32Teams(idx);
+      h+=renderMatch(MATCH_INFO.r32[idx],t1,t2,p.r32[idx]);
     }
     h+='</div>';
+  }
+  h+='</div>';
+  
+  h+='<div class="br-col br-col-r16">';
+  for(const pair of[[0,1],[2,3]]){
+    h+='<div class="br-pair">';
+    for(const i of pair){
+      const[s1,s2]=R16B[i];
+      h+=renderMatch(MATCH_INFO.r16[i],p.r32[s1]||'',p.r32[s2]||'',p.r16[i]);
+    }
+    h+='</div>';
+  }
+  h+='</div>';
+  
+  h+='<div class="br-col br-col-qf"><div class="br-pair">';
+  for(const i of[0,1]){
+    const[s1,s2]=QFB[i];
+    h+=renderMatch(MATCH_INFO.qf[i],p.r16[s1]||'',p.r16[s2]||'',p.qf[i]);
   }
   h+='</div></div>';
-
-  // Left R32
-  h+=`<div class="br-col"><div class="br-col-hdr">16avos</div>`;
-  const leftR32indices=[1,4,0,2,10,11,8,9];
-  for(const idx of leftR32indices){
-    let t1='',t2='';
-    const fx=R32_FIXED.find(x=>x.i===idx);
-    const th=R32_THIRDS.findIndex(x=>x.i===idx);
-    if(fx){t1=rc(fx.c1,p)||'';t2=rc(fx.c2,p)||'';}
-    else if(th>=0){t1=rc(R32_THIRDS[th].c1,p)||'';t2=(p.t8||[])[th]||'';}
-    const w=p.r32[idx];
-    const mi=MATCH_INFO.r32[idx];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;
-  }
-  h+='</div>';
-
-  // Left R16 (matches 0-3)
-  h+=`<div class="br-col"><div class="br-col-hdr">Octavos</div>`;
-  for(let i=0;i<4;i++){
-    const[s1,s2]=R16B[i];
-    const t1=p.r32[s1]||'',t2=p.r32[s2]||'',w=p.r16[i];
-    const mi=MATCH_INFO.r16[i];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;
-  }
-  h+='</div>';
-
-  // Left QF
-  h+=`<div class="br-col"><div class="br-col-hdr">Cuartos</div>`;
-  for(let i=0;i<2;i++){
-    const[s1,s2]=QFB[i];
-    const t1=p.r16[s1]||'',t2=p.r16[s2]||'',w=p.qf[i];
-    const mi=MATCH_INFO.qf[i];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;
-  }
-  h+='</div>';
-
-  // Left SF
-  h+=`<div class="br-col"><div class="br-col-hdr">Semis</div>`;
-  {const[s1,s2]=SFB[0];const t1=p.qf[s1]||'',t2=p.qf[s2]||'',w=p.sf[0];const mi=MATCH_INFO.sf[0];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;}
-  h+='</div>';
-
-  // Champion (glorified) with runner-up and 3rd place
-  const sf1ro=p.sf[0]||'',sf2ro=p.sf[1]||'';
-  const runnerUpRo=p.fin?(p.fin===sf1ro?sf2ro:(p.fin===sf2ro?sf1ro:'')):'';
-  h+=`<div class="br-champion">
-    <div class="br-champion-glow"></div>
-    <div class="br-champion-banner">🏆 Gran Final<br><span style="font-size:9px;opacity:.85">${MATCH_INFO.fin.d} · ${MATCH_INFO.fin.t} · ${MATCH_INFO.fin.c}</span></div>
-    <div class="br-trophy">🏆</div>
-    ${p.fin
-      ?`<div class="br-champ-team" title="${esc(p.fin)}"><span style="font-size:22px">${flag(p.fin)}</span><span>${esc(abbr(p.fin))}</span></div><div style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:800;color:var(--g1t);text-transform:uppercase;letter-spacing:1.2px">★ Campeón ★</div>`
-      :`<div class="br-champ-team" style="opacity:.5;background:var(--bg);box-shadow:none;border-style:dashed"><span>—</span></div>`
-    }
-    ${runnerUpRo?`<div style="margin-top:8px;padding:6px 12px;border-radius:8px;background:linear-gradient(135deg,#e5e7eb,#f3f4f6);border:1.5px solid #d1d5db;display:flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.3px;font-size:14px" title="${esc(runnerUpRo)}"><span style="font-size:18px">${flag(runnerUpRo)}</span><span>${esc(abbr(runnerUpRo))}</span></div><div style="font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px">🥈 Subcampeón</div>`:''}
-    <div class="br-thirdplace-section">
-      <div class="br-thirdplace-lbl">🥉 3er Lugar · ${MATCH_INFO.thr.d} · ${MATCH_INFO.thr.t}</div>
-      ${p.thr?`<div class="br-team winner" title="${esc(p.thr)}" style="min-width:auto"><span class="br-flag">${flag(p.thr)}</span><span class="br-tname">${esc(abbr(p.thr))}</span></div>`:`<div class="br-team empty" style="min-width:auto"><span class="br-flag">—</span><span class="br-tname">—</span></div>`}
-    </div>
+  
+  h+='<div class="br-col br-col-sf"><div class="br-pair">';
+  {const[s1,s2]=SFB[0];
+   h+=renderMatch(MATCH_INFO.sf[0],p.qf[s1]||'',p.qf[s2]||'',p.sf[0]);}
+  h+='</div></div>';
+  
+  h+='</div>'; // end left side
+  
+  // ─── CENTER: FINAL ───
+  const sf1=p.sf[0]||'',sf2=p.sf[1]||'';
+  const runnerUp=p.fin?(p.fin===sf1?sf2:(p.fin===sf2?sf1:'')):'';
+  
+  h+='<div class="br-final-center">';
+  h+='<div class="br-final-glow"></div>';
+  h+=`<div class="br-final-banner">🏆 Gran Final<span class="br-final-banner-sub">M${MATCH_INFO.fin.m} · ${MATCH_INFO.fin.d} · ${MATCH_INFO.fin.t}<br>📍 ${MATCH_INFO.fin.c}</span></div>`;
+  h+='<div class="br-trophy">🏆</div>';
+  h+='<div class="br-final-box">';
+  h+='<div class="br-final-lbl">Final</div>';
+  h+=`<div style="display:flex;flex-direction:column;gap:5px">
+    ${teamCell(sf1,p.fin===sf1&&!!p.fin)}
+    <span style="text-align:center;font-size:9px;color:var(--mt);font-weight:800;font-family:'DM Sans',sans-serif">VS</span>
+    ${teamCell(sf2,p.fin===sf2&&!!p.fin)}
   </div>`;
-
-  // Right SF
-  h+=`<div class="br-col"><div class="br-col-hdr">Semis</div>`;
-  {const[s1,s2]=SFB[1];const t1=p.qf[s1]||'',t2=p.qf[s2]||'',w=p.sf[1];const mi=MATCH_INFO.sf[1];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;}
   h+='</div>';
-
-  // Right QF
-  h+=`<div class="br-col"><div class="br-col-hdr">Cuartos</div>`;
-  for(let i=2;i<4;i++){
+  if(p.fin){
+    h+=`<div class="br-champ-team" title="${esc(p.fin)}"><span style="font-size:22px">${flag(p.fin)}</span><span>${esc(abbr(p.fin))}</span></div>`;
+    h+=`<div style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:800;color:#78350f;text-transform:uppercase;letter-spacing:1.2px;margin-top:-6px">★ Campeón ★</div>`;
+    if(runnerUp){
+      h+=`<div class="br-runnerup-card" title="${esc(runnerUp)}"><span style="font-size:18px">${flag(runnerUp)}</span><span>${esc(abbr(runnerUp))}</span></div>`;
+      h+=`<div style="font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;margin-top:-3px">🥈 Subcampeón</div>`;
+    }
+  }
+  h+='<div class="br-thirdplace-box">';
+  h+=`<div class="br-thirdplace-lbl">🥉 3er Lugar<small>M${MATCH_INFO.thr.m} · ${MATCH_INFO.thr.d} · ${MATCH_INFO.thr.t}</small></div>`;
+  if(p.thr){
+    h+=`<div class="br-team winner" title="${esc(p.thr)}" style="min-width:auto;justify-content:center"><span class="br-flag">${flag(p.thr)}</span><span class="br-tname">${esc(abbr(p.thr))}</span></div>`;
+  }else{
+    h+=`<div class="br-team empty" style="min-width:auto;justify-content:center"><span class="br-flag">—</span><span class="br-tname">—</span></div>`;
+  }
+  h+='</div></div>'; // end final-center
+  
+  // ─── RIGHT SIDE ───
+  h+='<div class="br-side br-side-right">';
+  
+  h+='<div class="br-col br-col-sf"><div class="br-pair">';
+  {const[s1,s2]=SFB[1];
+   h+=renderMatch(MATCH_INFO.sf[1],p.qf[s1]||'',p.qf[s2]||'',p.sf[1]);}
+  h+='</div></div>';
+  
+  h+='<div class="br-col br-col-qf"><div class="br-pair">';
+  for(const i of[2,3]){
     const[s1,s2]=QFB[i];
-    const t1=p.r16[s1]||'',t2=p.r16[s2]||'',w=p.qf[i];
-    const mi=MATCH_INFO.qf[i];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;
+    h+=renderMatch(MATCH_INFO.qf[i],p.r16[s1]||'',p.r16[s2]||'',p.qf[i]);
   }
-  h+='</div>';
-
-  // Right R16
-  h+=`<div class="br-col"><div class="br-col-hdr">Octavos</div>`;
-  for(let i=4;i<8;i++){
-    const[s1,s2]=R16B[i];
-    const t1=p.r32[s1]||'',t2=p.r32[s2]||'',w=p.r16[i];
-    const mi=MATCH_INFO.r16[i];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;
-  }
-  h+='</div>';
-
-  // Right R32
-  h+=`<div class="br-col"><div class="br-col-hdr">16avos</div>`;
-  const rightR32indices=[3,5,6,7,13,15,12,14];
-  for(const idx of rightR32indices){
-    let t1='',t2='';
-    const fx=R32_FIXED.find(x=>x.i===idx);
-    const th=R32_THIRDS.findIndex(x=>x.i===idx);
-    if(fx){t1=rc(fx.c1,p)||'';t2=rc(fx.c2,p)||'';}
-    else if(th>=0){t1=rc(R32_THIRDS[th].c1,p)||'';t2=(p.t8||[])[th]||'';}
-    const w=p.r32[idx];
-    const mi=MATCH_INFO.r32[idx];
-    h+=`<div class="br-match"><div class="br-match-info"><span class="br-match-num">M${mi.m}</span>${mi.d} · ${mi.t}<br>📍 ${mi.c}</div>${teamCell(t1,w===t1&&!!w)}${teamCell(t2,w===t2&&!!w)}</div>`;
-  }
-  h+='</div>';
-
-  // Right groups
-  h+=`<div class="br-col"><div class="br-col-hdr">Grupos</div><div class="br-groups-col">`;
-  for(const g of['G','H','I','J','K','L']){
-    const tbl=calcGroupTable(g,p.grupos[g]);
-    const p1=tbl[0]&&tbl[0].pj>0?tbl[0].name:'';
-    const p2=tbl[1]&&tbl[1].pj>0?tbl[1].name:'';
-    h+=`<div class="br-group-box"><div class="br-group-lbl">Grupo ${g}</div>`;
-    for(const[t,lbl]of[[p1,'1°'],[p2,'2°']]){
-      h+=`<div class="br-group-team" title="${esc(t)}">${t?`<span class="br-flag">${flag(t)}</span><span style="flex:1">${esc(abbr(t))}</span><span style="font-size:9px;font-weight:800;color:var(--mt);font-family:'DM Sans',sans-serif">${lbl}</span>`:`<span style="color:var(--mt);font-family:'DM Sans',sans-serif">—</span>`}</div>`;
+  h+='</div></div>';
+  
+  h+='<div class="br-col br-col-r16">';
+  for(const pair of[[4,5],[6,7]]){
+    h+='<div class="br-pair">';
+    for(const i of pair){
+      const[s1,s2]=R16B[i];
+      h+=renderMatch(MATCH_INFO.r16[i],p.r32[s1]||'',p.r32[s2]||'',p.r16[i]);
     }
     h+='</div>';
   }
-  h+='</div></div></div></div>';
+  h+='</div>';
+  
+  h+='<div class="br-col br-col-r32">';
+  for(const[a,b]of rightR32Pairs){
+    h+='<div class="br-pair">';
+    for(const idx of[a,b]){
+      const[t1,t2]=getR32Teams(idx);
+      h+=renderMatch(MATCH_INFO.r32[idx],t1,t2,p.r32[idx]);
+    }
+    h+='</div>';
+  }
+  h+='</div>';
+  
+  h+='</div>'; // end right side
+  h+='</div>'; // end br-wrap
+  h+='</div>'; // end br-scroll
   return h;
 }
 
