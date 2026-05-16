@@ -279,8 +279,8 @@ html[data-ucolor] .lbbar-fill{background:var(--uc)}
 .br-action{padding:8px 14px;border:1.5px solid var(--ac);border-radius:8px;background:var(--ac);cursor:pointer;font-size:13px;font-weight:700;color:#fff;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:5px}
 .br-action:hover{background:var(--acd)}
 .br-action:disabled{opacity:.6;cursor:wait}
-.br-scroll{flex:1;overflow:auto;padding:20px 12px;background:var(--bg)}
-.br-wrap{display:flex;gap:0;align-items:stretch;min-width:max-content;margin:0 auto;padding:0 20px}
+.br-scroll{flex:1;overflow:auto;padding:16px 12px;background:var(--bg)}
+.br-wrap{display:flex;gap:0;align-items:stretch;min-width:max-content;margin:0 auto;padding:0 16px}
 .br-capture-header{display:none;padding:18px 24px;border-bottom:2px solid var(--bd);background:linear-gradient(135deg,var(--card),var(--card2));text-align:center;align-items:center;justify-content:center;gap:14px}
 .br-capture-header.show{display:flex}
 
@@ -288,41 +288,35 @@ html[data-ucolor] .lbbar-fill{background:var(--uc)}
 .br-side{display:flex;flex-direction:row;align-items:stretch;flex-shrink:0}
 .br-side-right{flex-direction:row-reverse}
 
-/* Column header */
-.br-col-headers{display:flex;align-items:flex-start;min-width:max-content;margin:0 auto;padding:0 20px;margin-bottom:10px}
-.br-col-hdr{text-align:center;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--mt);white-space:nowrap}
-
 /* Column */
-.br-col{display:flex;flex-direction:column;flex-shrink:0;padding:0 14px}
-.br-col-r32{width:130px}
-.br-col-r16{width:130px}
-.br-col-qf{width:130px}
-.br-col-sf{width:130px}
+.br-col{display:flex;flex-direction:column;flex-shrink:0;padding:0 12px}
+.br-col-r32{width:148px}
+.br-col-r16{width:148px}
+.br-col-qf{width:148px}
+.br-col-sf{width:148px}
 
-/* Pair container — flex 1 makes each pair take equal space within col */
-.br-pair{flex:1;display:flex;flex-direction:column;justify-content:space-around;position:relative}
+/* Pair container */
+.br-pair{flex:1;display:flex;flex-direction:column;justify-content:space-around;position:relative;min-height:140px}
 
-/* Connector lines — LEFT side: bracket "]" pointing right */
+/* Connector lines — LEFT side */
 .br-side-left .br-col-r32 .br-pair::after,
 .br-side-left .br-col-r16 .br-pair::after,
 .br-side-left .br-col-qf .br-pair::after{
-  content:'';position:absolute;right:-14px;
-  top:25%;bottom:25%;width:10px;
+  content:'';position:absolute;right:-12px;
+  top:25%;bottom:25%;width:9px;
   border:1.5px solid var(--bd2);border-left:none;border-radius:0 4px 4px 0;
   pointer-events:none;
 }
 .br-side-left .br-col-r32 .br-pair::before,
 .br-side-left .br-col-r16 .br-pair::before,
 .br-side-left .br-col-qf .br-pair::before{
-  content:'';position:absolute;right:-24px;
-  top:calc(50% - 1px);width:10px;height:2px;
+  content:'';position:absolute;right:-21px;
+  top:calc(50% - 1px);width:9px;height:2px;
   background:var(--bd2);pointer-events:none;
 }
-/* Standalone SF (1 match, no pair) — line connects from match to final */
-.br-side-left .br-col-sf .br-match-wrap{position:relative}
-.br-side-left .br-col-sf .br-match-wrap::after{
-  content:'';position:absolute;right:-14px;
-  top:50%;width:14px;height:2px;
+.br-side-left .br-col-sf .br-pair::after{
+  content:'';position:absolute;right:-12px;
+  top:50%;width:12px;height:2px;
   background:var(--bd2);pointer-events:none;
 }
 
@@ -330,40 +324,38 @@ html[data-ucolor] .lbbar-fill{background:var(--uc)}
 .br-side-right .br-col-r32 .br-pair::after,
 .br-side-right .br-col-r16 .br-pair::after,
 .br-side-right .br-col-qf .br-pair::after{
-  content:'';position:absolute;left:-14px;
-  top:25%;bottom:25%;width:10px;
+  content:'';position:absolute;left:-12px;
+  top:25%;bottom:25%;width:9px;
   border:1.5px solid var(--bd2);border-right:none;border-radius:4px 0 0 4px;
   pointer-events:none;
 }
 .br-side-right .br-col-r32 .br-pair::before,
 .br-side-right .br-col-r16 .br-pair::before,
 .br-side-right .br-col-qf .br-pair::before{
-  content:'';position:absolute;left:-24px;
-  top:calc(50% - 1px);width:10px;height:2px;
+  content:'';position:absolute;left:-21px;
+  top:calc(50% - 1px);width:9px;height:2px;
   background:var(--bd2);pointer-events:none;
 }
-.br-side-right .br-col-sf .br-match-wrap{position:relative}
-.br-side-right .br-col-sf .br-match-wrap::before{
-  content:'';position:absolute;left:-14px;
-  top:50%;width:14px;height:2px;
+.br-side-right .br-col-sf .br-pair::after{
+  content:'';position:absolute;left:-12px;
+  top:50%;width:12px;height:2px;
   background:var(--bd2);pointer-events:none;
 }
 
-/* Individual match wrapper (with side label) */
-.br-match-wrap{display:flex;align-items:center;gap:6px;margin:6px 0;position:relative}
-.br-side-right .br-match-wrap{flex-direction:row-reverse}
-.br-match-num{font-family:'Outfit',sans-serif;font-size:9.5px;font-weight:800;color:var(--ac);background:var(--acl);padding:3px 6px;border-radius:4px;letter-spacing:.4px;text-decoration:underline;text-underline-offset:1px;white-space:nowrap;flex-shrink:0;cursor:default}
-html[data-ucolor] .br-match-num{color:var(--uc);background:var(--uc-l)}
-.br-match{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;background:var(--card);border:1.5px solid var(--bd);border-radius:7px;padding:4px;position:relative}
-.br-match-info{font-size:8.5px;color:var(--mt);text-align:center;font-weight:600;font-family:'DM Sans',sans-serif;opacity:.85;letter-spacing:.2px;line-height:1.2;padding:1px 0 2px}
+/* Match wrapper — match-num is INSIDE the card as corner badge now */
+.br-match-wrap{margin:5px 0 3px;padding-top:4px;position:relative}
+.br-match{display:flex;flex-direction:column;gap:1px;background:var(--card);border:1.5px solid var(--bd);border-radius:6px;padding:3px 4px 4px;position:relative}
+.br-match-num{position:absolute;top:-7px;left:6px;font-family:'Outfit',sans-serif;font-size:8px;font-weight:800;color:#fff;background:var(--ac);padding:1px 5px;border-radius:3px;letter-spacing:.4px;line-height:1.2;z-index:1}
+html[data-ucolor] .br-match-num{background:var(--uc)}
+.br-match-info{font-size:8px;color:var(--mt);text-align:center;font-weight:600;font-family:'DM Sans',sans-serif;opacity:.85;letter-spacing:.1px;line-height:1.2;padding:1px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* Team cells inside match */
-.br-team{display:flex;align-items:center;gap:5px;padding:4px 7px;border-radius:5px;background:var(--bg);border:1px solid transparent;font-size:12px;font-weight:500;white-space:nowrap;min-width:0;letter-spacing:.3px}
-.br-team .br-tname{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.3px;flex:1;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+/* Team cells */
+.br-team{display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:var(--bg);border:1px solid transparent;font-size:11px;font-weight:500;white-space:nowrap;min-width:0;letter-spacing:.2px}
+.br-team .br-tname{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.3px;flex:1;overflow:hidden;text-overflow:ellipsis;font-size:13px;line-height:1.2}
 .br-team.winner{font-weight:700;border-color:var(--uc,var(--ac));background:var(--uc-l,var(--acl));color:var(--uc,var(--ac))}
 .br-team.winner .br-tname{color:var(--uc,var(--ac))}
 .br-team.empty{color:var(--mt);opacity:.4}
-.br-flag{font-size:14px;flex-shrink:0}
+.br-flag{font-size:12px;flex-shrink:0;line-height:1}
 .br-team.clickable{cursor:pointer;transition:all .12s}
 .br-team.clickable:hover:not(.empty):not(.locked){border-color:var(--ac);background:var(--acl);color:var(--ac)}
 html[data-ucolor] .br-team.clickable:hover:not(.empty):not(.locked){border-color:var(--uc);background:var(--uc-l);color:var(--uc)}
@@ -372,20 +364,20 @@ html[data-ucolor] .br-team.clickable:hover:not(.empty):not(.locked){border-color
 .br-team.locked.empty{opacity:.2}
 
 /* CENTER: Final box */
-.br-final-center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 30px;flex-shrink:0;gap:14px;min-width:210px;position:relative}
+.br-final-center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 28px;flex-shrink:0;gap:10px;min-width:200px;position:relative}
 .br-final-glow{position:absolute;inset:-20px;background:radial-gradient(circle,var(--g1b) 0%,transparent 65%);pointer-events:none;z-index:-1}
-.br-final-banner{font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:1.5px;text-align:center;padding:6px 16px;background:linear-gradient(135deg,#fde68a,#fbbf24);border-radius:8px;border:1.5px solid #d97706;white-space:nowrap;box-shadow:0 2px 8px rgba(217,119,6,.25)}
-.br-final-banner-sub{display:block;font-size:9px;font-weight:600;color:#92400e;opacity:.9;margin-top:2px;letter-spacing:.5px;text-transform:none}
-.br-final-box{background:#fff;border:2px solid #fbbf24;border-radius:12px;padding:10px;width:100%;box-shadow:0 4px 14px rgba(217,119,6,.15)}
-.br-trophy{font-size:46px;line-height:1;filter:drop-shadow(0 4px 12px rgba(252,211,77,.6));animation:trophyPulse 3s ease-in-out infinite;text-align:center}
+.br-final-banner{font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:1.3px;text-align:center;padding:6px 14px;background:linear-gradient(135deg,#fde68a,#fbbf24);border-radius:8px;border:1.5px solid #d97706;white-space:nowrap;box-shadow:0 2px 8px rgba(217,119,6,.25)}
+.br-final-banner-sub{display:block;font-size:8.5px;font-weight:600;color:#92400e;opacity:.9;margin-top:2px;letter-spacing:.4px;text-transform:none;line-height:1.3}
+.br-final-box{background:#fff;border:2px solid #fbbf24;border-radius:10px;padding:9px;width:100%;box-shadow:0 4px 14px rgba(217,119,6,.15)}
+.br-trophy{font-size:40px;line-height:1;filter:drop-shadow(0 4px 12px rgba(252,211,77,.6));animation:trophyPulse 3s ease-in-out infinite;text-align:center}
 @keyframes trophyPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
-.br-champ-team{display:flex;align-items:center;gap:10px;padding:11px 18px;border-radius:11px;background:linear-gradient(135deg,#fbbf24,#fde68a);border:2px solid #d97706;font-size:17px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.4px;white-space:nowrap;box-shadow:0 4px 14px rgba(217,119,6,.35);color:#78350f}
-.br-runnerup-card{margin-top:6px;padding:7px 14px;border-radius:9px;background:linear-gradient(135deg,#e5e7eb,#f3f4f6);border:1.5px solid #9ca3af;display:flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.3px;font-size:14px;color:#4b5563}
-.br-thirdplace-box{margin-top:14px;background:#fff;border:1.5px dashed var(--bd2);border-radius:10px;padding:10px;width:100%}
-.br-thirdplace-lbl{font-family:'Outfit',sans-serif;font-size:9.5px;font-weight:800;color:var(--mt);text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:6px}
-.br-thirdplace-lbl small{display:block;font-size:8.5px;font-weight:600;text-transform:none;letter-spacing:.3px;opacity:.85;margin-top:1px}
-.br-final-lbl{font-family:'Outfit',sans-serif;font-size:9.5px;font-weight:800;color:#92400e;text-align:center;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
-.br-final-lbl small{display:block;font-size:8.5px;font-weight:600;text-transform:none;letter-spacing:.3px;opacity:.85;margin-top:1px}
+.br-champ-team{display:flex;align-items:center;gap:9px;padding:9px 16px;border-radius:10px;background:linear-gradient(135deg,#fbbf24,#fde68a);border:2px solid #d97706;font-size:16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.4px;white-space:nowrap;box-shadow:0 4px 14px rgba(217,119,6,.35);color:#78350f}
+.br-runnerup-card{margin-top:4px;padding:6px 13px;border-radius:8px;background:linear-gradient(135deg,#e5e7eb,#f3f4f6);border:1.5px solid #9ca3af;display:flex;align-items:center;gap:7px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.3px;font-size:13px;color:#4b5563}
+.br-thirdplace-box{margin-top:10px;background:#fff;border:1.5px dashed var(--bd2);border-radius:9px;padding:8px;width:100%}
+.br-thirdplace-lbl{font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:var(--mt);text-transform:uppercase;letter-spacing:.9px;text-align:center;margin-bottom:5px}
+.br-thirdplace-lbl small{display:block;font-size:8px;font-weight:600;text-transform:none;letter-spacing:.2px;opacity:.85;margin-top:1px}
+.br-final-lbl{font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:#92400e;text-align:center;margin-bottom:5px;text-transform:uppercase;letter-spacing:.9px}
+.br-final-lbl small{display:block;font-size:8px;font-weight:600;text-transform:none;letter-spacing:.2px;opacity:.85;margin-top:1px}
 .br-trophy{font-size:54px;line-height:1;filter:drop-shadow(0 4px 12px rgba(252,211,77,.5));animation:trophyPulse 3s ease-in-out infinite}
 @keyframes trophyPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 .br-champ-team{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;background:var(--g1b);border:2px solid var(--g1d);font-size:15px;font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.3px;white-space:nowrap}
@@ -1762,9 +1754,9 @@ function buildEditableBracket(p){
   // Helper: render a match card with its label (match number on outside)
   function renderMatchLeft(mi_info,team1,team2,winner,rndKey,matchIdx){
     return `<div class="br-match-wrap">
-      <a class="br-match-num">M${mi_info.m}</a>
       <div class="br-match">
-        <div class="br-match-info">${mi_info.d} · ${mi_info.t}<br>📍 ${mi_info.c}</div>
+        <span class="br-match-num">M${mi_info.m}</span>
+        <div class="br-match-info">${mi_info.d} · ${mi_info.t} · ${mi_info.c}</div>
         ${tc(team1,winner===team1&&!!winner,cellClick(rndKey,matchIdx,team1),isRoundLocked(rndKey))}
         ${tc(team2,winner===team2&&!!winner,cellClick(rndKey,matchIdx,team2),isRoundLocked(rndKey))}
       </div>
@@ -1772,9 +1764,9 @@ function buildEditableBracket(p){
   }
   function renderMatchRight(mi_info,team1,team2,winner,rndKey,matchIdx){
     return `<div class="br-match-wrap">
-      <a class="br-match-num">M${mi_info.m}</a>
       <div class="br-match">
-        <div class="br-match-info">${mi_info.d} · ${mi_info.t}<br>📍 ${mi_info.c}</div>
+        <span class="br-match-num" style="left:auto;right:6px">M${mi_info.m}</span>
+        <div class="br-match-info">${mi_info.d} · ${mi_info.t} · ${mi_info.c}</div>
         ${tc(team1,winner===team1&&!!winner,cellClick(rndKey,matchIdx,team1),isRoundLocked(rndKey))}
         ${tc(team2,winner===team2&&!!winner,cellClick(rndKey,matchIdx,team2),isRoundLocked(rndKey))}
       </div>
@@ -2811,11 +2803,12 @@ function buildBracket(uid,u,col){
     else if(th>=0){t1=rc(R32_THIRDS[th].c1,p)||'';t2=(p.t8||[])[th]||'';}
     return[t1,t2];
   }
-  function renderMatch(mi_info,team1,team2,winner){
+  function renderMatch(mi_info,team1,team2,winner,isRight){
+    const numStyle=isRight?' style="left:auto;right:6px"':'';
     return `<div class="br-match-wrap">
-      <a class="br-match-num">M${mi_info.m}</a>
       <div class="br-match">
-        <div class="br-match-info">${mi_info.d} · ${mi_info.t}<br>📍 ${mi_info.c}</div>
+        <span class="br-match-num"${numStyle}>M${mi_info.m}</span>
+        <div class="br-match-info">${mi_info.d} · ${mi_info.t} · ${mi_info.c}</div>
         ${teamCell(team1,winner===team1&&!!winner)}
         ${teamCell(team2,winner===team2&&!!winner)}
       </div>
@@ -2903,13 +2896,13 @@ function buildBracket(uid,u,col){
   
   h+='<div class="br-col br-col-sf"><div class="br-pair">';
   {const[s1,s2]=SFB[1];
-   h+=renderMatch(MATCH_INFO.sf[1],p.qf[s1]||'',p.qf[s2]||'',p.sf[1]);}
+   h+=renderMatch(MATCH_INFO.sf[1],p.qf[s1]||'',p.qf[s2]||'',p.sf[1],true);}
   h+='</div></div>';
   
   h+='<div class="br-col br-col-qf"><div class="br-pair">';
   for(const i of[2,3]){
     const[s1,s2]=QFB[i];
-    h+=renderMatch(MATCH_INFO.qf[i],p.r16[s1]||'',p.r16[s2]||'',p.qf[i]);
+    h+=renderMatch(MATCH_INFO.qf[i],p.r16[s1]||'',p.r16[s2]||'',p.qf[i],true);
   }
   h+='</div></div>';
   
@@ -2918,7 +2911,7 @@ function buildBracket(uid,u,col){
     h+='<div class="br-pair">';
     for(const i of pair){
       const[s1,s2]=R16B[i];
-      h+=renderMatch(MATCH_INFO.r16[i],p.r32[s1]||'',p.r32[s2]||'',p.r16[i]);
+      h+=renderMatch(MATCH_INFO.r16[i],p.r32[s1]||'',p.r32[s2]||'',p.r16[i],true);
     }
     h+='</div>';
   }
@@ -2929,7 +2922,7 @@ function buildBracket(uid,u,col){
     h+='<div class="br-pair">';
     for(const idx of[a,b]){
       const[t1,t2]=getR32Teams(idx);
-      h+=renderMatch(MATCH_INFO.r32[idx],t1,t2,p.r32[idx]);
+      h+=renderMatch(MATCH_INFO.r32[idx],t1,t2,p.r32[idx],true);
     }
     h+='</div>';
   }
