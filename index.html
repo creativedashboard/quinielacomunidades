@@ -790,7 +790,7 @@ function applyUserColor(id){
 // ══════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════
-let ME={uid:'',name:'',email:'',photo:'',color:'blue',isAdmin:false,communityId:''};
+let ME={uid:'',name:'',email:'',photo:'',color:'blue',isAdmin:false,isSuperAdmin:false,isCommunityAdmin:false,communityId:'',communityAdminOf:[]};
 let S={
   tab:'grupos',sub:'communities',
   bracketView:'cards', // 'cards' or 'bracket' — for r32/r16/qf/sf/final tabs
@@ -843,7 +843,7 @@ function signOut(){
 
 auth.onAuthStateChanged(async user=>{
   if(!user){
-    ME={uid:'',name:'',email:'',photo:'',color:'blue',isAdmin:false,communityId:''};
+    ME={uid:'',name:'',email:'',photo:'',color:'blue',isAdmin:false,isSuperAdmin:false,isCommunityAdmin:false,communityId:'',communityAdminOf:[]};
     showScreen('login');
     return;
   }
@@ -857,7 +857,26 @@ auth.onAuthStateChanged(async user=>{
     const profileSnap=await db.ref('users/'+user.uid).once('value');
     const profile=profileSnap.val();
     const adminSnap=await db.ref('admins/'+user.uid).once('value');
-    ME.isAdmin=adminSnap.val()===true;
+    // Super admin = legacy "admins/{uid}=true" (you with password)
+    ME.isSuperAdmin=adminSnap.val()===true;
+    // Backwards compat: ME.isAdmin keeps working (= super admin OR community admin of current community)
+    ME.isAdmin=ME.isSuperAdmin;
+    // Detect which communities this user is community-admin of (new role)
+    try{
+      const commAdmSnap=await db.ref('community_admins').once('value');
+      const commAdmins=commAdmSnap.val()||{};
+      ME.communityAdminOf=[];
+      for(const cid in commAdmins){
+        if(commAdmins[cid]===user.uid||(commAdmins[cid]&&commAdmins[cid][user.uid]===true)){
+          ME.communityAdminOf.push(cid);
+        }
+      }
+      ME.isCommunityAdmin=ME.communityAdminOf.length>0;
+      // If user is community admin of their current community, also grant local admin powers
+      if(profile&&profile.communityId&&ME.communityAdminOf.indexOf(profile.communityId)>=0){
+        ME.isAdmin=true;
+      }
+    }catch(e){console.warn('Could not load community_admins',e);}
 
     if(!profile||!profile.communityId){
       // No community yet — show setup
@@ -977,14 +996,40 @@ function loadApp(forceAdmin){
   function safeRender(){if(!isTypingScore())render();}
 
   // Subscribe to all needed data
+  const cid=ME.communityId;
   const refs=[
     {path:'users',                handler:snap=>{S.users=snap.val()||{};safeRender();}},
     {path:'picks',                handler:snap=>{S.picks=snap.val()||{};safeRender();}},
     {path:'communities',          handler:snap=>{S.communities=snap.val()||{};safeRender();}},
-    {path:'admin',                handler:snap=>{S.adminR=mergeAdm(snap.val()||{});safeRender();}},
-    {path:'thirds_bracket',       handler:snap=>{
-      const v=snap.val()||[];
-      S.thirds_bracket=Array.isArray(v)?v:Object.values(v);
+    // NEW: per-community results (each community has its own official results)
+    // If no community_results for this CID yet, fall back to legacy global 'admin'
+    {path:cid?'community_results/'+cid:'admin', handler:snap=>{
+      const v=snap.val();
+      if(v){S.adminR=mergeAdm(v);}
+      else if(cid){
+        // No per-community results yet — try legacy global as fallback
+        db.ref('admin').once('value').then(s=>{
+          S.adminR=mergeAdm(s.val()||{});
+          safeRender();
+        });
+        return;
+      }else{S.adminR=mergeAdm({});}
+      safeRender();
+    }},
+    {path:cid?'community_thirds_bracket/'+cid:'thirds_bracket', handler:snap=>{
+      const v=snap.val();
+      if(v){
+        S.thirds_bracket=Array.isArray(v)?v:Object.values(v);
+      }else if(cid){
+        // Fallback to legacy global
+        db.ref('thirds_bracket').once('value').then(s=>{
+          const vv=s.val()||[];
+          S.thirds_bracket=Array.isArray(vv)?vv:Object.values(vv);
+          while(S.thirds_bracket.length<8)S.thirds_bracket.push('');
+          safeRender();
+        });
+        return;
+      }else{S.thirds_bracket=[];}
       while(S.thirds_bracket.length<8)S.thirds_bracket.push('');
       safeRender();
     }},
@@ -1074,8 +1119,18 @@ function scheduleSavePicks(picks){
 }
 function saveAdminResults(){
   if(!ME.isAdmin)return;
-  db.ref('admin').set(S.adminR).catch(e=>console.warn(e));
-  db.ref('thirds_bracket').set(S.thirds_bracket).catch(e=>console.warn(e));
+  // NEW: Save per-community (each community has its own official results)
+  // LEGACY: Also save to global 'admin' for super-admin's own community (your cuates)
+  const cid=ME.communityId;
+  if(cid){
+    db.ref('community_results/'+cid).set(S.adminR).catch(e=>console.warn(e));
+    db.ref('community_thirds_bracket/'+cid).set(S.thirds_bracket).catch(e=>console.warn(e));
+  }
+  // Super-admin also writes to legacy global path (for backward compat with existing data)
+  if(ME.isSuperAdmin){
+    db.ref('admin').set(S.adminR).catch(e=>console.warn(e));
+    db.ref('thirds_bracket').set(S.thirds_bracket).catch(e=>console.warn(e));
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -1492,7 +1547,7 @@ const TERMS_HTML=`
 
 <h3>⚠️ Sobre los Mejores Terceros (Annex C)</h3>
 <p>Usamos la tabla oficial <strong>Annex C de FIFA</strong> (publicada 2024) para calcular los 8 mejores terceros lugares y sus emparejamientos en Round of 32. Esta tabla está sujeta a interpretación final por parte de FIFA.</p>
-<p><strong>En caso de discrepancia entre nuestros cálculos y la decisión oficial de FIFA el día del torneo, prevalece SIEMPRE la decisión oficial de FIFA.</strong> Los administradores de cada comunidad pueden ajustar manualmente los resultados oficiales en su panel si fuera necesario.</p>
+<p><strong>En caso de discrepancia entre nuestros cálculos y la decisión oficial de FIFA el día del torneo, prevalece SIEMPRE la decisión oficial de FIFA.</strong></p>
 
 <h3>🏆 Cambios en reglas FIFA</h3>
 <p>Las reglas oficiales de FIFA pueden cambiar. Si FIFA modifica el formato del torneo, actualizaremos la plataforma lo antes posible pero <strong>no garantizamos cambios inmediatos</strong>.</p>
@@ -1502,8 +1557,6 @@ const TERMS_HTML=`
   <li>Una licencia = derecho a crear <strong>UNA comunidad</strong> con hasta 50 miembros, válida hasta el <strong>19 de julio de 2026</strong> (después de la Final).</li>
   <li>La licencia es de un solo uso. Una vez activada, no se puede transferir.</li>
   <li><strong>No hay reembolsos después de activada la licencia</strong> (porque ya consumió el acceso).</li>
-  <li>Si tu licencia no funciona dentro de las primeras 24 horas, contáctanos para reembolso o reemplazo.</li>
-  <li>Después del 19 de julio 2026, la plataforma estará en modo solo-lectura.</li>
 </ul>
 
 <h3>🔒 Política de Privacidad</h3>
@@ -1514,7 +1567,6 @@ const TERMS_HTML=`
   <li><strong>NO te enviaremos spam ni publicidad de terceros.</strong></li>
   <li>Puedes recibir <strong>1-2 correos al año</strong> relacionados con futuras versiones de esta plataforma (Mundial 2030, otros torneos). Si no quieres recibirlos, escríbenos y te quitamos de la lista.</li>
   <li>Tus datos se almacenan en Firebase (Google Cloud) bajo sus políticas de seguridad.</li>
-  <li>Puedes pedir la eliminación de tus datos en cualquier momento.</li>
 </ul>
 
 <h3>✋ Conducta de Usuario</h3>
@@ -1522,12 +1574,8 @@ const TERMS_HTML=`
 <ul>
   <li>No usar la plataforma para actividades ilegales o de mal uso de datos de otros usuarios.</li>
   <li>Respetar a los demás participantes.</li>
-  <li>No intentar acceder a comunidades a las que no fuiste invitado.</li>
   <li>No intentar manipular el sistema técnicamente.</li>
 </ul>
-
-<h3>📞 Contacto</h3>
-<p>Para soporte, reembolsos, eliminación de datos o cualquier duda: contáctanos por DM en Instagram o por el medio de compra.</p>
 
 <p style="margin-top:18px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:11.5px;color:var(--mt)">Al hacer click en "Entendido y acepto" confirmas que has leído y estás de acuerdo con estos términos. Si no estás de acuerdo, por favor cierra esta ventana y no uses la plataforma.</p>
 `;
@@ -2042,7 +2090,7 @@ function rR32(adm){
     // ⚠️ Important disclaimer about Annex C / FIFA emparejamientos
     h+=`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:11.5px;color:#78350f;line-height:1.5">
       <div style="font-weight:800;margin-bottom:6px;font-family:'Outfit',sans-serif;font-size:12.5px">⚠️ Importante: Mejores Terceros</div>
-      <div>Calculamos los 8 mejores terceros usando la <strong>tabla oficial Annex C de FIFA</strong> (publicada 2024). Sin embargo, <strong>FIFA es la autoridad final</strong>. Si el día del torneo hay alguna discrepancia entre nuestros cálculos y los emparejamientos oficiales de FIFA, <strong>prevalecen SIEMPRE los de FIFA</strong>. El administrador de tu comunidad puede ajustar manualmente los resultados oficiales si fuera necesario.</div>
+      <div>Calculamos los 8 mejores terceros usando la <strong>tabla oficial Annex C de FIFA</strong> (publicada 2024). Sin embargo, <strong>FIFA es la autoridad final</strong>. Si el día del torneo hay alguna discrepancia entre nuestros cálculos y los emparejamientos oficiales de FIFA, <strong>prevalecen SIEMPRE los de FIFA</strong>.</div>
     </div>`;
     const t8=p.t8||[];
     if(t8.length<8){h+=`<div class="t8-hint">Termina de predecir los 72 partidos de grupos. Tus 8 mejores terceros se calculan automáticamente y aparecerán aquí.</div>`;}
