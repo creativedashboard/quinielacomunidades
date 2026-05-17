@@ -3168,15 +3168,19 @@ async function activateLicenseAndCreateCommunity(licenseCode, communityName, use
     termsAcceptedAt:now
   };
   if(!isMaster){
-    updates['licenses/'+licenseCode]={
+    const licData={
       code:licenseCode,
       status:'used',
       source:licenseSource,
       usedBy:ME.uid,
       usedAt:now,
-      communityId:cid,
-      createdAt:(licenseSource==='gumroad'?now:undefined)
+      communityId:cid
     };
+    // Only add createdAt for Gumroad codes (manual codes already have it from when admin generated)
+    if(licenseSource==='gumroad'){
+      licData.createdAt=now;
+    }
+    updates['licenses/'+licenseCode]=licData;
   }
   await db.ref().update(updates);
   // Update local state
