@@ -62,6 +62,14 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .setup-field input:focus{border-color:var(--ac)}
 .setup-err{font-size:12px;color:var(--rd);background:#fef2f2;border-radius:7px;padding:8px 12px;margin-bottom:10px;display:none;line-height:1.5}
 .setup-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--ac);color:#fff;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .15s;margin-top:4px}
+.setup-options{display:flex;flex-direction:column;gap:10px;margin:14px 0 18px}
+.setup-opt{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border:1.5px solid var(--bd);border-radius:12px;cursor:pointer;transition:all .15s;text-align:left;width:100%;font-family:'DM Sans',sans-serif}
+.setup-opt:hover{border-color:var(--ac);background:var(--acl);transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.1)}
+.setup-opt-icon{font-size:32px;flex-shrink:0;line-height:1}
+.setup-opt-body{flex:1;min-width:0}
+.setup-opt-ttl{font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:var(--tx);margin-bottom:2px}
+.setup-opt-sub{font-size:11.5px;color:var(--mt);line-height:1.4}
+.setup-opt-arrow{font-size:20px;color:var(--ac);font-weight:800;flex-shrink:0}
 .setup-btn:hover{background:var(--acd)}
 .setup-btn.secondary{background:var(--bg);color:var(--mt);border:1.5px solid var(--bd);margin-top:10px}
 .setup-btn.secondary:hover{border-color:var(--bd2);color:var(--tx)}
@@ -492,7 +500,7 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
   </div>
 </div>
 
-<!-- ── SETUP (community code) ──────────────────────── -->
+<!-- ── SETUP (selector + activate license + join community) ──────────────────────── -->
 <div id="screen-setup">
   <div class="setup-box">
     <div class="setup-user">
@@ -502,19 +510,94 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
         <div class="setup-uemail" id="setup-uemail"></div>
       </div>
     </div>
-    <div class="setup-title">¡Hola! 👋</div>
-    <div class="setup-sub">Ingresa el <strong>código de invitación</strong> de tu comunidad y elige tu color.</div>
-    <div class="setup-field">
-      <label>Código de invitación</label>
-      <input id="invite-code" type="text" placeholder="EJ: DOGGY-2026" maxlength="20" autocomplete="off">
+
+    <!-- VIEW 1: Selector -->
+    <div id="setup-view-select">
+      <div class="setup-title">¡Hola! 👋</div>
+      <div class="setup-sub">¿Cómo vas a entrar a la quiniela?</div>
+      <div class="setup-options">
+        <button class="setup-opt" onclick="showSetupView('license')">
+          <div class="setup-opt-icon">🎫</div>
+          <div class="setup-opt-body">
+            <div class="setup-opt-ttl">Tengo una licencia</div>
+            <div class="setup-opt-sub">Soy admin · Voy a crear mi quiniela y mandar invitaciones</div>
+          </div>
+          <div class="setup-opt-arrow">→</div>
+        </button>
+        <button class="setup-opt" onclick="showSetupView('join')">
+          <div class="setup-opt-icon">👥</div>
+          <div class="setup-opt-body">
+            <div class="setup-opt-ttl">Tengo un código de invitación</div>
+            <div class="setup-opt-sub">Mi amigo me invitó a su quiniela</div>
+          </div>
+          <div class="setup-opt-arrow">→</div>
+        </button>
+      </div>
+      <button class="setup-btn secondary" onclick="signOut()">Cerrar sesión</button>
     </div>
-    <div class="setup-field">
-      <label>Tu color</label>
-      <div class="color-grid" id="color-grid-setup"></div>
+
+    <!-- VIEW 2: Activate License -->
+    <div id="setup-view-license" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><a onclick="showSetupView('select')" style="color:var(--mt);font-size:12px;cursor:pointer;text-decoration:none">← Atrás</a></div>
+      <div class="setup-title">🎫 Activar licencia</div>
+      <div class="setup-sub">Pega tu código de licencia y dale nombre a tu quiniela.</div>
+      <div class="setup-field">
+        <label>Código de licencia</label>
+        <input id="license-code" type="text" placeholder="LIC-2026-XXXXXXXXXXXXXXXX" maxlength="50" autocomplete="off" style="font-family:monospace;text-transform:uppercase">
+      </div>
+      <div class="setup-field">
+        <label>Nombre de tu quiniela</label>
+        <input id="license-comm-name" type="text" placeholder="Ej: Quiniela Familia García" maxlength="50" autocomplete="off">
+      </div>
+      <div class="setup-field">
+        <label>Tu color</label>
+        <div class="color-grid" id="color-grid-license"></div>
+      </div>
+      <div id="license-err" class="setup-err"></div>
+      <button class="setup-btn" onclick="doActivateLicense()">Activar y crear quiniela →</button>
+      <button class="setup-btn secondary" onclick="signOut()">Cerrar sesión</button>
     </div>
-    <div id="setup-err" class="setup-err"></div>
-    <button class="setup-btn" onclick="doJoinCommunity()">Unirme a la comunidad →</button>
-    <button class="setup-btn secondary" onclick="signOut()">Cerrar sesión</button>
+
+    <!-- VIEW 3: Join Community -->
+    <div id="setup-view-join" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><a onclick="showSetupView('select')" style="color:var(--mt);font-size:12px;cursor:pointer;text-decoration:none">← Atrás</a></div>
+      <div class="setup-title">👥 Unirme a una quiniela</div>
+      <div class="setup-sub">Ingresa el <strong>código de invitación</strong> que te dio tu amigo.</div>
+      <div class="setup-field">
+        <label>Código de invitación</label>
+        <input id="invite-code" type="text" placeholder="EJ: ABCD123" maxlength="20" autocomplete="off">
+      </div>
+      <div class="setup-field">
+        <label>Tu color</label>
+        <div class="color-grid" id="color-grid-setup"></div>
+      </div>
+      <div id="setup-err" class="setup-err"></div>
+      <button class="setup-btn" onclick="doJoinCommunity()">Unirme a la comunidad →</button>
+      <button class="setup-btn secondary" onclick="signOut()">Cerrar sesión</button>
+    </div>
+
+    <!-- VIEW 4: Success (after license activation) -->
+    <div id="setup-view-success" style="display:none">
+      <div style="text-align:center;padding:10px 0 20px">
+        <div style="font-size:64px;line-height:1">🎉</div>
+        <div class="setup-title" style="margin-top:10px">¡Tu quiniela está lista!</div>
+        <div class="setup-sub">Comparte este código con tus amigos para que se unan a tu quiniela:</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border:2px solid #93c5fd;border-radius:14px;padding:20px;text-align:center;margin-bottom:14px">
+        <div style="font-size:11px;color:#1e40af;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Tu código de invitación</div>
+        <div id="success-invite-code" style="font-family:'Outfit',sans-serif;font-size:32px;font-weight:800;color:#1e3a8a;letter-spacing:3px;margin-bottom:12px">—</div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button onclick="copySuccessCode()" style="padding:9px 16px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif">📋 Copiar código</button>
+          <button onclick="shareSuccessWhatsApp()" style="padding:9px 16px;background:#25d366;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif">💬 WhatsApp</button>
+        </div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:12px;font-size:11.5px;color:var(--mt);line-height:1.55;margin-bottom:14px">
+        💡 <strong style="color:var(--tx)">Tip:</strong> también puedes invitar con este link directo:
+        <div id="success-invite-link" style="font-family:monospace;font-size:10.5px;color:var(--ac);margin-top:4px;word-break:break-all;cursor:pointer" onclick="copySuccessLink()" title="Click para copiar">—</div>
+      </div>
+      <button class="setup-btn" onclick="finishSetup()">Entrar a mi quiniela →</button>
+    </div>
+
   </div>
 </div>
 
@@ -947,6 +1030,9 @@ auth.onAuthStateChanged(async user=>{
 // SETUP SCREEN
 // ══════════════════════════════════════════════════════
 let _selSetupColor='blue';
+let _selLicenseColor='blue';
+let _successInviteCode='';
+
 function showSetupScreen(){
   document.getElementById('setup-uname').textContent=ME.name;
   document.getElementById('setup-uemail').textContent=ME.email;
@@ -954,16 +1040,46 @@ function showSetupScreen(){
   if(ME.photo){av.style.backgroundImage=`url(${ME.photo})`;av.textContent='';}
   else{av.textContent=(ME.name[0]||'?').toUpperCase();}
 
-  // Render color grid
+  // Render color grids for both join and license views
   const grid=document.getElementById('color-grid-setup');
   grid.innerHTML=UCOLORS.map((c,i)=>`<div class="color-dot${i===0?' sel':''}" data-c="${c.id}" style="background:${c.ac}" onclick="selectSetupColor('${c.id}')"></div>`).join('');
   _selSetupColor='blue';
 
+  const grid2=document.getElementById('color-grid-license');
+  grid2.innerHTML=UCOLORS.map((c,i)=>`<div class="color-dot${i===0?' sel':''}" data-c="${c.id}" style="background:${c.ac}" onclick="selectLicenseColor('${c.id}')"></div>`).join('');
+  _selLicenseColor='blue';
+
+  // Check URL params: ?join=ABCDEF or ?license=LIC-...
+  const params=new URLSearchParams(window.location.search);
+  const joinCode=params.get('join');
+  const licCode=params.get('license');
+  if(joinCode){
+    document.getElementById('invite-code').value=joinCode.toUpperCase();
+    showSetupView('join');
+  }else if(licCode){
+    document.getElementById('license-code').value=licCode.toUpperCase();
+    showSetupView('license');
+  }else{
+    showSetupView('select');
+  }
+
   showScreen('setup');
 }
+
+function showSetupView(view){
+  document.getElementById('setup-view-select').style.display=view==='select'?'block':'none';
+  document.getElementById('setup-view-license').style.display=view==='license'?'block':'none';
+  document.getElementById('setup-view-join').style.display=view==='join'?'block':'none';
+  document.getElementById('setup-view-success').style.display=view==='success'?'block':'none';
+}
+
 function selectSetupColor(id){
   _selSetupColor=id;
   document.querySelectorAll('#color-grid-setup .color-dot').forEach(d=>d.classList.toggle('sel',d.dataset.c===id));
+}
+function selectLicenseColor(id){
+  _selLicenseColor=id;
+  document.querySelectorAll('#color-grid-license .color-dot').forEach(d=>d.classList.toggle('sel',d.dataset.c===id));
 }
 
 async function doJoinCommunity(){
@@ -992,6 +1108,54 @@ async function doJoinCommunity(){
   }catch(e){
     err.textContent='Error: '+e.message;err.style.display='block';
   }
+}
+
+async function doActivateLicense(){
+  const code=(document.getElementById('license-code').value||'').trim().toUpperCase();
+  const name=(document.getElementById('license-comm-name').value||'').trim();
+  const err=document.getElementById('license-err');
+  err.style.display='none';
+  if(!code){err.textContent='Pega tu código de licencia';err.style.display='block';return;}
+  if(!name){err.textContent='Ponle nombre a tu quiniela';err.style.display='block';return;}
+  if(name.length<2||name.length>50){err.textContent='El nombre debe tener entre 2 y 50 caracteres';err.style.display='block';return;}
+  // Check: user shouldn't already have a community
+  const profileSnap=await db.ref('users/'+ME.uid).once('value');
+  if(profileSnap.val()&&profileSnap.val().communityId){
+    err.textContent='Ya tienes una comunidad asignada. Si necesitas otra, contacta al vendedor.';err.style.display='block';return;
+  }
+  try{
+    const result=await activateLicenseAndCreateCommunity(code,name,_selLicenseColor);
+    // Show success view
+    _successInviteCode=result.inviteCode;
+    document.getElementById('success-invite-code').textContent=result.inviteCode;
+    const baseUrl=window.location.origin+window.location.pathname;
+    document.getElementById('success-invite-link').textContent=baseUrl+'?join='+result.inviteCode;
+    showSetupView('success');
+  }catch(e){
+    err.textContent=e.message||String(e);err.style.display='block';
+  }
+}
+
+function copySuccessCode(){
+  navigator.clipboard.writeText(_successInviteCode).then(()=>alert('Código copiado: '+_successInviteCode)).catch(()=>{
+    prompt('Copia tu código:',_successInviteCode);
+  });
+}
+function copySuccessLink(){
+  const link=window.location.origin+window.location.pathname+'?join='+_successInviteCode;
+  navigator.clipboard.writeText(link).then(()=>alert('Link copiado')).catch(()=>{
+    prompt('Copia el link:',link);
+  });
+}
+function shareSuccessWhatsApp(){
+  const link=window.location.origin+window.location.pathname+'?join='+_successInviteCode;
+  const msg=`¡Hola! Te invito a mi quiniela del Mundial 2026 🏆\n\nÚnete aquí: ${link}\n\nCódigo: ${_successInviteCode}`;
+  const url='https://wa.me/?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+}
+function finishSetup(){
+  // Reload the app so all data refreshes properly
+  loadApp(true); // forceAdmin=true because user is now community-admin
 }
 
 // Super-admin activation: only your hardcoded UID + correct URL key
