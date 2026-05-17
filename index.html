@@ -595,6 +595,28 @@ const db=firebase.database();
 // Access via secret URL: ?super=<password> (validated server-side via Firebase rules)
 const SUPER_ADMIN_UID='ZDQcOkt2woOs5owq1jxAnsZ0dYu2';
 const SUPER_ADMIN_URL_KEY='doggyesdios'; // URL parameter, not visible in normal flow
+// Master license: reusable, never expires, only for SUPER_ADMIN's testing
+const MASTER_LICENSE_CODE='LIC-CRIS-MASTER-5T8LLWOSZMOEJR869NGZ';
+const LICENSE_PREFIX='LIC-2026-';
+const LICENSE_RANDOM_LEN=16;
+
+// Generate cryptographically secure license codes (no patterns, ambiguous chars removed)
+function generateLicenseCode(){
+  // Avoid ambiguous chars: 0/O, 1/I/L
+  const charset='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const arr=new Uint32Array(LICENSE_RANDOM_LEN);
+  crypto.getRandomValues(arr);
+  let code='';
+  for(let i=0;i<LICENSE_RANDOM_LEN;i++){
+    code+=charset[arr[i]%charset.length];
+  }
+  return LICENSE_PREFIX+code;
+}
+function generateLicenseBatch(n){
+  const codes=new Set();
+  while(codes.size<n){codes.add(generateLicenseCode());}
+  return Array.from(codes);
+}
 const TOURNAMENT_START=new Date('2026-06-11T16:00:00Z'); // 11 Jun 2026 — locks picks
 
 function isLocked(){
@@ -797,6 +819,7 @@ let S={
   users:{},        // {uid: profileObj}
   picks:{},        // {uid: picksObj}
   communities:{},  // {commId: {name, inviteCode}}
+  licenses:{},     // {code: {status, usedBy, usedAt, communityId}} — only loaded by super-admin
   adminR:null,     // results
   thirds_bracket:Array(8).fill(''),
   sync:'idle',syncMsg:''
@@ -1052,6 +1075,8 @@ function loadApp(forceAdmin){
     {path:'users',                handler:snap=>{S.users=snap.val()||{};safeRender();}},
     {path:'picks',                handler:snap=>{S.picks=snap.val()||{};safeRender();}},
     {path:'communities',          handler:snap=>{S.communities=snap.val()||{};safeRender();}},
+    // Licenses listener — only super-admin needs this data; other users get blocked by Firebase rules
+    ...(ME.isSuperAdmin?[{path:'licenses',handler:snap=>{S.licenses=snap.val()||{};safeRender();}}]:[]),
     // NEW: per-community results (each community has its own official results)
     // If no community_results for this CID yet, fall back to legacy global 'admin'
     {path:cid?'community_results/'+cid:'admin', handler:snap=>{
@@ -2341,8 +2366,14 @@ function rDashboard(){
 // ADMIN
 // ══════════════════════════════════════════════════════
 function rAdmin(){
+  // Build subtabs based on role
   const subs=[
     {id:'communities',lbl:'Comunidades'},
+  ];
+  // Only super-admin sees licenses tab
+  if(ME.isSuperAdmin)subs.push({id:'licenses',lbl:'🎫 Licencias'});
+  // Everyone with admin role sees these
+  subs.push(
     {id:'leaderboard',lbl:'Tabla Global'},
     {id:'grupos',lbl:'Resultados: Grupos'},
     {id:'terceros',lbl:'Mejores 3ros'},
@@ -2350,13 +2381,15 @@ function rAdmin(){
     {id:'r16',lbl:'Octavos'},
     {id:'qf',lbl:'Cuartos'},
     {id:'sf',lbl:'Semis'},
-    {id:'final',lbl:'Final'},
-  ];
-  let h=`<div class="admnotice">⚙️ <strong>Panel Admin</strong> — Solo tú ves esto. Aquí gestionas comunidades y registras los resultados reales del Mundial.</div>
+    {id:'final',lbl:'Final'}
+  );
+  const roleLbl=ME.isSuperAdmin?'👑 Super Admin':'⚙️ Admin de Comunidad';
+  let h=`<div class="admnotice">${roleLbl} — ${ME.isSuperAdmin?'Gestionas TODA la plataforma.':'Gestionas TU comunidad.'}</div>
     <div class="admsubs">`;
   for(const s of subs)h+=`<button class="adms${S.sub===s.id?' on':''}" onclick="S.sub='${s.id}';render()">${s.lbl}</button>`;
   h+='</div>';
   if(S.sub==='communities')      h+=rAdmCommunities();
+  else if(S.sub==='licenses')    h+=rAdmLicenses();
   else if(S.sub==='leaderboard') h+=rAdmLeaderboard();
   else if(S.sub==='grupos')      h+=rGrupos(true);
   else if(S.sub==='terceros')    h+=rAdminT8();
@@ -2368,30 +2401,103 @@ function rAdmin(){
   return h;
 }
 
-function rAdmCommunities(){
-  // Admin's own community picker
-  const comms=Object.entries(S.communities);
-  const myComm=S.communities[ME.communityId];
-  let h=`<div style="background:var(--card);border:1.5px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-    <span style="font-size:12px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px">Mi comunidad:</span>
-    <select onchange="setMyCommunity(this.value)" style="padding:7px 12px;border:1.5px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;flex:1;max-width:280px">
-      <option value="">— Sin comunidad —</option>
-      ${comms.map(([cid,c])=>`<option value="${cid}"${ME.communityId===cid?' selected':''}>${esc(c.name)}</option>`).join('')}
-    </select>
-    ${myComm?`<span style="font-size:11px;color:var(--gnd);font-weight:600">✓ Juegas en ${esc(myComm.name)}</span>`:'<span style="font-size:11px;color:var(--am);font-weight:600">Sin asignar — no apareces en ninguna leaderboard</span>'}
-  </div>
-  <button class="m-btn" style="width:auto;padding:9px 16px;margin-bottom:16px" onclick="showCreateCommunity()">+ Crear nueva comunidad</button>
-  <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #fcd34d;border-radius:var(--r);padding:14px;margin-bottom:16px">
-    <div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:8px;font-family:'Outfit',sans-serif">💾 Respaldos y exportar</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button onclick="adminDownloadBackup()" style="padding:9px 14px;background:#fff;border:1.5px solid #fcd34d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;font-family:'DM Sans',sans-serif" title="Descarga JSON con TODOS los datos">💾 Descargar respaldo (JSON)</button>
-      <button onclick="adminRestoreBackup()" style="padding:9px 14px;background:#fff;border:1.5px solid #fcd34d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;font-family:'DM Sans',sans-serif" title="Restaurar desde archivo JSON">📂 Restaurar desde archivo</button>
-      <button onclick="adminGeneratePDF()" style="padding:9px 14px;background:#fff;border:1.5px solid #fcd34d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;font-family:'DM Sans',sans-serif" title="PDF con todos los brackets">📄 PDF de todos los brackets</button>
+// SUPER-ADMIN ONLY: License management UI
+function rAdmLicenses(){
+  if(!ME.isSuperAdmin)return '<div style="padding:20px;color:var(--mt)">Solo super-admin.</div>';
+  const lics=Object.values(S.licenses||{});
+  const total=lics.length;
+  const unused=lics.filter(l=>l.status==='unused').length;
+  const used=lics.filter(l=>l.status==='used').length;
+  const revoked=lics.filter(l=>l.status==='revoked').length;
+  let h=`<div style="margin-bottom:14px;padding:16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;border:1.5px solid #fcd34d">
+    <div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:#92400e;margin-bottom:10px">🎫 Sistema de Licencias</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px">
+      <div style="background:#fff;padding:10px;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#0f172a">${total}</div><div style="font-size:10px;color:var(--mt);font-weight:600">Total</div></div>
+      <div style="background:#fff;padding:10px;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#16a34a">${unused}</div><div style="font-size:10px;color:var(--mt);font-weight:600">SIN USAR</div></div>
+      <div style="background:#fff;padding:10px;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#2563eb">${used}</div><div style="font-size:10px;color:var(--mt);font-weight:600">USADAS</div></div>
+      <div style="background:#fff;padding:10px;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#dc2626">${revoked}</div><div style="font-size:10px;color:var(--mt);font-weight:600">REVOCADAS</div></div>
     </div>
-    <div style="font-size:10.5px;color:#a16207;margin-top:8px;line-height:1.5">💡 Descarga el JSON cada cierto tiempo como respaldo. Si algo pasa, usa "Restaurar" para volver a este estado.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="adminGenerateLicenses()" style="padding:9px 14px;background:#92400e;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif">+ Generar códigos</button>
+      <button onclick="adminDownloadLicensesCSV()" style="padding:9px 14px;background:#fff;border:1.5px solid #fcd34d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;font-family:'DM Sans',sans-serif">📥 Descargar CSV (Gumroad)</button>
+    </div>
+    <div style="font-size:10.5px;color:#a16207;margin-top:8px;line-height:1.5">💡 Tu código maestro de pruebas (reutilizable, sólo para ti): <code style="background:#fff;padding:2px 6px;border-radius:4px;font-size:10px">${esc(MASTER_LICENSE_CODE)}</code></div>
   </div>`;
+
+  if(total===0){
+    h+='<div style="padding:20px;text-align:center;color:var(--mt);background:var(--card);border-radius:10px">Aún no has generado licencias. Click en "+ Generar códigos" arriba.</div>';
+    return h;
+  }
+  // List with filter
+  h+=`<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="adms${(S.licFilter||'all')==='all'?' on':''}" onclick="S.licFilter='all';render()">Todas (${total})</button>
+    <button class="adms${S.licFilter==='unused'?' on':''}" onclick="S.licFilter='unused';render()">Sin usar (${unused})</button>
+    <button class="adms${S.licFilter==='used'?' on':''}" onclick="S.licFilter='used';render()">Usadas (${used})</button>
+    <button class="adms${S.licFilter==='revoked'?' on':''}" onclick="S.licFilter='revoked';render()">Revocadas (${revoked})</button>
+  </div>`;
+  const filter=S.licFilter||'all';
+  let filtered=lics;
+  if(filter!=='all')filtered=lics.filter(l=>l.status===filter);
+  filtered=filtered.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  h+='<div style="background:var(--card);border-radius:10px;border:1px solid var(--bd);overflow:hidden">';
+  filtered.slice(0,200).forEach((l,i)=>{
+    const statusColor={unused:'#16a34a',used:'#2563eb',revoked:'#dc2626'}[l.status]||'#6b7280';
+    const statusLbl={unused:'⏳ Sin usar',used:'✅ Usada',revoked:'❌ Revocada'}[l.status]||l.status;
+    const usedByName=l.usedBy&&S.users[l.usedBy]?S.users[l.usedBy].name:(l.usedBy?'UID '+l.usedBy.slice(0,8):'');
+    const commName=l.communityId&&S.communities[l.communityId]?S.communities[l.communityId].name:'';
+    h+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bd);font-size:11.5px${i%2?';background:var(--bg)':''}">
+      <code style="flex:1;font-family:monospace;font-size:11px;color:var(--tx);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="navigator.clipboard.writeText('${esc(l.code)}').then(()=>alert('Copiado'))" title="Click para copiar">${esc(l.code)}</code>
+      <span style="font-size:10px;font-weight:700;color:${statusColor};white-space:nowrap">${statusLbl}</span>
+      ${usedByName?`<span style="font-size:10px;color:var(--mt);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis" title="${esc(usedByName)}">${esc(usedByName)}</span>`:''}
+      ${commName?`<span style="font-size:10px;color:var(--mt);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis" title="${esc(commName)}">→ ${esc(commName)}</span>`:''}
+      ${l.status!=='revoked'?`<button onclick="adminRevokeLicense('${js(l.code)}')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:13px;padding:2px 4px" title="Revocar">❌</button>`:''}
+    </div>`;
+  });
+  if(filtered.length>200){
+    h+=`<div style="padding:12px;text-align:center;color:var(--mt);font-size:11px">Mostrando primeras 200 de ${filtered.length}. Filtra o descarga CSV para verlas todas.</div>`;
+  }
+  h+='</div>';
+  return h;
+}
+
+function rAdmCommunities(){
+  // Super-admin sees all; community-admin only sees communities they admin
+  let comms=Object.entries(S.communities);
+  if(!ME.isSuperAdmin&&ME.isCommunityAdmin){
+    comms=comms.filter(([cid,c])=>ME.communityAdminOf.indexOf(cid)>=0);
+  }
+  const myComm=S.communities[ME.communityId];
+  let h='';
+  // Super-admin only: community picker and bulk actions
+  if(ME.isSuperAdmin){
+    const allComms=Object.entries(S.communities);
+    h+=`<div style="background:var(--card);border:1.5px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px">Mi comunidad:</span>
+      <select onchange="setMyCommunity(this.value)" style="padding:7px 12px;border:1.5px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;flex:1;max-width:280px">
+        <option value="">— Sin comunidad —</option>
+        ${allComms.map(([cid,c])=>`<option value="${cid}"${ME.communityId===cid?' selected':''}>${esc(c.name)}</option>`).join('')}
+      </select>
+      ${myComm?`<span style="font-size:11px;color:var(--gnd);font-weight:600">✓ Juegas en ${esc(myComm.name)}</span>`:'<span style="font-size:11px;color:var(--am);font-weight:600">Sin asignar — no apareces en ninguna leaderboard</span>'}
+    </div>
+    <button class="m-btn" style="width:auto;padding:9px 16px;margin-bottom:16px" onclick="showCreateCommunity()">+ Crear nueva comunidad</button>
+    <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #fcd34d;border-radius:var(--r);padding:14px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:8px;font-family:'Outfit',sans-serif">💾 Respaldos y exportar</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="adminDownloadBackup()" style="padding:9px 14px;background:#fff;border:1.5px solid #fcd34d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;font-family:'DM Sans',sans-serif" title="Descarga JSON con TODOS los datos">💾 Descargar respaldo (JSON)</button>
+        <button onclick="adminRestoreBackup()" style="padding:9px 14px;background:#fff;border:1.5px solid #fcd34d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;font-family:'DM Sans',sans-serif" title="Restaurar desde archivo JSON">📂 Restaurar desde archivo</button>
+        <button onclick="adminGeneratePDF()" style="padding:9px 14px;background:#fff;border:1.5px solid #fcd34d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;font-family:'DM Sans',sans-serif" title="PDF con todos los brackets">📄 PDF de todos los brackets</button>
+      </div>
+      <div style="font-size:10.5px;color:#a16207;margin-top:8px;line-height:1.5">💡 Descarga el JSON cada cierto tiempo como respaldo. Si algo pasa, usa "Restaurar" para volver a este estado.</div>
+    </div>`;
+  }else{
+    // Community-admin: simpler header
+    h+=`<div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #93c5fd;border-radius:var(--r);padding:14px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:800;color:#1e40af;font-family:'Outfit',sans-serif;margin-bottom:4px">📊 Tu comunidad</div>
+      <div style="font-size:11.5px;color:#1e3a8a;line-height:1.5">Comparte el código de invitación con tus amigos. Aquí puedes ver sus picks, ranking en vivo y administrar miembros.</div>
+    </div>`;
+  }
   if(comms.length===0){
-    h+=`<div style="padding:24px;text-align:center;color:var(--mt)">No hay comunidades aún. Crea la primera arriba.</div>`;
+    h+=`<div style="padding:24px;text-align:center;color:var(--mt)">No hay comunidades aún.${ME.isSuperAdmin?' Crea la primera arriba.':''}</div>`;
   }else{
     for(const[cid,c]of comms){
       const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>b.tot-a.tot);
@@ -2631,6 +2737,150 @@ async function captureGroups(){
     if(wrap.parentNode)document.body.removeChild(wrap);
     alert('Error: '+(err.message||err));
   }
+}
+
+// ─── CLIENT: Activate license to create their community ───
+async function activateLicenseAndCreateCommunity(licenseCode, communityName, userColor){
+  if(!ME.uid){throw new Error('No hay sesión activa.');}
+  licenseCode=(licenseCode||'').trim().toUpperCase();
+  if(!licenseCode.startsWith('LIC-')){
+    throw new Error('Formato de licencia inválido. Debe empezar con LIC-');
+  }
+  // Special case: master code (reusable, only for super-admin's testing)
+  const isMaster=(licenseCode===MASTER_LICENSE_CODE);
+  if(isMaster&&ME.uid!==SUPER_ADMIN_UID){
+    throw new Error('Esta licencia es exclusiva del super-admin.');
+  }
+  // For regular licenses: validate exists, unused
+  if(!isMaster){
+    const snap=await db.ref('licenses/'+licenseCode).once('value');
+    const lic=snap.val();
+    if(!lic){throw new Error('Licencia no encontrada. Verifica el código.');}
+    if(lic.status==='used'){throw new Error('Esta licencia ya fue usada por otra cuenta.');}
+    if(lic.status==='revoked'){throw new Error('Esta licencia fue revocada. Contacta al vendedor.');}
+  }
+  // Validate community name
+  communityName=(communityName||'').trim();
+  if(communityName.length<2){throw new Error('Nombre de comunidad muy corto.');}
+  if(communityName.length>50){throw new Error('Nombre de comunidad muy largo (máx 50).');}
+  // Generate community ID and invite code
+  const cid='c_'+Math.random().toString(36).slice(2,10);
+  const inviteCode=(function(){
+    const chars='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    const arr=new Uint32Array(7);
+    crypto.getRandomValues(arr);
+    let s='';
+    for(let i=0;i<7;i++)s+=chars[arr[i]%chars.length];
+    return s;
+  })();
+  const now=Date.now();
+  // Atomic update: create community + assign admin + mark license used + update user profile
+  const updates={};
+  updates['communities/'+cid]={
+    name:communityName,
+    inviteCode:inviteCode,
+    createdBy:ME.uid,
+    createdAt:now,
+    licenseUsed:licenseCode,
+    maxMembers:50
+  };
+  updates['community_admins/'+cid+'/'+ME.uid]=true;
+  updates['users/'+ME.uid]={
+    name:ME.name,email:ME.email,photo:ME.photo,
+    color:userColor||'blue',
+    communityId:cid,
+    joinedAt:now,
+    termsAcceptedAt:now
+  };
+  if(!isMaster){
+    updates['licenses/'+licenseCode+'/status']='used';
+    updates['licenses/'+licenseCode+'/usedBy']=ME.uid;
+    updates['licenses/'+licenseCode+'/usedAt']=now;
+    updates['licenses/'+licenseCode+'/communityId']=cid;
+  }
+  await db.ref().update(updates);
+  // Update local state
+  ME.color=userColor||'blue';
+  ME.communityId=cid;
+  ME.isCommunityAdmin=true;
+  ME.communityAdminOf=[cid];
+  ME.isAdmin=true;
+  applyUserColor(ME.color);
+  return{cid:cid,inviteCode:inviteCode};
+}
+
+// ─── SUPER-ADMIN: License management ───
+async function adminGenerateLicenses(){
+  if(!ME.isSuperAdmin){alert('Solo el super-admin puede generar licencias.');return;}
+  const nStr=prompt('¿Cuántas licencias generar?\n\nRecomendado: 50-100 a la vez.','50');
+  if(!nStr)return;
+  const n=parseInt(nStr);
+  if(isNaN(n)||n<1||n>500){alert('Cantidad inválida (1-500).');return;}
+  showConfirm({
+    title:`🎫 Generar ${n} licencias`,
+    msg:`Se van a generar ${n} códigos únicos de licencia. Cada uno será de un solo uso.\n\n¿Continuar?`,
+    okText:'Sí, generar',
+    onOk:async()=>{
+      try{
+        const codes=generateLicenseBatch(n);
+        const updates={};
+        const now=Date.now();
+        for(const code of codes){
+          updates['licenses/'+code]={
+            code:code,
+            status:'unused',
+            createdAt:now,
+            usedBy:null,
+            usedAt:null,
+            communityId:null
+          };
+        }
+        await db.ref().update(updates);
+        alert(`✅ ${n} licencias generadas correctamente.\n\nDescárgalas como CSV para subirlas a Gumroad.`);
+        render();
+      }catch(err){alert('Error: '+(err.message||err));}
+    }
+  });
+}
+
+function adminDownloadLicensesCSV(){
+  if(!ME.isSuperAdmin){alert('Solo super-admin.');return;}
+  db.ref('licenses').once('value').then(snap=>{
+    const lics=snap.val()||{};
+    const onlyUnused=confirm('¿Solo descargar las SIN USAR?\n\n[OK] = Solo libres (para subir a Gumroad)\n[Cancelar] = Todas (libres + usadas + revocadas)');
+    let rows=['code,status,created_at,used_by_uid,used_at,community_id'];
+    for(const code in lics){
+      const l=lics[code];
+      if(onlyUnused&&l.status!=='unused')continue;
+      const usedAt=l.usedAt?new Date(l.usedAt).toISOString():'';
+      const createdAt=l.createdAt?new Date(l.createdAt).toISOString():'';
+      rows.push(`${code},${l.status},${createdAt},${l.usedBy||''},${usedAt},${l.communityId||''}`);
+    }
+    const csv=rows.join('\n');
+    const blob=new Blob([csv],{type:'text/csv'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const ts=new Date().toISOString().slice(0,10);
+    a.href=url;a.download=`licencias-mundial2026-${onlyUnused?'libres':'todas'}-${ts}.csv`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  });
+}
+
+function adminRevokeLicense(code){
+  if(!ME.isSuperAdmin){alert('Solo super-admin.');return;}
+  showConfirm({
+    title:'❌ Revocar licencia',
+    msg:`¿Revocar la licencia ${code}?\n\nSi ya fue usada, la comunidad creada se mantiene pero la licencia queda marcada como inválida. Si la persona pide reembolso, esto es lo que harías.`,
+    okText:'Sí, revocar',
+    danger:true,
+    onOk:()=>{
+      db.ref('licenses/'+code+'/status').set('revoked').then(()=>{
+        db.ref('licenses/'+code+'/revokedAt').set(Date.now());
+        render();
+      });
+    }
+  });
 }
 
 // ─── ADMIN: Download full backup as JSON ───
