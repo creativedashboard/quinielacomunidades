@@ -268,6 +268,19 @@ html[data-ucolor] .lbbar-fill{background:var(--uc)}
 .cnf-btn.cancel{background:var(--bg);color:var(--tx);border:1.5px solid var(--bd)}
 .cnf-btn.ok{background:var(--ac);color:#fff}
 .cnf-btn.danger{background:var(--rd);color:#fff}
+#terms-modal{position:fixed;inset:0;z-index:910;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px}
+#terms-modal.on{display:flex}
+.terms-box{background:var(--card);border-radius:14px;max-width:560px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+.terms-hdr{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:var(--tx);padding:18px 24px;border-bottom:1.5px solid var(--bd);background:linear-gradient(135deg,var(--card),var(--card2))}
+.terms-body{flex:1;overflow-y:auto;padding:20px 24px;font-size:13px;color:var(--tx);line-height:1.6}
+.terms-body h3{font-family:'Outfit',sans-serif;font-size:14px;color:var(--ac);margin:16px 0 8px 0;font-weight:800}
+.terms-body h3:first-child{margin-top:0}
+.terms-body p{margin:6px 0}
+.terms-body ul{margin:6px 0;padding-left:20px}
+.terms-body li{margin:3px 0}
+.terms-body strong{color:var(--tx);font-weight:700}
+.terms-foot{padding:16px 24px;border-top:1.5px solid var(--bd);background:var(--bg)}
+.terms-foot .cnf-btn{width:100%}
 #bracket-overlay.on{display:flex}
 .br-topbar{display:flex;align-items:center;gap:14px;padding:16px 24px;background:linear-gradient(135deg,var(--card),var(--card2));border-bottom:2px solid var(--bd);flex-shrink:0}
 .br-avatar{width:48px;height:48px;border-radius:12px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;font-family:'Outfit',sans-serif;flex-shrink:0;background-color:var(--ac);box-shadow:0 2px 6px rgba(0,0,0,.08)}
@@ -550,6 +563,7 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
 <!-- ── BRACKET OVERLAY ─────────────────────────────── -->
 <div id="bracket-overlay"></div>
 <div id="confirm-modal"><div class="cnf-box"><div class="cnf-ttl" id="cnf-ttl"></div><div class="cnf-msg" id="cnf-msg"></div><div class="cnf-row"><button class="cnf-btn cancel" onclick="closeConfirm(false)">Cancelar</button><button class="cnf-btn" id="cnf-ok" onclick="closeConfirm(true)">Confirmar</button></div></div></div>
+<div id="terms-modal"><div class="terms-box"><div class="terms-hdr">📋 Términos y Política</div><div class="terms-body" id="terms-body"></div><div class="terms-foot"><button class="cnf-btn ok" id="terms-ok-btn" onclick="acceptTerms()">Entendido y acepto</button></div></div></div>
 
 <!-- ── MODAL ───────────────────────────────────────── -->
 <div id="modal-overlay"><div id="modal-box"></div></div>
@@ -944,6 +958,16 @@ function loadApp(forceAdmin){
   if(forceAdmin)S.tab='admin';
   else S.tab='grupos'; // regular users land on "Mi Quiniela"
 
+  // Check if user has accepted terms — show modal if not
+  setTimeout(()=>{
+    if(!ME.uid)return;
+    db.ref('users/'+ME.uid+'/termsAcceptedAt').once('value').then(snap=>{
+      if(!snap.val()){
+        showTerms(()=>{/* accepted */});
+      }
+    }).catch(()=>{/* silent */});
+  },500);
+
   // Helper: check if user is actively typing in a goal input
   // (skip render() in that case to avoid destroying inputs and losing focus)
   function isTypingScore(){
@@ -1310,6 +1334,7 @@ function rSidebar(){
     <div class="sb-user-info">
       <div class="sb-user-name">${esc(ME.name)}</div>
       <div class="sb-user-mail">${esc(ME.email)}</div>
+      <div style="margin-top:4px"><a onclick="showTerms()" style="font-size:10px;color:var(--mt);cursor:pointer;text-decoration:underline">📋 Términos y Política</a></div>
     </div>
     <button class="sb-user-out" onclick="signOut()" title="Cerrar sesión">⏻</button>
   `;
@@ -1451,6 +1476,78 @@ function closeConfirm(ok){
   document.getElementById('confirm-modal').classList.remove('on');
   const cb=_confirmCb;_confirmCb=null;
   if(ok&&cb)cb();
+}
+
+// ──────────────────────────────────────────────────────────
+// Terms & Conditions / Privacy Policy
+// ──────────────────────────────────────────────────────────
+const TERMS_HTML=`
+<h3>📜 Disclaimer Importante</h3>
+<p>Esta plataforma es una <strong>herramienta de entretenimiento</strong> para llevar quinielas amistosas del Mundial 2026. <strong>No participamos en apuestas ni manejamos dinero.</strong></p>
+<ul>
+  <li>El pozo de dinero (si lo hay) es responsabilidad del administrador de cada comunidad. <strong>No procesamos ni custodiamos pagos entre participantes.</strong></li>
+  <li>Los puntos, reglas de cálculo y resultados los determina cada comunidad. La plataforma solo provee la herramienta.</li>
+  <li><strong>No garantizamos disponibilidad 100% del tiempo.</strong> En caso de fallas, haremos lo posible por arreglarlas pero no nos hacemos responsables de pozos perdidos, conflictos entre participantes, o cualquier daño derivado del uso.</li>
+</ul>
+
+<h3>⚠️ Sobre los Mejores Terceros (Annex C)</h3>
+<p>Usamos la tabla oficial <strong>Annex C de FIFA</strong> (publicada 2024) para calcular los 8 mejores terceros lugares y sus emparejamientos en Round of 32. Esta tabla está sujeta a interpretación final por parte de FIFA.</p>
+<p><strong>En caso de discrepancia entre nuestros cálculos y la decisión oficial de FIFA el día del torneo, prevalece SIEMPRE la decisión oficial de FIFA.</strong> Los administradores de cada comunidad pueden ajustar manualmente los resultados oficiales en su panel si fuera necesario.</p>
+
+<h3>🏆 Cambios en reglas FIFA</h3>
+<p>Las reglas oficiales de FIFA pueden cambiar. Si FIFA modifica el formato del torneo, actualizaremos la plataforma lo antes posible pero <strong>no garantizamos cambios inmediatos</strong>.</p>
+
+<h3>💳 Términos de Compra</h3>
+<ul>
+  <li>Una licencia = derecho a crear <strong>UNA comunidad</strong> con hasta 50 miembros, válida hasta el <strong>19 de julio de 2026</strong> (después de la Final).</li>
+  <li>La licencia es de un solo uso. Una vez activada, no se puede transferir.</li>
+  <li><strong>No hay reembolsos después de activada la licencia</strong> (porque ya consumió el acceso).</li>
+  <li>Si tu licencia no funciona dentro de las primeras 24 horas, contáctanos para reembolso o reemplazo.</li>
+  <li>Después del 19 de julio 2026, la plataforma estará en modo solo-lectura.</li>
+</ul>
+
+<h3>🔒 Política de Privacidad</h3>
+<p>Usamos Google Auth para identificarte. No almacenamos tu contraseña.</p>
+<p>Guardamos: tu nombre, email, foto de perfil de Google, y tus predicciones del Mundial.</p>
+<ul>
+  <li><strong>NO compartimos tu información con terceros.</strong></li>
+  <li><strong>NO te enviaremos spam ni publicidad de terceros.</strong></li>
+  <li>Puedes recibir <strong>1-2 correos al año</strong> relacionados con futuras versiones de esta plataforma (Mundial 2030, otros torneos). Si no quieres recibirlos, escríbenos y te quitamos de la lista.</li>
+  <li>Tus datos se almacenan en Firebase (Google Cloud) bajo sus políticas de seguridad.</li>
+  <li>Puedes pedir la eliminación de tus datos en cualquier momento.</li>
+</ul>
+
+<h3>✋ Conducta de Usuario</h3>
+<p>Al usar esta plataforma te comprometes a:</p>
+<ul>
+  <li>No usar la plataforma para actividades ilegales o de mal uso de datos de otros usuarios.</li>
+  <li>Respetar a los demás participantes.</li>
+  <li>No intentar acceder a comunidades a las que no fuiste invitado.</li>
+  <li>No intentar manipular el sistema técnicamente.</li>
+</ul>
+
+<h3>📞 Contacto</h3>
+<p>Para soporte, reembolsos, eliminación de datos o cualquier duda: contáctanos por DM en Instagram o por el medio de compra.</p>
+
+<p style="margin-top:18px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:11.5px;color:var(--mt)">Al hacer click en "Entendido y acepto" confirmas que has leído y estás de acuerdo con estos términos. Si no estás de acuerdo, por favor cierra esta ventana y no uses la plataforma.</p>
+`;
+
+let _termsCb=null;
+function showTerms(cb){
+  document.getElementById('terms-body').innerHTML=TERMS_HTML;
+  document.getElementById('terms-modal').classList.add('on');
+  _termsCb=cb||null;
+  // If called just for reading (not requiring accept), button text changes
+  document.getElementById('terms-ok-btn').textContent=cb?'Entendido y acepto':'Cerrar';
+}
+function acceptTerms(){
+  document.getElementById('terms-modal').classList.remove('on');
+  const cb=_termsCb;_termsCb=null;
+  if(cb){
+    // Mark as accepted for this user
+    try{db.ref('users/'+ME.uid+'/termsAcceptedAt').set(Date.now());}catch(e){}
+    cb();
+  }
 }
 
 // Open MY OWN bracket as visual overlay
@@ -1942,6 +2039,11 @@ function rR32(adm){
   }
   h+=`</div></div><div class="phase"><div class="phdr">Mejores Terceros <span class="ptag">${PTS.r32} pts c/u</span></div>`;
   if(!adm){
+    // ⚠️ Important disclaimer about Annex C / FIFA emparejamientos
+    h+=`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:11.5px;color:#78350f;line-height:1.5">
+      <div style="font-weight:800;margin-bottom:6px;font-family:'Outfit',sans-serif;font-size:12.5px">⚠️ Importante: Mejores Terceros</div>
+      <div>Calculamos los 8 mejores terceros usando la <strong>tabla oficial Annex C de FIFA</strong> (publicada 2024). Sin embargo, <strong>FIFA es la autoridad final</strong>. Si el día del torneo hay alguna discrepancia entre nuestros cálculos y los emparejamientos oficiales de FIFA, <strong>prevalecen SIEMPRE los de FIFA</strong>. El administrador de tu comunidad puede ajustar manualmente los resultados oficiales si fuera necesario.</div>
+    </div>`;
     const t8=p.t8||[];
     if(t8.length<8){h+=`<div class="t8-hint">Termina de predecir los 72 partidos de grupos. Tus 8 mejores terceros se calculan automáticamente y aparecerán aquí.</div>`;}
     else{
