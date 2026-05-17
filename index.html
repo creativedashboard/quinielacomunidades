@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Quiniela Comunidades 2026</title>
+<title>Quiniela Chida — Mundial 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
@@ -98,6 +98,11 @@ html[data-ucolor] .sb-btn.on{background:var(--uc-l);color:var(--uc)}
 .sb-btn.adm{color:var(--am);font-weight:700}
 .sb-btn.adm:hover{background:#fef3c7}
 .sb-btn.adm.on{background:#f59e0b;color:#fff}
+.sb-submenu{margin-left:8px;padding-left:8px;border-left:2px solid #fcd34d;margin-bottom:8px}
+.sb-sub-btn{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;color:var(--mt);text-align:left;width:100%;transition:all .12s;margin-top:2px}
+.sb-sub-btn:hover{background:var(--bg);color:var(--tx)}
+.sb-sub-btn.on{background:#fef3c7;color:#92400e;font-weight:700}
+.sb-sub-hdr{font-family:'Outfit',sans-serif;font-size:9.5px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:1px;padding:10px 8px 4px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:6px;margin:8px 4px 4px;text-align:center;border:1px solid #fcd34d}
 .sb-ico{width:16px;height:16px;flex-shrink:0;opacity:.7}
 .sb-btn.on .sb-ico{opacity:1}
 
@@ -484,7 +489,7 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
 <div id="screen-login">
   <div class="login-box">
     <div class="login-emoji">🌎</div>
-    <div class="login-title">Quiniela Mundial 2026</div>
+    <div class="login-title">Quiniela Chida ⚽</div>
     <div class="login-sub">Inicia sesión con tu cuenta de Google para participar en una quiniela con tu comunidad de amigos.</div>
     <button class="gbtn" onclick="googleSignIn()">
       <svg class="gbtn-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
@@ -534,10 +539,10 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
     <div id="setup-view-license" style="display:none">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><a onclick="showSetupView('select')" style="color:var(--mt);font-size:12px;cursor:pointer;text-decoration:none">← Atrás</a></div>
       <div class="setup-title">🎫 Activar licencia</div>
-      <div class="setup-sub">Pega tu código de licencia y dale nombre a tu quiniela.</div>
+      <div class="setup-sub">Pega tu código de licencia (de Gumroad o el que te pasaron) y dale nombre a tu quiniela.</div>
       <div class="setup-field">
         <label>Código de licencia</label>
-        <input id="license-code" type="text" placeholder="LIC-2026-XXXXXXXXXXXXXXXX" maxlength="50" autocomplete="off" style="font-family:monospace;text-transform:uppercase">
+        <input id="license-code" type="text" placeholder="LIC-2026-XXXX o XXXX-XXXX-XXXX-XXXX" maxlength="50" autocomplete="off" style="font-family:monospace;text-transform:uppercase">
       </div>
       <div class="setup-field">
         <label>Nombre de tu quiniela</label>
@@ -675,6 +680,28 @@ const SUPER_ADMIN_URL_KEY='doggyesdios'; // URL parameter, not visible in normal
 const MASTER_LICENSE_CODE='LIC-CRIS-MASTER-5T8LLWOSZMOEJR869NGZ';
 const LICENSE_PREFIX='LIC-2026-';
 const LICENSE_RANDOM_LEN=16;
+// Gumroad product (your product on Gumroad)
+const GUMROAD_PRODUCT_ID='essxpj'; // criscriscris.gumroad.com/l/quinielachida
+
+// Verify a Gumroad-style license code via Gumroad's public API
+async function verifyGumroadLicense(licenseKey){
+  try{
+    const formData=new FormData();
+    formData.append('product_id',GUMROAD_PRODUCT_ID);
+    formData.append('license_key',licenseKey);
+    formData.append('increment_uses_count','false'); // we mark "used" ourselves
+    const resp=await fetch('https://api.gumroad.com/v2/licenses/verify',{
+      method:'POST',
+      body:formData
+    });
+    const data=await resp.json();
+    if(data&&data.success===true)return{ok:true,purchase:data.purchase};
+    return{ok:false,reason:data&&data.message||'Código inválido'};
+  }catch(err){
+    console.error('Gumroad verify failed:',err);
+    return{ok:false,reason:'No se pudo conectar con Gumroad. Verifica tu internet e intenta de nuevo.'};
+  }
+}
 
 // Generate cryptographically secure license codes (no patterns, ambiguous chars removed)
 function generateLicenseCode(){
@@ -1129,6 +1156,7 @@ async function doActivateLicense(){
   const code=(document.getElementById('license-code').value||'').trim().toUpperCase();
   const name=(document.getElementById('license-comm-name').value||'').trim();
   const err=document.getElementById('license-err');
+  const btn=document.querySelector('#setup-view-license .setup-btn');
   err.style.display='none';
   if(!code){err.textContent='Pega tu código de licencia';err.style.display='block';return;}
   if(!name){err.textContent='Ponle nombre a tu quiniela';err.style.display='block';return;}
@@ -1136,8 +1164,10 @@ async function doActivateLicense(){
   // Check: user shouldn't already have a community
   const profileSnap=await db.ref('users/'+ME.uid).once('value');
   if(profileSnap.val()&&profileSnap.val().communityId){
-    err.textContent='Ya tienes una comunidad asignada. Si necesitas otra, contacta al vendedor.';err.style.display='block';return;
+    err.textContent='Ya tienes una comunidad asignada.';err.style.display='block';return;
   }
+  const origBtn=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='⏳ Verificando código...';}
   try{
     const result=await activateLicenseAndCreateCommunity(code,name,_selLicenseColor);
     // Show success view
@@ -1148,6 +1178,7 @@ async function doActivateLicense(){
     showSetupView('success');
   }catch(e){
     err.textContent=e.message||String(e);err.style.display='block';
+    if(btn){btn.disabled=false;btn.textContent=origBtn;}
   }
 }
 
@@ -1640,6 +1671,37 @@ function rSidebar(){
     h+=`<button class="sb-btn${on?' on':''} ${it.cls}" onclick="goTab('${it.id}')">
       <span class="sb-ico" style="font-size:14px">${it.ico}</span>${it.lbl}
     </button>`;
+    // Show admin submenu when Admin tab is active
+    if(it.id==='admin'&&S.tab==='admin'){
+      const submenuItems=[];
+      submenuItems.push({sub:'communities',lbl:'Comunidades',ico:'👥'});
+      if(ME.isSuperAdmin){
+        submenuItems.push({sub:'orphans',lbl:'Sin Comunidad',ico:'👤'});
+        submenuItems.push({sub:'licenses',lbl:'Licencias',ico:'🎫'});
+        submenuItems.push({sub:'leaderboard',lbl:'Tabla Global',ico:'🏅'});
+      }
+      // Results submenu - grouped under header
+      submenuItems.push({header:'📝 RELLENAR RESULTADOS'});
+      submenuItems.push({sub:'grupos',lbl:'Grupos',ico:'⚽'});
+      submenuItems.push({sub:'terceros',lbl:'Mejores 3ros',ico:'🥉'});
+      submenuItems.push({sub:'r32',lbl:'16avos',ico:'🎯'});
+      submenuItems.push({sub:'r16',lbl:'Octavos',ico:'🎯'});
+      submenuItems.push({sub:'qf',lbl:'Cuartos',ico:'🎯'});
+      submenuItems.push({sub:'sf',lbl:'Semis',ico:'🎯'});
+      submenuItems.push({sub:'final',lbl:'Final',ico:'🏆'});
+      h+='<div class="sb-submenu">';
+      for(const s of submenuItems){
+        if(s.header){
+          h+=`<div class="sb-sub-hdr">${s.header}</div>`;
+        }else{
+          const subOn=S.sub===s.sub;
+          h+=`<button class="sb-sub-btn${subOn?' on':''}" onclick="S.sub='${s.sub}';render()">
+            <span style="font-size:12px;opacity:.8">${s.ico}</span><span>${s.lbl}</span>
+          </button>`;
+        }
+      }
+      h+='</div>';
+    }
   }
   document.getElementById('sb-nav').innerHTML=h;
 
@@ -2576,10 +2638,8 @@ function rAdmin(){
     {id:'final',lbl:'Final'}
   );
   const roleLbl=ME.isSuperAdmin?'👑 Super Admin':'⚙️ Admin de Comunidad';
-  let h=`<div class="admnotice">${roleLbl} — ${ME.isSuperAdmin?'Gestionas TODA la plataforma.':'Gestionas TU comunidad.'}</div>
-    <div class="admsubs">`;
-  for(const s of subs)h+=`<button class="adms${S.sub===s.id?' on':''}" onclick="S.sub='${s.id}';render()">${s.lbl}</button>`;
-  h+='</div>';
+  let h=`<div class="admnotice">${roleLbl} — ${ME.isSuperAdmin?'Gestionas TODA la plataforma.':'Gestionas TU comunidad.'}</div>`;
+  // Sub-tabs now live in sidebar, so we don't render them here anymore.
   if(S.sub==='communities')      h+=rAdmCommunities();
   else if(S.sub==='licenses')    h+=rAdmLicenses();
   else if(S.sub==='orphans')     h+=rAdmOrphans();
@@ -3035,26 +3095,48 @@ async function captureGroups(){
 async function activateLicenseAndCreateCommunity(licenseCode, communityName, userColor){
   if(!ME.uid){throw new Error('No hay sesión activa.');}
   licenseCode=(licenseCode||'').trim().toUpperCase();
-  if(!licenseCode.startsWith('LIC-')){
-    throw new Error('Formato de licencia inválido. Debe empezar con LIC-');
-  }
-  // Special case: master code (reusable, only for super-admin's testing)
+  if(!licenseCode){throw new Error('Pega un código válido.');}
+  // Determine code type:
+  // - LIC-CRIS-MASTER-... = master (reusable, super-admin only)
+  // - LIC-2026-... = internal manual code (1-use)
+  // - Anything else = Gumroad code (verify via API)
   const isMaster=(licenseCode===MASTER_LICENSE_CODE);
+  const isInternalCode=licenseCode.startsWith('LIC-');
   if(isMaster&&ME.uid!==SUPER_ADMIN_UID){
     throw new Error('Esta licencia es exclusiva del super-admin.');
   }
-  // For regular licenses: validate exists, unused
-  if(!isMaster){
-    const snap=await db.ref('licenses/'+licenseCode).once('value');
-    const lic=snap.val();
-    if(!lic){throw new Error('Licencia no encontrada. Verifica el código.');}
-    if(lic.status==='used'){throw new Error('Esta licencia ya fue usada por otra cuenta.');}
-    if(lic.status==='revoked'){throw new Error('Esta licencia fue revocada. Contacta al vendedor.');}
-  }
-  // Validate community name
+  // Validate community name first (cheap check)
   communityName=(communityName||'').trim();
   if(communityName.length<2){throw new Error('Nombre de comunidad muy corto.');}
   if(communityName.length>50){throw new Error('Nombre de comunidad muy largo (máx 50).');}
+  // Validate license
+  let licenseSource='manual';
+  if(!isMaster){
+    if(isInternalCode){
+      // Internal LIC-2026-... code
+      const snap=await db.ref('licenses/'+licenseCode).once('value');
+      const lic=snap.val();
+      if(!lic){throw new Error('Licencia no encontrada. Verifica el código.');}
+      if(lic.status==='used'){throw new Error('Esta licencia ya fue usada.');}
+      if(lic.status==='revoked'){throw new Error('Esta licencia fue revocada. Contacta al vendedor.');}
+      licenseSource='manual';
+    }else{
+      // Gumroad code — verify against Gumroad API
+      // But first check if we already saw this code (so it can't be used twice)
+      const existingSnap=await db.ref('licenses/'+licenseCode).once('value');
+      if(existingSnap.val()&&existingSnap.val().status==='used'){
+        throw new Error('Esta licencia ya fue usada.');
+      }
+      if(existingSnap.val()&&existingSnap.val().status==='revoked'){
+        throw new Error('Esta licencia fue revocada.');
+      }
+      const verifyResult=await verifyGumroadLicense(licenseCode);
+      if(!verifyResult.ok){
+        throw new Error(verifyResult.reason||'Código de Gumroad inválido.');
+      }
+      licenseSource='gumroad';
+    }
+  }
   // Generate community ID and invite code
   const cid='c_'+Math.random().toString(36).slice(2,10);
   const inviteCode=(function(){
@@ -3074,6 +3156,7 @@ async function activateLicenseAndCreateCommunity(licenseCode, communityName, use
     createdBy:ME.uid,
     createdAt:now,
     licenseUsed:licenseCode,
+    licenseSource:licenseSource,
     maxMembers:50
   };
   updates['community_admins/'+cid+'/'+ME.uid]=true;
@@ -3085,10 +3168,15 @@ async function activateLicenseAndCreateCommunity(licenseCode, communityName, use
     termsAcceptedAt:now
   };
   if(!isMaster){
-    updates['licenses/'+licenseCode+'/status']='used';
-    updates['licenses/'+licenseCode+'/usedBy']=ME.uid;
-    updates['licenses/'+licenseCode+'/usedAt']=now;
-    updates['licenses/'+licenseCode+'/communityId']=cid;
+    updates['licenses/'+licenseCode]={
+      code:licenseCode,
+      status:'used',
+      source:licenseSource,
+      usedBy:ME.uid,
+      usedAt:now,
+      communityId:cid,
+      createdAt:(licenseSource==='gumroad'?now:undefined)
+    };
   }
   await db.ref().update(updates);
   // Update local state
@@ -3177,30 +3265,51 @@ function adminRevokeLicense(code){
 
 // ─── ADMIN: Download full backup as JSON ───
 function adminDownloadBackup(){
-  const backup={
-    version:'1.0',
-    generated_at:new Date().toISOString(),
-    note:'Respaldo completo de la quiniela Mundial 2026',
-    data:{
-      users:S.users||{},
-      picks:S.picks||{},
-      communities:S.communities||{},
-      admin_results:S.adminR||{},
-    }
-  };
-  const json=JSON.stringify(backup,null,2);
-  const blob=new Blob([json],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-  a.href=url;a.download=`quiniela-mundial2026-backup-${ts}.json`;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  if(!ME.isSuperAdmin){alert('Solo el super-admin puede descargar respaldos.');return;}
+  // Fetch ALL data including new paths
+  Promise.all([
+    db.ref('users').once('value'),
+    db.ref('picks').once('value'),
+    db.ref('communities').once('value'),
+    db.ref('community_admins').once('value'),
+    db.ref('community_results').once('value'),
+    db.ref('community_thirds_bracket').once('value'),
+    db.ref('admin').once('value'),
+    db.ref('thirds_bracket').once('value'),
+    db.ref('licenses').once('value'),
+    db.ref('admins').once('value'),
+  ]).then(([u,p,c,ca,cr,ctb,a,tb,l,adm])=>{
+    const backup={
+      version:'2.0',
+      generated_at:new Date().toISOString(),
+      note:'Respaldo COMPLETO de Quiniela Chida — incluye todo lo nuevo',
+      data:{
+        users:u.val()||{},
+        picks:p.val()||{},
+        communities:c.val()||{},
+        community_admins:ca.val()||{},
+        community_results:cr.val()||{},
+        community_thirds_bracket:ctb.val()||{},
+        admin_results_legacy:a.val()||{},
+        thirds_bracket_legacy:tb.val()||{},
+        licenses:l.val()||{},
+        admins:adm.val()||{},
+      }
+    };
+    const json=JSON.stringify(backup,null,2);
+    const blob=new Blob([json],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a2=document.createElement('a');
+    const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+    a2.href=url;a2.download=`quinielachida-backup-${ts}.json`;
+    document.body.appendChild(a2);a2.click();document.body.removeChild(a2);
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }).catch(e=>alert('Error: '+(e.message||e)));
 }
 
 // ─── ADMIN: Restore from JSON ───
 function adminRestoreBackup(){
-  if(!ME.isAdmin){alert('Solo el admin puede restaurar.');return;}
+  if(!ME.isSuperAdmin){alert('Solo el super-admin puede restaurar.');return;}
   const inp=document.createElement('input');
   inp.type='file';inp.accept='application/json,.json';
   inp.onchange=function(e){
@@ -3214,17 +3323,26 @@ function adminRestoreBackup(){
         const numUsers=Object.keys(d.users||{}).length;
         const numPicks=Object.keys(d.picks||{}).length;
         const numComms=Object.keys(d.communities||{}).length;
+        const numLicenses=Object.keys(d.licenses||{}).length;
         showConfirm({
           title:'⚠️ RESTAURAR RESPALDO',
-          msg:`Esto va a SOBREESCRIBIR todos los datos actuales con el respaldo:\n\n• ${numUsers} usuarios\n• ${numPicks} quinielas\n• ${numComms} comunidades\n• Resultados oficiales\n\nGenerado: ${data.generated_at||'desconocido'}\n\nEsta acción NO se puede deshacer. ¿Continuar?`,
+          msg:`Esto va a SOBREESCRIBIR todos los datos actuales con el respaldo:\n\n• ${numUsers} usuarios\n• ${numPicks} quinielas\n• ${numComms} comunidades\n• ${numLicenses} licencias\n• Resultados oficiales (por comunidad)\n• Admins (super + community)\n\nGenerado: ${data.generated_at||'desconocido'}\n\nEsta acción NO se puede deshacer. ¿Continuar?`,
           okText:'Sí, RESTAURAR',
           danger:true,
           onOk:async()=>{
             try{
-              if(d.users)await db.ref('users').set(d.users);
-              if(d.picks)await db.ref('picks').set(d.picks);
-              if(d.communities)await db.ref('communities').set(d.communities);
-              if(d.admin_results)await db.ref('admin').set(d.admin_results);
+              const updates={};
+              if(d.users)updates['users']=d.users;
+              if(d.picks)updates['picks']=d.picks;
+              if(d.communities)updates['communities']=d.communities;
+              if(d.community_admins)updates['community_admins']=d.community_admins;
+              if(d.community_results)updates['community_results']=d.community_results;
+              if(d.community_thirds_bracket)updates['community_thirds_bracket']=d.community_thirds_bracket;
+              if(d.admin_results_legacy||d.admin_results)updates['admin']=d.admin_results_legacy||d.admin_results;
+              if(d.thirds_bracket_legacy)updates['thirds_bracket']=d.thirds_bracket_legacy;
+              if(d.licenses)updates['licenses']=d.licenses;
+              if(d.admins)updates['admins']=d.admins;
+              await db.ref().update(updates);
               alert('✅ Respaldo restaurado correctamente.');
               location.reload();
             }catch(err){alert('❌ Error al restaurar: '+(err.message||err));}
@@ -3464,7 +3582,7 @@ async function captureBracket(uid){
     ctx.font='600 13px DM Sans, sans-serif';
     ctx.textAlign='center';
     ctx.textBaseline='bottom';
-    ctx.fillText('quinielacomunidades.com',SIZE/2,SIZE-20);
+    ctx.fillText('quinielachida.com',SIZE/2,SIZE-20);
     
     // 6. Export
     const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
