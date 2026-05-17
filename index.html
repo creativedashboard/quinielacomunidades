@@ -889,7 +889,23 @@ auth.onAuthStateChanged(async user=>{
     }catch(e){console.warn('Could not load community_admins',e);}
 
     if(!profile||!profile.communityId){
-      // No community yet — show setup
+      // Super-admin: create default profile and load admin panel directly (no setup screen)
+      if(ME.isSuperAdmin){
+        if(!profile){
+          await db.ref('users/'+user.uid).set({
+            name:ME.name,email:ME.email,photo:ME.photo,
+            color:'red',communityId:'',
+            joinedAt:firebase.database.ServerValue.TIMESTAMP
+          });
+          ME.color='red';
+        }else{
+          ME.color=profile.color||'red';
+        }
+        applyUserColor(ME.color);
+        loadApp(true); // forceAdmin=true → opens admin panel
+        return;
+      }
+      // Regular user without community — show setup
       showSetupScreen();
       return;
     }
@@ -897,7 +913,7 @@ auth.onAuthStateChanged(async user=>{
     ME.color=profile.color||'blue';
     ME.communityId=profile.communityId;
     applyUserColor(ME.color);
-    loadApp();
+    loadApp(ME.isSuperAdmin);
   }catch(e){
     console.error('Auth flow error:',e);
     alert('Error cargando perfil: '+e.message);
