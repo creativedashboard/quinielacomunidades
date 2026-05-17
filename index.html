@@ -24,12 +24,6 @@
   --gn:#059669;--gnl:#ecfdf5;--gnd:#047857;
   --rd:#dc2626;--am:#d97706;--r:10px;
 }
-html[data-theme="dark"]{
-  --bg:#0f172a;--card:#1e293b;--card2:#0f172a;--bd:#334155;--bd2:#475569;
-  --tx:#f1f5f9;--mt:#94a3b8;--mt2:#64748b;
-  --acl:#1e3a8a;--g1b:#451a03;--g2b:#1e293b;
-  --gnl:#064e3b;
-}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased}
 
@@ -629,7 +623,6 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
         </div>
         <div class="tb-right">
           <button class="tb-bracket-btn" onclick="openMyBracket()" title="Ver mi bracket completo">🏆 Mi bracket</button>
-          <button class="tb-btn" onclick="toggleTheme()" title="Tema"><span id="theme-ico">🌙</span></button>
         </div>
       </div>
       <div class="main">
@@ -1153,6 +1146,11 @@ function shareSuccessWhatsApp(){
   const url='https://wa.me/?text='+encodeURIComponent(msg);
   window.open(url,'_blank');
 }
+function shareCommunityWhatsApp(commName,inviteLink,inviteCode){
+  const msg=`¡Hola! Te invito a la quiniela del Mundial 2026 "${commName}" 🏆\n\nÚnete aquí: ${inviteLink}\n\nCódigo: ${inviteCode}`;
+  const url='https://wa.me/?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+}
 function finishSetup(){
   // Reload the app so all data refreshes properly
   loadApp(true); // forceAdmin=true because user is now community-admin
@@ -1246,8 +1244,9 @@ function loadApp(forceAdmin){
     {path:cid?'community_results/'+cid:'admin', handler:snap=>{
       const v=snap.val();
       if(v){S.adminR=mergeAdm(v);}
-      else if(cid){
-        // No per-community results yet — try legacy global as fallback
+      else if(cid&&ME.isSuperAdmin){
+        // Only super-admin gets legacy fallback (your existing data for your cuates)
+        // New community-admins start with empty results
         db.ref('admin').once('value').then(s=>{
           S.adminR=mergeAdm(s.val()||{});
           safeRender();
@@ -1260,8 +1259,8 @@ function loadApp(forceAdmin){
       const v=snap.val();
       if(v){
         S.thirds_bracket=Array.isArray(v)?v:Object.values(v);
-      }else if(cid){
-        // Fallback to legacy global
+      }else if(cid&&ME.isSuperAdmin){
+        // Only super-admin gets legacy fallback
         db.ref('thirds_bracket').once('value').then(s=>{
           const vv=s.val()||[];
           S.thirds_bracket=Array.isArray(vv)?vv:Object.values(vv);
@@ -1651,20 +1650,14 @@ function closeSidebar(){
 }
 
 // ══════════════════════════════════════════════════════
-// THEME
+// THEME — removed (light only)
 // ══════════════════════════════════════════════════════
 function initTheme(){
-  const t=localStorage.getItem('wc26_theme')||'light';
-  document.documentElement.setAttribute('data-theme',t);
-  document.getElementById('theme-ico').textContent=t==='dark'?'☀':'🌙';
+  // Force light mode permanently
+  document.documentElement.removeAttribute('data-theme');
+  try{localStorage.removeItem('wc26_theme');}catch(e){}
 }
-function toggleTheme(){
-  const cur=document.documentElement.getAttribute('data-theme');
-  const next=cur==='dark'?'light':'dark';
-  document.documentElement.setAttribute('data-theme',next);
-  localStorage.setItem('wc26_theme',next);
-  document.getElementById('theme-ico').textContent=next==='dark'?'☀':'🌙';
-}
+function toggleTheme(){/* dark mode removed */}
 initTheme();
 
 // ══════════════════════════════════════════════════════
@@ -1879,7 +1872,7 @@ function rGrupos(adm){
     h+=`<div class="prog-wrap"><div class="prog-lbl"><span>Grupos</span><span>${prog.grpFilled}/12</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
       <button onclick="openMyBracket()" style="padding:11px 18px;background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:800;font-family:'DM Sans',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(37,99,235,.3);display:inline-flex;align-items:center;gap:7px">🏆 Ver mi bracket completo</button>
-      <button onclick="captureGroups()" style="padding:12px 16px;background:var(--card);color:var(--ac);border:1.5px solid var(--ac);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Descargar tus picks de grupos como imagen">📸 Capturar grupos</button>
+      <button onclick="captureGroups()" style="padding:12px 16px;background:var(--card);color:var(--ac);border:1.5px solid var(--ac);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Descargar tus picks de grupos como imagen">📸 Tomar Screenshot</button>
       <button onclick="randomFillGroups()" style="padding:12px 16px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Solo para pruebas">🎲 Rellenar al azar</button>
       <button onclick="clearAllPicks()" style="padding:12px 16px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Solo para pruebas">🗑 Borrar todo</button>
     </div>
@@ -2263,7 +2256,16 @@ function buildEditableBracket(p){
   }else{
     h+='<div style="font-size:11px;color:var(--mt);font-family:\'DM Sans\',sans-serif;text-align:center">Completa Semis primero</div>';
   }
-  h+='</div></div>';
+  h+='</div>';
+  // 4th place (loser of bronze match) — auto-computed when 3rd is picked
+  if(p.thr&&(l0||l1)){
+    const fourthPlace=p.thr===l0?l1:(p.thr===l1?l0:'');
+    if(fourthPlace){
+      h+=`<div style="margin-top:6px;padding:6px 12px;border-radius:8px;background:linear-gradient(135deg,#fed7aa,#fdba74);border:1.5px solid #c2410c;display:flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.3px;font-size:13px;color:#7c2d12" title="${esc(fourthPlace)}"><span style="font-size:18px">${flag(fourthPlace)}</span><span>${esc(abbr(fourthPlace))}</span></div>`;
+      h+=`<div style="font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:#9a3412;text-transform:uppercase;letter-spacing:1.2px">4️⃣ Cuarto Lugar</div>`;
+    }
+  }
+  h+='</div>';
   
   // ─── RIGHT SIDE ───
   // Order: SF closest to center → QF → R16 → R32 at far edge
@@ -2537,8 +2539,12 @@ function rAdmin(){
   // Only super-admin sees licenses tab
   if(ME.isSuperAdmin)subs.push({id:'licenses',lbl:'🎫 Licencias'});
   // Everyone with admin role sees these
+  // Only super-admin sees orphans + tabla global
+  if(ME.isSuperAdmin){
+    subs.push({id:'orphans',lbl:'👤 Sin Comunidad'});
+    subs.push({id:'leaderboard',lbl:'Tabla Global'});
+  }
   subs.push(
-    {id:'leaderboard',lbl:'Tabla Global'},
     {id:'grupos',lbl:'Resultados: Grupos'},
     {id:'terceros',lbl:'Mejores 3ros'},
     {id:'r32',lbl:'16avos'},
@@ -2554,6 +2560,7 @@ function rAdmin(){
   h+='</div>';
   if(S.sub==='communities')      h+=rAdmCommunities();
   else if(S.sub==='licenses')    h+=rAdmLicenses();
+  else if(S.sub==='orphans')     h+=rAdmOrphans();
   else if(S.sub==='leaderboard') h+=rAdmLeaderboard();
   else if(S.sub==='grupos')      h+=rGrupos(true);
   else if(S.sub==='terceros')    h+=rAdminT8();
@@ -2563,6 +2570,89 @@ function rAdmin(){
   else if(S.sub==='sf')          h+=rKO('sf',true);
   else if(S.sub==='final')       h+=rFinal(true);
   return h;
+}
+
+// SUPER-ADMIN ONLY: Users without community (orphans)
+function rAdmOrphans(){
+  if(!ME.isSuperAdmin)return '<div style="padding:20px;color:var(--mt)">Solo super-admin.</div>';
+  const orphans=Object.entries(S.users||{}).filter(([uid,u])=>!u.communityId);
+  const comms=Object.entries(S.communities||{});
+  let h=`<div style="margin-bottom:14px;padding:16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;border:1.5px solid #fcd34d">
+    <div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:#92400e;margin-bottom:6px">👤 Usuarios sin comunidad (${orphans.length})</div>
+    <div style="font-size:11.5px;color:#92400e;line-height:1.5">Estos usuarios se registraron pero no se unieron a ninguna comunidad. Puedes asignarlos manualmente o eliminar su cuenta.</div>
+  </div>`;
+  if(orphans.length===0){
+    h+='<div style="padding:24px;text-align:center;color:var(--mt);background:var(--card);border-radius:10px">No hay usuarios huérfanos. Todo limpio ✨</div>';
+    return h;
+  }
+  h+='<div style="background:var(--card);border-radius:10px;border:1px solid var(--bd);overflow:hidden">';
+  orphans.forEach(([uid,u],i)=>{
+    const initial=(u.name?u.name[0]:'?').toUpperCase();
+    const avatar=u.photo
+      ?`<img src="${esc(u.photo)}" referrerpolicy="no-referrer" style="width:34px;height:34px;border-radius:50%;object-fit:cover" onerror="this.outerHTML='<div style=&quot;width:34px;height:34px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800&quot;>${esc(initial)}</div>'">`
+      :`<div style="width:34px;height:34px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800">${esc(initial)}</div>`;
+    h+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bd);${i%2?'background:var(--bg);':''}">
+      ${avatar}
+      <div style="flex:1;min-width:0;overflow:hidden">
+        <div style="font-weight:700;font-size:13px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.name||'Sin nombre')}</div>
+        <div style="font-size:11px;color:var(--mt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.email||'')}</div>
+      </div>
+      <select onchange="adminAssignToCommunity('${js(uid)}',this.value);this.value=''" style="padding:6px 10px;border:1.5px solid var(--bd);border-radius:7px;background:var(--bg);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
+        <option value="">Asignar a...</option>
+        ${comms.map(([cid,c])=>`<option value="${cid}">${esc(c.name)}</option>`).join('')}
+      </select>
+      <button onclick="adminDeleteUser('${js(uid)}','${js(u.name||'')}')" style="background:none;border:1px solid #fca5a5;color:#dc2626;cursor:pointer;font-size:14px;padding:5px 9px;border-radius:6px" title="Eliminar usuario">🗑</button>
+    </div>`;
+  });
+  h+='</div>';
+  return h;
+}
+async function adminAssignToCommunity(uid,cid){
+  if(!ME.isSuperAdmin){alert('Solo super-admin.');return;}
+  if(!cid)return;
+  const u=S.users[uid];if(!u)return;
+  const c=S.communities[cid];if(!c)return;
+  showConfirm({
+    title:'Asignar a comunidad',
+    msg:`¿Asignar a ${u.name} a la comunidad "${c.name}"?`,
+    okText:'Sí, asignar',
+    onOk:async()=>{
+      try{
+        await db.ref('users/'+uid+'/communityId').set(cid);
+        render();
+      }catch(e){alert('Error: '+(e.message||e));}
+    }
+  });
+}
+async function adminDeleteUser(uid,name){
+  // Either super-admin can delete anyone, OR community-admin can delete from their community
+  if(uid===ME.uid){alert('No puedes eliminarte a ti mismo.');return;}
+  if(uid===SUPER_ADMIN_UID){alert('No puedes eliminar al super-admin.');return;}
+  const targetUser=S.users[uid];
+  if(!targetUser){alert('Usuario no encontrado.');return;}
+  // Check permissions: super-admin always allowed; community-admin only for users in their community
+  if(!ME.isSuperAdmin){
+    if(!ME.isCommunityAdmin){alert('No tienes permisos para eliminar usuarios.');return;}
+    if(ME.communityAdminOf.indexOf(targetUser.communityId)<0){
+      alert('Solo puedes eliminar usuarios de tu propia comunidad.');return;
+    }
+  }
+  showConfirm({
+    title:'🗑 Eliminar usuario',
+    msg:`¿Eliminar a ${name||'este usuario'} permanentemente?\n\nSe borrarán sus picks y su perfil. Esta acción NO se puede deshacer.\n\nNota: la cuenta de Google del usuario seguirá existiendo, pero si vuelve a entrar verá la pantalla de "no tienes comunidad".`,
+    okText:'Sí, ELIMINAR',
+    danger:true,
+    onOk:async()=>{
+      try{
+        const updates={};
+        updates['users/'+uid]=null;
+        updates['picks/'+uid]=null;
+        await db.ref().update(updates);
+        alert(`✅ ${name||'Usuario'} eliminado correctamente.`);
+        render();
+      }catch(e){alert('Error: '+(e.message||e));}
+    }
+  });
 }
 
 // SUPER-ADMIN ONLY: License management UI
@@ -2665,6 +2755,8 @@ function rAdmCommunities(){
   }else{
     for(const[cid,c]of comms){
       const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>b.tot-a.tot);
+      const baseUrl=window.location.origin+window.location.pathname;
+      const inviteLink=baseUrl+'?join='+c.inviteCode;
       h+=`<div class="commcard">
         <div class="commhdr">
           <div class="commname">${esc(c.name)}</div>
@@ -2672,27 +2764,41 @@ function rAdmCommunities(){
             <span class="commcode" onclick="navigator.clipboard.writeText('${esc(c.inviteCode)}').then(()=>alert('Código copiado: ${esc(c.inviteCode)}'))">📋 ${esc(c.inviteCode)}</span>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--mt);margin-bottom:8px">${members.length} miembro${members.length!==1?'s':''}</div>`;
+        <div style="font-size:11px;color:var(--mt);margin-bottom:10px">${members.length} miembro${members.length!==1?'s':''}</div>
+        <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #93c5fd;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:10.5px;color:#1e40af;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">🔗 Link para invitar amigos</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <code style="flex:1;min-width:0;font-family:monospace;font-size:10.5px;color:#1e3a8a;background:#fff;padding:6px 9px;border-radius:6px;border:1px solid #bfdbfe;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" onclick="navigator.clipboard.writeText('${esc(inviteLink)}').then(()=>alert('Link copiado'))" title="Click para copiar">${esc(inviteLink)}</code>
+            <button onclick="navigator.clipboard.writeText('${esc(inviteLink)}').then(()=>alert('Link copiado'))" style="padding:6px 10px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif" title="Copiar link">📋 Copiar</button>
+            <button onclick="shareCommunityWhatsApp('${js(c.name)}','${esc(inviteLink)}','${esc(c.inviteCode)}')" style="padding:6px 10px;background:#25d366;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif" title="Compartir por WhatsApp">💬 WhatsApp</button>
+          </div>
+        </div>`;
       if(members.length>0){
         h+=`<div style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px;margin-bottom:10px">`;
         members.forEach((m,i)=>{
           const medal=['🥇','🥈','🥉'][i]||`<span style="color:var(--mt);font-weight:700;font-size:11px;width:18px;display:inline-block;text-align:center">${i+1}</span>`;
+          // Can this user delete the member?
+          // Super-admin can delete anyone except themselves and other super-admin
+          // Community-admin can delete users in their community (except themselves)
+          const canDelete=(m.uid!==ME.uid)&&(m.uid!==SUPER_ADMIN_UID)&&(ME.isSuperAdmin||(ME.communityAdminOf.indexOf(cid)>=0));
           h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .12s" onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background='transparent'" onclick="openBracket('${js(m.uid)}')">
             <div style="width:22px;display:flex;align-items:center;justify-content:center;font-size:14px">${medal}</div>
             ${userPic(m,26).replace('class="lbpic"','class="commmem-pic" style="width:26px;height:26px;border-radius:50%;flex-shrink:0"')}
             <div style="flex:1;font-size:12px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</div>
             <div style="font-size:13px;font-weight:800;color:var(--ac)">${m.tot}<span style="font-size:10px;color:var(--mt);font-weight:500;margin-left:2px">pts</span></div>
-            <button onclick="event.stopPropagation();moveMember('${js(m.uid)}','${js(m.name)}')" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:2px 4px;font-size:13px" title="Mover de comunidad">⇄</button>
+            ${ME.isSuperAdmin?`<button onclick="event.stopPropagation();moveMember('${js(m.uid)}','${js(m.name)}')" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:2px 4px;font-size:13px" title="Mover de comunidad">⇄</button>`:''}
+            ${canDelete?`<button onclick="event.stopPropagation();adminDeleteUser('${js(m.uid)}','${js(m.name)}')" style="background:none;border:none;color:var(--rd);cursor:pointer;padding:2px 4px;font-size:13px" title="Eliminar usuario">🗑</button>`:''}
           </div>`;
         });
         h+=`</div>
           <div style="font-size:10px;color:var(--mt);text-align:center;margin-bottom:8px;font-style:italic">👆 Click en un miembro para ver su quiniela</div>`;
       }
+      // Action buttons — Eliminar comunidad solo para super-admin
       h+=`<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
           <button onclick="renameCommunity('${js(cid)}','${js(c.name)}')" style="padding:5px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--mt)">✏ Renombrar</button>
           <button onclick="setBannerUrl('${js(cid)}','${js(c.bannerUrl||'')}')" style="padding:5px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--mt)">🖼 Banner</button>
           <button onclick="regenInviteCode('${js(cid)}')" style="padding:5px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--mt)">🔄 Nuevo código</button>
-          <button onclick="deleteCommunity('${js(cid)}','${js(c.name)}')" style="padding:5px 11px;background:var(--bg);border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--rd);margin-left:auto">🗑 Eliminar</button>
+          ${ME.isSuperAdmin?`<button onclick="deleteCommunity('${js(cid)}','${js(c.name)}')" style="padding:5px 11px;background:var(--bg);border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--rd);margin-left:auto">🗑 Eliminar</button>`:''}
         </div>
         ${c.bannerUrl?`<div style="margin-top:10px;padding:8px;background:var(--bg);border-radius:8px;border:1px dashed var(--bd2)"><div style="font-size:10px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Banner actual:</div><img src="${esc(c.bannerUrl)}" alt="Banner" style="max-width:100%;height:auto;border-radius:6px;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div style="display:none;font-size:11px;color:var(--rd);padding:6px">❌ No se pudo cargar la imagen. Verifica la URL.</div></div>`:''}
       </div>`;
@@ -3504,7 +3610,20 @@ function buildBracket(uid,u,col){
   }else{
     h+=`<div class="br-team empty" style="min-width:auto;justify-content:center"><span class="br-flag">—</span><span class="br-tname">—</span></div>`;
   }
-  h+='</div></div>'; // end final-center
+  h+='</div>';
+  // 4th place — auto-computed from semifinalist losers
+  if(p.thr){
+    // The 4th place is the semifinalist who lost AND was NOT picked as 3rd
+    // Get the two semifinal losers (from QF winners not in SF)
+    const l0ro=[p.qf[0]||'',p.qf[1]||''].find(t=>t&&t!==sf1)||'';
+    const l1ro=[p.qf[2]||'',p.qf[3]||''].find(t=>t&&t!==sf2)||'';
+    const fourthPlace=p.thr===l0ro?l1ro:(p.thr===l1ro?l0ro:'');
+    if(fourthPlace){
+      h+=`<div style="margin-top:6px;padding:6px 12px;border-radius:8px;background:linear-gradient(135deg,#fed7aa,#fdba74);border:1.5px solid #c2410c;display:flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.3px;font-size:13px;color:#7c2d12" title="${esc(fourthPlace)}"><span style="font-size:18px">${flag(fourthPlace)}</span><span>${esc(abbr(fourthPlace))}</span></div>`;
+      h+=`<div style="font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:#9a3412;text-transform:uppercase;letter-spacing:1.2px">4️⃣ Cuarto Lugar</div>`;
+    }
+  }
+  h+='</div>'; // end final-center
   
   // ─── RIGHT SIDE ───
   h+='<div class="br-side br-side-right">';
