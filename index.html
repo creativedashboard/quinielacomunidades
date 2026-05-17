@@ -510,9 +510,23 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
       </div>
     </div>
 
+    <!-- VIEW 0: Choose display name (REQUIRED on first login) -->
+    <div id="setup-view-name" style="display:none">
+      <div class="setup-title">¡Hola! 👋</div>
+      <div class="setup-sub">Antes de empezar, dinos cómo quieres que te llamemos en la quiniela.</div>
+      <div class="setup-field">
+        <label>Tu nombre visible</label>
+        <input id="display-name" type="text" placeholder="Cris 🔥" maxlength="25" autocomplete="off">
+        <div style="font-size:11px;color:var(--mt);margin-top:6px;line-height:1.4">💡 Hasta 25 caracteres · Emojis permitidos · Es como te verán tus amigos en la quiniela</div>
+      </div>
+      <div id="name-err" class="setup-err"></div>
+      <button class="setup-btn" onclick="doSaveDisplayName()">Continuar →</button>
+      <button class="setup-btn secondary" onclick="signOut()">Cerrar sesión</button>
+    </div>
+
     <!-- VIEW 1: Selector -->
     <div id="setup-view-select">
-      <div class="setup-title">¡Hola! 👋</div>
+      <div class="setup-title">¡Hola, <span id="select-user-name">amig@</span>! 👋</div>
       <div class="setup-sub">¿Cómo vas a entrar a la quiniela?</div>
       <div class="setup-options">
         <button class="setup-opt" onclick="showSetupView('license')">
@@ -1060,6 +1074,10 @@ auth.onAuthStateChanged(async user=>{
     // Has profile — load app
     ME.color=profile.color||'blue';
     ME.communityId=profile.communityId;
+    // Use display name from profile if it was set, else keep Google name
+    if(profile.name&&profile.displayNameSet){
+      ME.name=profile.name;
+    }
     applyUserColor(ME.color);
     loadApp(ME.isSuperAdmin);
   }catch(e){
@@ -1091,28 +1109,119 @@ function showSetupScreen(){
   grid2.innerHTML=UCOLORS.map((c,i)=>`<div class="color-dot${i===0?' sel':''}" data-c="${c.id}" style="background:${c.ac}" onclick="selectLicenseColor('${c.id}')"></div>`).join('');
   _selLicenseColor='blue';
 
+  // Update greeting with display name (may have been changed)
+  document.getElementById('select-user-name').textContent=ME.name||'amig@';
+
+  // Pre-fill name input with Google name
+  document.getElementById('display-name').value=ME.name||'';
+
   // Check URL params: ?join=ABCDEF or ?license=LIC-...
   const params=new URLSearchParams(window.location.search);
   const joinCode=params.get('join');
   const licCode=params.get('license');
-  if(joinCode){
-    document.getElementById('invite-code').value=joinCode.toUpperCase();
-    showSetupView('join');
-  }else if(licCode){
-    document.getElementById('license-code').value=licCode.toUpperCase();
-    showSetupView('license');
-  }else{
-    showSetupView('select');
-  }
+  
+  // Check if user has chosen a display name yet
+  db.ref('users/'+ME.uid+'/displayNameSet').once('value').then(snap=>{
+    const hasName=snap.val()===true;
+    if(!hasName){
+      // First time — show name picker first
+      showSetupView('name');
+    }else if(joinCode){
+      document.getElementById('invite-code').value=joinCode.toUpperCase();
+      showSetupView('join');
+    }else if(licCode){
+      document.getElementById('license-code').value=licCode.toUpperCase();
+      showSetupView('license');
+    }else{
+      showSetupView('select');
+    }
+  }).catch(()=>{
+    showSetupView('name'); // fallback to name view if check fails
+  });
 
   showScreen('setup');
 }
 
 function showSetupView(view){
+  document.getElementById('setup-view-name').style.display=view==='name'?'block':'none';
   document.getElementById('setup-view-select').style.display=view==='select'?'block':'none';
   document.getElementById('setup-view-license').style.display=view==='license'?'block':'none';
   document.getElementById('setup-view-join').style.display=view==='join'?'block':'none';
   document.getElementById('setup-view-success').style.display=view==='success'?'block':'none';
+}
+
+// Edit display name (from within the app — sidebar pencil button)
+// Rate-limited: 1 change per hour
+async function showEditName(){
+  if(!ME.uid)return;
+  // Check rate-limit
+  try{
+    const snap=await db.ref('users/'+ME.uid+'/lastNameChangeAt').once('value');
+    const last=snap.val();
+    if(last){
+      const elapsed=Date.now()-last;
+      const oneHour=60*60*1000;
+      if(elapsed<oneHour){
+        const minsLeft=Math.ceil((oneHour-elapsed)/60000);
+        alert(`Espera ${minsLeft} minuto${minsLeft!==1?'s':''} para volver a cambiar tu nombre.\n\nSolo se permite 1 cambio por hora.`);
+        return;
+      }
+    }
+  }catch(e){/* silent — continue */}
+  const newName=prompt('Nuevo nombre (máx 25 caracteres, emojis permitidos):',ME.name);
+  if(newName===null)return; // cancelled
+  const trimmed=newName.trim();
+  if(trimmed.length<2){alert('El nombre debe tener al menos 2 caracteres.');return;}
+  if(trimmed.length>25){alert('El nombre no puede tener más de 25 caracteres.');return;}
+  if(trimmed===ME.name){return;} // no change
+  try{
+    await db.ref('users/'+ME.uid).update({
+      name:trimmed,
+      displayNameSet:true,
+      lastNameChangeAt:Date.now()
+    });
+    ME.name=trimmed;
+    render();
+    alert(`✓ Nombre actualizado a "${trimmed}"`);
+  }catch(e){
+    alert('Error: '+(e.message||e));
+  }
+}
+
+async function doSaveDisplayName(){
+  const newName=(document.getElementById('display-name').value||'').trim();
+  const err=document.getElementById('name-err');
+  err.style.display='none';
+  if(newName.length<2){err.textContent='El nombre debe tener al menos 2 caracteres';err.style.display='block';return;}
+  if(newName.length>25){err.textContent='El nombre no puede tener más de 25 caracteres';err.style.display='block';return;}
+  try{
+    // Save name + mark as set + record timestamp
+    const now=Date.now();
+    await db.ref('users/'+ME.uid).update({
+      name:newName,
+      displayNameSet:true,
+      lastNameChangeAt:now
+    });
+    ME.name=newName;
+    // Update greeting and switch to selector
+    document.getElementById('select-user-name').textContent=newName;
+    document.getElementById('setup-uname').textContent=newName;
+    // Now check URL params to figure out next view
+    const params=new URLSearchParams(window.location.search);
+    const joinCode=params.get('join');
+    const licCode=params.get('license');
+    if(joinCode){
+      document.getElementById('invite-code').value=joinCode.toUpperCase();
+      showSetupView('join');
+    }else if(licCode){
+      document.getElementById('license-code').value=licCode.toUpperCase();
+      showSetupView('license');
+    }else{
+      showSetupView('select');
+    }
+  }catch(e){
+    err.textContent='Error: '+(e.message||e);err.style.display='block';
+  }
 }
 
 function selectSetupColor(id){
@@ -1710,7 +1819,7 @@ function rSidebar(){
   u.innerHTML=`
     ${userPic({name:ME.name,photo:ME.photo,color:ME.color},32).replace('class="lbpic"','class="sb-user-pic"')}
     <div class="sb-user-info">
-      <div class="sb-user-name">${esc(ME.name)}</div>
+      <div class="sb-user-name">${esc(ME.name)} <a onclick="showEditName()" style="font-size:11px;color:var(--ac);cursor:pointer;margin-left:4px" title="Cambiar nombre">✏️</a></div>
       <div class="sb-user-mail">${esc(ME.email)}</div>
       <div style="margin-top:4px"><a onclick="showTerms()" style="font-size:10px;color:var(--mt);cursor:pointer;text-decoration:underline">📋 Términos y Política</a></div>
     </div>
