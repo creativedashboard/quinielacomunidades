@@ -514,9 +514,6 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
     </div>
     <div id="setup-err" class="setup-err"></div>
     <button class="setup-btn" onclick="doJoinCommunity()">Unirme a la comunidad →</button>
-    <div class="setup-link">
-      <a onclick="showAdminUnlock()">¿Eres administrador?</a>
-    </div>
     <button class="setup-btn secondary" onclick="signOut()">Cerrar sesión</button>
   </div>
 </div>
@@ -594,7 +591,10 @@ firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth();
 const db=firebase.database();
 
-const ADMIN_SECRET='doggyesdios';
+// Super-admin: hardcoded UID (only this Google account can be super-admin)
+// Access via secret URL: ?super=<password> (validated server-side via Firebase rules)
+const SUPER_ADMIN_UID='ZDQcOkt2woOs5owq1jxAnsZ0dYu2';
+const SUPER_ADMIN_URL_KEY='doggyesdios'; // URL parameter, not visible in normal flow
 const TOURNAMENT_START=new Date('2026-06-11T16:00:00Z'); // 11 Jun 2026 — locks picks
 
 function isLocked(){
@@ -857,8 +857,18 @@ auth.onAuthStateChanged(async user=>{
     const profileSnap=await db.ref('users/'+user.uid).once('value');
     const profile=profileSnap.val();
     const adminSnap=await db.ref('admins/'+user.uid).once('value');
-    // Super admin = legacy "admins/{uid}=true" (you with password)
-    ME.isSuperAdmin=adminSnap.val()===true;
+    // Super admin = legacy "admins/{uid}=true" AND UID matches hardcoded super-admin
+    // This protects against someone who somehow got into admins/ in Firebase
+    ME.isSuperAdmin=(adminSnap.val()===true)&&(user.uid===SUPER_ADMIN_UID);
+    // Try to activate super-admin from URL (only on correct UID + correct URL key)
+    if(!ME.isSuperAdmin&&user.uid===SUPER_ADMIN_UID){
+      const params=new URLSearchParams(window.location.search);
+      if(params.get('super')===SUPER_ADMIN_URL_KEY){
+        await db.ref('admins/'+user.uid).set(true);
+        ME.isSuperAdmin=true;
+        window.history.replaceState({},'',window.location.pathname);
+      }
+    }
     // Backwards compat: ME.isAdmin keeps working (= super admin OR community admin of current community)
     ME.isAdmin=ME.isSuperAdmin;
     // Detect which communities this user is community-admin of (new role)
@@ -945,15 +955,41 @@ async function doJoinCommunity(){
   }
 }
 
-function showAdminUnlock(){
-  const code=prompt('Código de administrador:');
-  if(!code)return;
-  if(code!==ADMIN_SECRET){alert('Código incorrecto');return;}
-  // Mark this user as admin
-  db.ref('admins/'+ME.uid).set(true).then(()=>{
+// Super-admin activation: only your hardcoded UID + correct URL key
+function tryActivateSuperAdmin(){
+  const params=new URLSearchParams(window.location.search);
+  const urlKey=params.get('super');
+  if(!urlKey)return false;
+  if(!ME.uid){console.warn('Not logged in yet');return false;}
+  // Validate: hardcoded UID + correct URL key
+  if(ME.uid!==SUPER_ADMIN_UID){
+    console.warn('Super-admin access denied (UID mismatch)');
+    return false;
+  }
+  if(urlKey!==SUPER_ADMIN_URL_KEY){
+    console.warn('Super-admin access denied (invalid key)');
+    return false;
+  }
+  // Mark this user as admin in Firebase (super-admin path)
+  return db.ref('admins/'+ME.uid).set(true).then(()=>{
+    ME.isSuperAdmin=true;
     ME.isAdmin=true;
-    alert('✓ Modo administrador activado. Ahora puedes crear comunidades.');
-    // If user doesn't have profile yet, give them a default one (no community)
+    // Clean URL so the key doesn't stay visible
+    window.history.replaceState({},'',window.location.pathname);
+    return true;
+  });
+}
+// Legacy unlock kept for emergency use only (NOT called from any visible UI)
+function showAdminUnlock(){
+  if(ME.uid!==SUPER_ADMIN_UID){
+    alert('Acceso denegado.');
+    return;
+  }
+  const code=prompt('Código super-admin:');
+  if(!code||code!==SUPER_ADMIN_URL_KEY){alert('Código incorrecto');return;}
+  db.ref('admins/'+ME.uid).set(true).then(()=>{
+    ME.isSuperAdmin=true;ME.isAdmin=true;
+    alert('✓ Super-admin activado.');
     db.ref('users/'+ME.uid).once('value').then(snap=>{
       if(!snap.val()){
         db.ref('users/'+ME.uid).set({
@@ -963,7 +999,6 @@ function showAdminUnlock(){
         });
         ME.color='red';applyUserColor(ME.color);
       }
-      // Open admin panel
       loadApp(true);
     });
   }).catch(e=>alert('Error: '+e.message));
