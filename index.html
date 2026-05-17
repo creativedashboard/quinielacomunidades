@@ -1008,6 +1008,28 @@ auth.onAuthStateChanged(async user=>{
       showSetupScreen();
       return;
     }
+    // Has profile WITH a communityId — verify the community still exists
+    // (handles case where admin deleted community but user record still has stale reference)
+    try{
+      const commSnap=await db.ref('communities/'+profile.communityId).once('value');
+      if(!commSnap.val()){
+        // The community no longer exists. Treat user as orphaned.
+        console.warn('User has stale communityId that no longer exists. Resetting to orphan state.');
+        await db.ref('users/'+user.uid+'/communityId').set('');
+        // Super-admin: load admin panel; regular user: show setup
+        if(ME.isSuperAdmin){
+          ME.color=profile.color||'red';
+          applyUserColor(ME.color);
+          loadApp(true);
+          return;
+        }
+        showSetupScreen();
+        return;
+      }
+    }catch(e){
+      console.warn('Could not verify community existence:',e);
+      // If verification fails, fall through to normal flow (don't lock user out)
+    }
     // Has profile — load app
     ME.color=profile.color||'blue';
     ME.communityId=profile.communityId;
