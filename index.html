@@ -490,12 +490,50 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
   <div class="login-box">
     <div class="login-emoji">🌎</div>
     <div class="login-title">Quiniela Chida ⚽</div>
-    <div class="login-sub">Inicia sesión con tu cuenta de Google para participar en una quiniela con tu comunidad de amigos.</div>
-    <button class="gbtn" onclick="googleSignIn()">
-      <svg class="gbtn-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      Iniciar sesión con Google
-    </button>
-    <div class="setup-link" style="margin-top:18px;font-size:11px">Al continuar aceptas usar tu nombre y foto de Google para mostrar tu perfil en la quiniela.</div>
+
+    <!-- LOGIN VIEW: Choice between Google and Email/Password -->
+    <div id="login-view-choice">
+      <div class="login-sub">Inicia sesión para entrar a tu quiniela.</div>
+      <button class="gbtn" onclick="googleSignIn()">
+        <svg class="gbtn-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Iniciar sesión con Google
+      </button>
+      <div style="display:flex;align-items:center;gap:10px;margin:18px 0;font-size:11px;color:var(--mt);font-weight:600;text-transform:uppercase;letter-spacing:.5px">
+        <div style="flex:1;height:1px;background:var(--bd)"></div>
+        <span>O</span>
+        <div style="flex:1;height:1px;background:var(--bd)"></div>
+      </div>
+      <button class="setup-btn secondary" style="background:var(--bg);color:var(--tx);border:1.5px solid var(--bd);font-weight:700" onclick="showLoginView('email-login')">📧 Acceso con correo y contraseña</button>
+      <div class="setup-link" style="margin-top:14px;font-size:11px">Al continuar aceptas los <a onclick="showTerms()" style="color:var(--ac);cursor:pointer;text-decoration:underline">Términos y Política</a>.</div>
+    </div>
+
+    <!-- LOGIN VIEW: Email + Password Sign-in -->
+    <div id="login-view-email-login" style="display:none">
+      <div class="login-sub">Acceder con tu correo y contraseña.</div>
+      <div class="setup-field"><label>Correo</label><input id="login-email" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email"></div>
+      <div class="setup-field"><label>Contraseña</label><input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <div id="login-email-err" class="setup-err"></div>
+      <button class="setup-btn" onclick="doEmailSignIn()">Entrar →</button>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:12px;flex-wrap:wrap;gap:8px">
+        <a onclick="showLoginView('email-signup')" style="color:var(--ac);cursor:pointer">¿No tienes cuenta? Crear una</a>
+        <a onclick="doPasswordReset()" style="color:var(--mt);cursor:pointer">Olvidé mi contraseña</a>
+      </div>
+      <button class="setup-btn secondary" onclick="showLoginView('choice')">← Atrás</button>
+    </div>
+
+    <!-- LOGIN VIEW: Email + Password Sign-up -->
+    <div id="login-view-email-signup" style="display:none">
+      <div class="login-sub">Crea una cuenta con correo y contraseña.</div>
+      <div class="setup-field"><label>Correo</label><input id="signup-email" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email"></div>
+      <div class="setup-field"><label>Contraseña (mínimo 6 caracteres)</label><input id="signup-password" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+      <div class="setup-field"><label>Repite la contraseña</label><input id="signup-password2" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+      <div id="signup-err" class="setup-err"></div>
+      <button class="setup-btn" onclick="doEmailSignUp()">Crear cuenta →</button>
+      <div style="margin-top:14px;font-size:12px;text-align:center">
+        <a onclick="showLoginView('email-login')" style="color:var(--ac);cursor:pointer">Ya tengo cuenta → Iniciar sesión</a>
+      </div>
+      <button class="setup-btn secondary" onclick="showLoginView('choice')">← Atrás</button>
+    </div>
   </div>
 </div>
 
@@ -561,6 +599,26 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
       <div class="setup-field">
         <label>Nombre de tu quiniela</label>
         <input id="license-comm-name" type="text" placeholder="Ej: Quiniela Familia García" maxlength="50" autocomplete="off">
+      </div>
+      <div class="setup-field">
+        <label>Modo de tu quiniela</label>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--bd);border-radius:10px;cursor:pointer;background:var(--card);transition:all .12s" id="mode-option-tournament">
+            <input type="radio" name="quiniela-mode" value="tournament" checked onchange="selectQuinielaMode('tournament')" style="margin-top:3px;flex-shrink:0">
+            <div style="flex:1">
+              <div style="font-weight:800;color:var(--tx);font-size:13.5px;margin-bottom:2px;font-family:'Outfit',sans-serif">🏆 Modo Torneo <span style="font-size:9.5px;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:4px;margin-left:4px;text-transform:uppercase;letter-spacing:.4px">Recomendado</span></div>
+              <div style="font-size:11px;color:var(--mt);line-height:1.45">Etapa 1: llenan marcadores de Grupos.<br>Etapa 2: TÚ abres las eliminatorias y todos llenan su bracket basado en los equipos REALES que pasaron.</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--bd);border-radius:10px;cursor:pointer;background:var(--card);transition:all .12s" id="mode-option-normal">
+            <input type="radio" name="quiniela-mode" value="normal" onchange="selectQuinielaMode('normal')" style="margin-top:3px;flex-shrink:0">
+            <div style="flex:1">
+              <div style="font-weight:800;color:var(--tx);font-size:13.5px;margin-bottom:2px;font-family:'Outfit',sans-serif">🎯 Modo Normal</div>
+              <div style="font-size:11px;color:var(--mt);line-height:1.45">Cada quien predice TODO desde el inicio (grupos + bracket completo). Se cierra el 11 de junio cuando empieza el Mundial.</div>
+            </div>
+          </label>
+        </div>
+        <div style="font-size:10.5px;color:var(--mt);margin-top:6px;line-height:1.4">⚠️ Este modo NO se puede cambiar después de crear la quiniela.</div>
       </div>
       <div class="setup-field">
         <label>Tu color</label>
@@ -936,6 +994,7 @@ let S={
   users:{},        // {uid: profileObj}
   picks:{},        // {uid: picksObj}
   communities:{},  // {commId: {name, inviteCode}}
+  community_admins:{}, // {cid: {uid: true}}
   licenses:{},     // {code: {status, usedBy, usedAt, communityId}} — only loaded by super-admin
   adminR:null,     // results
   thirds_bracket:Array(8).fill(''),
@@ -974,6 +1033,69 @@ function googleSignIn(){
   auth.signInWithPopup(provider).catch(e=>alert('Error: '+e.message));
 }
 
+// Switch between login views (choice, email-login, email-signup)
+function showLoginView(view){
+  document.getElementById('login-view-choice').style.display=view==='choice'?'block':'none';
+  document.getElementById('login-view-email-login').style.display=view==='email-login'?'block':'none';
+  document.getElementById('login-view-email-signup').style.display=view==='email-signup'?'block':'none';
+}
+
+async function doEmailSignIn(){
+  const email=(document.getElementById('login-email').value||'').trim();
+  const pwd=document.getElementById('login-password').value||'';
+  const err=document.getElementById('login-email-err');
+  err.style.display='none';
+  if(!email||!email.includes('@')){err.textContent='Correo inválido';err.style.display='block';return;}
+  if(!pwd){err.textContent='Pon tu contraseña';err.style.display='block';return;}
+  try{
+    await auth.signInWithEmailAndPassword(email,pwd);
+    // onAuthStateChanged handles the rest
+  }catch(e){
+    let msg='Error: '+(e.message||e);
+    if(e.code==='auth/user-not-found')msg='No existe una cuenta con ese correo. ¿Quieres crear una?';
+    else if(e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')msg='Contraseña incorrecta.';
+    else if(e.code==='auth/invalid-email')msg='Correo con formato inválido.';
+    else if(e.code==='auth/too-many-requests')msg='Demasiados intentos fallidos. Espera unos minutos.';
+    err.textContent=msg;err.style.display='block';
+  }
+}
+
+async function doEmailSignUp(){
+  const email=(document.getElementById('signup-email').value||'').trim();
+  const pwd=document.getElementById('signup-password').value||'';
+  const pwd2=document.getElementById('signup-password2').value||'';
+  const err=document.getElementById('signup-err');
+  err.style.display='none';
+  if(!email||!email.includes('@')){err.textContent='Correo inválido';err.style.display='block';return;}
+  if(pwd.length<6){err.textContent='La contraseña debe tener al menos 6 caracteres';err.style.display='block';return;}
+  if(pwd!==pwd2){err.textContent='Las contraseñas no coinciden';err.style.display='block';return;}
+  try{
+    await auth.createUserWithEmailAndPassword(email,pwd);
+    // onAuthStateChanged handles the rest
+  }catch(e){
+    let msg='Error: '+(e.message||e);
+    if(e.code==='auth/email-already-in-use')msg='Ya hay una cuenta con ese correo. Intenta iniciar sesión.';
+    else if(e.code==='auth/invalid-email')msg='Correo con formato inválido.';
+    else if(e.code==='auth/weak-password')msg='Contraseña muy débil (mínimo 6 caracteres).';
+    else if(e.code==='auth/operation-not-allowed')msg='Email/Password no está habilitado en Firebase. Contacta al admin.';
+    err.textContent=msg;err.style.display='block';
+  }
+}
+
+async function doPasswordReset(){
+  const email=prompt('Pon el correo de tu cuenta y te mandaremos un link para recuperar la contraseña:');
+  if(!email)return;
+  const e=email.trim();
+  if(!e.includes('@')){alert('Correo inválido.');return;}
+  try{
+    await auth.sendPasswordResetEmail(e);
+    alert('✓ Te mandamos un correo a '+e+'\n\nRevisa tu bandeja (incluyendo spam) y sigue las instrucciones.');
+  }catch(err){
+    if(err.code==='auth/user-not-found')alert('No hay cuenta registrada con ese correo.');
+    else alert('Error: '+(err.message||err));
+  }
+}
+
 function signOut(){
   // Detach listeners
   _listeners.forEach(({ref,event})=>ref.off(event));
@@ -989,7 +1111,8 @@ auth.onAuthStateChanged(async user=>{
   }
   // User is logged in. Check profile.
   ME.uid=user.uid;
-  ME.name=user.displayName||'Sin nombre';
+  // For Google: use displayName. For Email/Password: extract name from email (before @)
+  ME.name=user.displayName||(user.email?user.email.split('@')[0]:'')||'Sin nombre';
   ME.email=user.email||'';
   ME.photo=user.photoURL||'';
 
@@ -1092,6 +1215,20 @@ auth.onAuthStateChanged(async user=>{
 let _selSetupColor='blue';
 let _selLicenseColor='blue';
 let _successInviteCode='';
+let _selQuinielaMode='tournament'; // 'tournament' (default) or 'normal'
+
+function selectQuinielaMode(m){
+  _selQuinielaMode=m;
+  const tn=document.getElementById('mode-option-tournament');
+  const nm=document.getElementById('mode-option-normal');
+  if(m==='tournament'){
+    tn.style.borderColor='var(--ac)';tn.style.background='var(--acl)';
+    nm.style.borderColor='var(--bd)';nm.style.background='var(--card)';
+  }else{
+    nm.style.borderColor='var(--ac)';nm.style.background='var(--acl)';
+    tn.style.borderColor='var(--bd)';tn.style.background='var(--card)';
+  }
+}
 
 function showSetupScreen(){
   document.getElementById('setup-uname').textContent=ME.name;
@@ -1148,6 +1285,10 @@ function showSetupView(view){
   document.getElementById('setup-view-license').style.display=view==='license'?'block':'none';
   document.getElementById('setup-view-join').style.display=view==='join'?'block':'none';
   document.getElementById('setup-view-success').style.display=view==='success'?'block':'none';
+  if(view==='license'){
+    // Set default mode highlight
+    try{selectQuinielaMode('tournament');}catch(e){}
+  }
 }
 
 // Edit display name (from within the app — sidebar pencil button)
@@ -1278,7 +1419,7 @@ async function doActivateLicense(){
   const origBtn=btn?btn.textContent:'';
   if(btn){btn.disabled=true;btn.textContent='⏳ Verificando código...';}
   try{
-    const result=await activateLicenseAndCreateCommunity(code,name,_selLicenseColor);
+    const result=await activateLicenseAndCreateCommunity(code,name,_selLicenseColor,_selQuinielaMode);
     // Show success view
     _successInviteCode=result.inviteCode;
     document.getElementById('success-invite-code').textContent=result.inviteCode;
@@ -1399,6 +1540,7 @@ function loadApp(forceAdmin){
     {path:'users',                handler:snap=>{S.users=snap.val()||{};safeRender();}},
     {path:'picks',                handler:snap=>{S.picks=snap.val()||{};safeRender();}},
     {path:'communities',          handler:snap=>{S.communities=snap.val()||{};safeRender();}},
+    {path:'community_admins',     handler:snap=>{S.community_admins=snap.val()||{};safeRender();}},
     // Licenses listener — only super-admin needs this data; other users get blocked by Firebase rules
     ...(ME.isSuperAdmin?[{path:'licenses',handler:snap=>{S.licenses=snap.val()||{};safeRender();}}]:[]),
     // NEW: per-community results (each community has its own official results)
@@ -1546,6 +1688,24 @@ function rc(code,p){
   if(tbl[pos-1].pj===0)return '';
   return tbl[pos-1].name;
 }
+
+// Returns true if we should use OFFICIAL admin results (instead of user picks)
+// to determine which teams advance from groups to R32.
+// This is the case in Tournament Mode AFTER admin unlocks Stage 2.
+function useOfficialForBracket(){
+  if(!ME.communityId)return false;
+  const c=S.communities&&S.communities[ME.communityId];
+  if(!c)return false;
+  return c.mode==='tournament' && c.stage2Unlocked===true;
+}
+
+// Get the picks object to use for bracket display in non-admin contexts.
+// In Tournament Mode (Stage 2 open) → use S.adminR (community official results)
+// In Normal Mode → use user's own picks (as before)
+function bracketSourcePicks(){
+  if(useOfficialForBracket()&&S.adminR)return S.adminR;
+  return myPicks();
+}
 // All groups played all 6 matches?
 function allFilled(p){
   return GKEYS.every(g=>{
@@ -1652,16 +1812,27 @@ function toggleAdmT8(team){
   return;
 }
 
-function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setR16(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}
+// Tournament Mode helper: returns true if user's bracket should be locked because Stage 2 is not unlocked yet
+function isTournamentBracketLocked(){
+  if(!ME.communityId)return false;
+  const c=S.communities&&S.communities[ME.communityId];
+  if(!c)return false;
+  return c.mode==='tournament' && c.stage2Unlocked!==true;
+}
+function showTournamentLocked(){
+  alert('🔒 Etapa 2: Eliminatorias\n\nEsta sección está bloqueada porque tu quiniela está en modo torneo. Tu admin abrirá esta etapa cuando termine la fase de Grupos.');
+}
+
+function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setR16(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.r32done<16)return;}const p=adm?S.adminR:myPicks();p.r16[mi]=w;clrChain(p,'qf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setQF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}
+function setQF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.r16done<8)return;}const p=adm?S.adminR:myPicks();p.qf[mi]=w;clrChain(p,'sf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setSF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}
+function setSF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.qfDone<4)return;}const p=adm?S.adminR:myPicks();p.sf[mi]=w;p.fin='';p.thr='';if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setFin(w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}
+function setFin(w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.sfDone<2)return;}const p=adm?S.adminR:myPicks();p.fin=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setThr(w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}const p=adm?S.adminR:myPicks();p.thr=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setThr(w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}const p=adm?S.adminR:myPicks();p.thr=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
 function setT3(mi,v){if(!ME.isAdmin)return;S.thirds_bracket[mi]=v;const ridx=R32_THIRDS[mi].i;S.adminR.r32[ridx]='';clrChain(S.adminR,'r16',R32_TO_R16[ridx]);saveAdminResults();render();}
 
 // ══════════════════════════════════════════════════════
@@ -2297,7 +2468,15 @@ function buildEditableBracket(p){
   const r16Complete=prog.r16done===8;
   const qfComplete=prog.qfDone===4;
   const sfComplete=prog.sfDone===2;
+  // Tournament Mode lock: if tournament mode and stage2 NOT unlocked yet, lock entire bracket
+  const inTournamentLockedPhase=(function(){
+    if(!ME.communityId)return false;
+    const c=S.communities&&S.communities[ME.communityId];
+    if(!c)return false;
+    return c.mode==='tournament' && c.stage2Unlocked!==true;
+  })();
   function isRoundLocked(rnd){
+    if(inTournamentLockedPhase)return true; // Entire bracket locked in Tournament Mode Stage 1
     if(rnd==='r32')return prog.t8cnt<8;
     if(rnd==='r16')return !r32Complete;
     if(rnd==='qf')return !r16Complete;
@@ -2344,12 +2523,16 @@ function buildEditableBracket(p){
   }
   
   // Get teams for R32 matches
+  // In Tournament Mode (Stage 2 open), use S.adminR (official results) as the base
+  // so users see the REAL teams that passed groups, not their own predictions.
   function getR32Teams(idx){
     let t1='',t2='';
+    // pSource = official adminR if tournament+stage2 open, else user picks
+    const pSource=(useOfficialForBracket()&&S.adminR)?S.adminR:p;
     const fx=R32_FIXED.find(x=>x.i===idx);
     const th=R32_THIRDS.findIndex(x=>x.i===idx);
-    if(fx){t1=rc(fx.c1,p)||'';t2=rc(fx.c2,p)||'';}
-    else if(th>=0){t1=rc(R32_THIRDS[th].c1,p)||'';t2=(p.t8||[])[th]||'';}
+    if(fx){t1=rc(fx.c1,pSource)||'';t2=rc(fx.c2,pSource)||'';}
+    else if(th>=0){t1=rc(R32_THIRDS[th].c1,pSource)||'';t2=(pSource.t8||[])[th]||'';}
     return[t1,t2];
   }
   
@@ -2509,8 +2692,16 @@ function buildEditableBracket(p){
 
 function rR32(adm){
   let p,a;if(adm){p=S.adminR;a='true';}else{p=myPicks();a='false';}
-  if(!adm&&S.bracketView==='bracket'){return rParticipants()+rViewToggle()+rEditableBracket();}
-  let h=rParticipants();
+  // Tournament Mode locked banner (only for non-admin users in tournament+stage1)
+  let tournamentLockedBanner='';
+  if(!adm&&isTournamentBracketLocked()){
+    tournamentLockedBanner=`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:12px;padding:16px 18px;margin-bottom:16px;color:#78350f;line-height:1.55">
+      <div style="font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;margin-bottom:6px">🔒 Etapa 2: Eliminatorias bloqueada</div>
+      <div style="font-size:12.5px">Tu quiniela está en <strong>Modo Torneo</strong>. Las eliminatorias se desbloquean cuando termine la fase de Grupos del Mundial real y tu admin marque todos los marcadores oficiales. <strong>Por ahora, concéntrate en llenar los marcadores de Grupos.</strong></div>
+    </div>`;
+  }
+  if(!adm&&S.bracketView==='bracket'){return rParticipants()+tournamentLockedBanner+rViewToggle()+rEditableBracket();}
+  let h=rParticipants()+tournamentLockedBanner;
   if(!adm)h+=rViewToggle();
   h+=`<div class="phase"><div class="phdr">Partidos de grupos <span class="ptag">${PTS.r32} pts c/u</span></div><div class="mgrid">`;
   for(const{i,c1,c2}of R32_FIXED){
@@ -2798,6 +2989,64 @@ function rAdmOrphans(){
   h+='</div>';
   return h;
 }
+
+async function openStage2(cid,commName){
+  // Only super-admin or community-admin of this community can open Stage 2
+  const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede abrir la Etapa 2.');return;}
+  const c=S.communities[cid];
+  if(!c){alert('Comunidad no encontrada.');return;}
+  if(c.mode!=='tournament'){alert('Esta comunidad no está en Modo Torneo.');return;}
+  if(c.stage2Unlocked===true){alert('La Etapa 2 ya estaba abierta.');return;}
+  showConfirm({
+    title:'🔓 Abrir Etapa 2',
+    msg:`¿Abrir las Eliminatorias en "${commName}"?\n\nUna vez abierta:\n• Los participantes podrán llenar su bracket basado en los 32 equipos REALES que pasaron grupos.\n• Asegúrate de tener TODOS los marcadores oficiales de Grupos metidos antes de abrir.\n• Esta acción NO se puede revertir.\n\n¿Continuar?`,
+    okText:'Sí, abrir Etapa 2',
+    onOk:async()=>{
+      try{
+        await db.ref('communities/'+cid+'/stage2Unlocked').set(true);
+        alert(`✅ ¡Etapa 2 abierta!\n\nLos participantes de "${commName}" ya pueden llenar su bracket de eliminatorias.`);
+        render();
+      }catch(e){alert('Error: '+(e.message||e));}
+    }
+  });
+}
+
+async function adminToggleCommunityAdmin(cid,uid,name,makeAdmin){
+  if(!ME.isSuperAdmin){alert('Solo super-admin puede cambiar roles.');return;}
+  if(uid===SUPER_ADMIN_UID){alert('No puedes modificar el rol del super-admin.');return;}
+  const c=S.communities[cid];
+  if(!c){alert('Comunidad no encontrada.');return;}
+  if(makeAdmin){
+    showConfirm({
+      title:'👑 Asignar admin',
+      msg:`¿Hacer a ${name||'este usuario'} admin de "${c.name}"?\n\nPodrá meter resultados, eliminar miembros, cambiar nombre/banner de la comunidad.`,
+      okText:'Sí, hacer admin',
+      onOk:async()=>{
+        try{
+          await db.ref('community_admins/'+cid+'/'+uid).set(true);
+          alert(`✓ ${name} ahora es admin de "${c.name}"`);
+          render();
+        }catch(e){alert('Error: '+(e.message||e));}
+      }
+    });
+  }else{
+    showConfirm({
+      title:'🔓 Quitar admin',
+      msg:`¿Quitarle el rol de admin a ${name||'este usuario'} en "${c.name}"?\n\nSeguirá siendo participante, solo perderá los permisos de admin.`,
+      okText:'Sí, quitar admin',
+      danger:true,
+      onOk:async()=>{
+        try{
+          await db.ref('community_admins/'+cid+'/'+uid).set(null);
+          alert(`✓ ${name} ya no es admin de "${c.name}"`);
+          render();
+        }catch(e){alert('Error: '+(e.message||e));}
+      }
+    });
+  }
+}
+
 async function adminAssignToCommunity(uid,cid){
   if(!ME.isSuperAdmin){alert('Solo super-admin.');return;}
   if(!cid)return;
@@ -2948,6 +3197,28 @@ function rAdmCommunities(){
       const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>b.tot-a.tot);
       const baseUrl=window.location.origin+window.location.pathname;
       const inviteLink=baseUrl+'?join='+c.inviteCode;
+      // Tournament Mode info (only if this user is admin of this community)
+      const canManage=ME.isSuperAdmin||(S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true);
+      let tournamentBanner='';
+      if(c.mode==='tournament'&&canManage){
+        if(c.stage2Unlocked===true){
+          tournamentBanner=`<div style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);border:1.5px solid #16a34a;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:11.5px;color:#14532d;line-height:1.5">
+            <div style="font-weight:800;margin-bottom:4px;font-family:'Outfit',sans-serif;font-size:12.5px">🏆 Modo Torneo · Etapa 2 abierta ✅</div>
+            <div>Los participantes ya pueden llenar su bracket de eliminatorias basado en los equipos reales que pasaron. <strong>Esta acción no se puede revertir.</strong></div>
+          </div>`;
+        }else{
+          tournamentBanner=`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:10px;padding:14px;margin-bottom:14px;color:#78350f;line-height:1.5">
+            <div style="font-weight:800;margin-bottom:6px;font-family:'Outfit',sans-serif;font-size:13px">🏆 Modo Torneo · Etapa 2 BLOQUEADA 🔒</div>
+            <div style="font-size:11.5px;margin-bottom:10px">Los participantes solo pueden llenar la Fase de Grupos. Cuando termine la fase de grupos del Mundial real y tengas metidos TODOS los marcadores oficiales aquí, abre la Etapa 2 para que llenen su bracket basado en los 32 equipos REALES que pasaron.</div>
+            <button onclick="openStage2('${js(cid)}','${js(c.name)}')" style="padding:9px 14px;background:#92400e;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif">🔓 Abrir Etapa 2: Eliminatorias</button>
+            <div style="font-size:10px;color:#a16207;margin-top:8px">⚠️ Una vez abierta, no se puede volver a cerrar.</div>
+          </div>`;
+        }
+      }else if(c.mode==='normal'&&canManage){
+        tournamentBanner=`<div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #93c5fd;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#1e40af;line-height:1.4">
+          <strong>🎯 Modo Normal</strong> · Los participantes pueden llenar TODO desde el inicio (grupos + bracket). Se cierra el 11 de junio.
+        </div>`;
+      }
       h+=`<div class="commcard">
         <div class="commhdr">
           <div class="commname">${esc(c.name)}</div>
@@ -2955,6 +3226,7 @@ function rAdmCommunities(){
             <span class="commcode" onclick="navigator.clipboard.writeText('${esc(c.inviteCode)}').then(()=>alert('Código copiado: ${esc(c.inviteCode)}'))">📋 ${esc(c.inviteCode)}</span>
           </div>
         </div>
+        ${tournamentBanner}
         <div style="font-size:11px;color:var(--mt);margin-bottom:10px">${members.length} miembro${members.length!==1?'s':''}</div>
         <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #93c5fd;border-radius:10px;padding:10px 12px;margin-bottom:12px">
           <div style="font-size:10.5px;color:#1e40af;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">🔗 Link para invitar amigos</div>
@@ -2969,14 +3241,17 @@ function rAdmCommunities(){
         members.forEach((m,i)=>{
           const medal=['🥇','🥈','🥉'][i]||`<span style="color:var(--mt);font-weight:700;font-size:11px;width:18px;display:inline-block;text-align:center">${i+1}</span>`;
           // Can this user delete the member?
-          // Super-admin can delete anyone except themselves and other super-admin
-          // Community-admin can delete users in their community (except themselves)
           const canDelete=(m.uid!==ME.uid)&&(m.uid!==SUPER_ADMIN_UID)&&(ME.isSuperAdmin||(ME.communityAdminOf.indexOf(cid)>=0));
+          // Is this user a community-admin of this community?
+          const isThisCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][m.uid]===true;
           h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .12s" onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background='transparent'" onclick="openBracket('${js(m.uid)}')">
             <div style="width:22px;display:flex;align-items:center;justify-content:center;font-size:14px">${medal}</div>
             ${userPic(m,26).replace('class="lbpic"','class="commmem-pic" style="width:26px;height:26px;border-radius:50%;flex-shrink:0"')}
-            <div style="flex:1;font-size:12px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</div>
+            <div style="flex:1;font-size:12px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}${isThisCommAdmin?' <span title="Admin de esta comunidad" style="margin-left:3px">👑</span>':''}</div>
             <div style="font-size:13px;font-weight:800;color:var(--ac)">${m.tot}<span style="font-size:10px;color:var(--mt);font-weight:500;margin-left:2px">pts</span></div>
+            ${ME.isSuperAdmin&&m.uid!==SUPER_ADMIN_UID?(isThisCommAdmin
+              ?`<button onclick="event.stopPropagation();adminToggleCommunityAdmin('${js(cid)}','${js(m.uid)}','${js(m.name)}',false)" style="background:none;border:none;color:var(--am);cursor:pointer;padding:2px 4px;font-size:13px" title="Quitar admin de esta comunidad">🔓</button>`
+              :`<button onclick="event.stopPropagation();adminToggleCommunityAdmin('${js(cid)}','${js(m.uid)}','${js(m.name)}',true)" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:2px 4px;font-size:13px" title="Hacer admin de esta comunidad">👑</button>`):''}
             ${ME.isSuperAdmin?`<button onclick="event.stopPropagation();moveMember('${js(m.uid)}','${js(m.name)}')" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:2px 4px;font-size:13px" title="Mover de comunidad">⇄</button>`:''}
             ${canDelete?`<button onclick="event.stopPropagation();adminDeleteUser('${js(m.uid)}','${js(m.name)}')" style="background:none;border:none;color:var(--rd);cursor:pointer;padding:2px 4px;font-size:13px" title="Eliminar usuario">🗑</button>`:''}
           </div>`;
@@ -3201,10 +3476,12 @@ async function captureGroups(){
 }
 
 // ─── CLIENT: Activate license to create their community ───
-async function activateLicenseAndCreateCommunity(licenseCode, communityName, userColor){
+async function activateLicenseAndCreateCommunity(licenseCode, communityName, userColor, quinielaMode){
   if(!ME.uid){throw new Error('No hay sesión activa.');}
   licenseCode=(licenseCode||'').trim().toUpperCase();
   if(!licenseCode){throw new Error('Pega un código válido.');}
+  // Validate mode (default to tournament)
+  const mode=(quinielaMode==='normal')?'normal':'tournament';
   // Determine code type:
   // - LIC-CRIS-MASTER-... = master (reusable, super-admin only)
   // - LIC-2026-... = internal manual code (1-use)
@@ -3266,7 +3543,9 @@ async function activateLicenseAndCreateCommunity(licenseCode, communityName, use
     createdAt:now,
     licenseUsed:licenseCode,
     licenseSource:licenseSource,
-    maxMembers:50
+    maxMembers:50,
+    mode:mode, // 'tournament' or 'normal'
+    stage2Unlocked:(mode==='normal') // normal mode = stage2 always "open"
   };
   updates['community_admins/'+cid+'/'+ME.uid]=true;
   updates['users/'+ME.uid]={
@@ -3771,10 +4050,12 @@ function buildBracket(uid,u,col){
   }
   function getR32Teams(idx){
     let t1='',t2='';
+    // In Tournament Mode (Stage 2 open), use S.adminR as the base for group/thirds origins
+    const pSource=(useOfficialForBracket()&&S.adminR)?S.adminR:p;
     const fx=R32_FIXED.find(x=>x.i===idx);
     const th=R32_THIRDS.findIndex(x=>x.i===idx);
-    if(fx){t1=rc(fx.c1,p)||'';t2=rc(fx.c2,p)||'';}
-    else if(th>=0){t1=rc(R32_THIRDS[th].c1,p)||'';t2=(p.t8||[])[th]||'';}
+    if(fx){t1=rc(fx.c1,pSource)||'';t2=rc(fx.c2,pSource)||'';}
+    else if(th>=0){t1=rc(R32_THIRDS[th].c1,pSource)||'';t2=(pSource.t8||[])[th]||'';}
     return[t1,t2];
   }
   function renderMatch(mi_info,team1,team2,winner,isRight){
