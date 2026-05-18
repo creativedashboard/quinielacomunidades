@@ -757,6 +757,12 @@ const LICENSE_RANDOM_LEN=16;
 // Note: this is the PRODUCT ID from Gumroad settings (API tab), NOT the permalink ("essxpj")
 const GUMROAD_PRODUCT_ID='Z0qDObYaqvz0AvncXpgczg==';
 
+// Public URL for invite links — always use the pretty domain, regardless of where the app is being served from
+const APP_PUBLIC_URL='https://app.quinielachida.com/';
+function buildInviteLink(code){
+  return APP_PUBLIC_URL+'?join='+encodeURIComponent(code);
+}
+
 // Verify a Gumroad-style license code via Gumroad's public API
 async function verifyGumroadLicense(licenseKey){
   try{
@@ -1433,8 +1439,7 @@ async function doActivateLicense(){
     // Show success view
     _successInviteCode=result.inviteCode;
     document.getElementById('success-invite-code').textContent=result.inviteCode;
-    const baseUrl=window.location.origin+window.location.pathname;
-    document.getElementById('success-invite-link').textContent=baseUrl+'?join='+result.inviteCode;
+    document.getElementById('success-invite-link').textContent=buildInviteLink(result.inviteCode);
     showSetupView('success');
   }catch(e){
     err.textContent=e.message||String(e);err.style.display='block';
@@ -1448,13 +1453,13 @@ function copySuccessCode(){
   });
 }
 function copySuccessLink(){
-  const link=window.location.origin+window.location.pathname+'?join='+_successInviteCode;
+  const link=buildInviteLink(_successInviteCode);
   navigator.clipboard.writeText(link).then(()=>alert('Link copiado')).catch(()=>{
     prompt('Copia el link:',link);
   });
 }
 function shareSuccessWhatsApp(){
-  const link=window.location.origin+window.location.pathname+'?join='+_successInviteCode;
+  const link=buildInviteLink(_successInviteCode);
   const msg=`¡Hola! Te invito a mi quiniela del Mundial 2026 🏆\n\nÚnete aquí: ${link}\n\nCódigo: ${_successInviteCode}`;
   const url='https://wa.me/?text='+encodeURIComponent(msg);
   window.open(url,'_blank');
@@ -3387,8 +3392,7 @@ function rAdmCommunities(){
   }else{
     for(const[cid,c]of comms){
       const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>b.tot-a.tot);
-      const baseUrl=window.location.origin+window.location.pathname;
-      const inviteLink=baseUrl+'?join='+c.inviteCode;
+      const inviteLink=buildInviteLink(c.inviteCode);
       // Tournament Mode info (only if this user is admin of this community)
       const canManage=ME.isSuperAdmin||(S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true);
       let tournamentBanner='';
@@ -3648,7 +3652,7 @@ async function captureGroups(){
   document.body.appendChild(wrap);
   try{
     await new Promise(r=>requestAnimationFrame(r));
-    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false});
+    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:3,useCORS:true,logging:false});
     document.body.removeChild(wrap);
     const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
     const fileName=`grupos-mundial2026-${safeName}.png`;
@@ -4043,15 +4047,19 @@ async function captureBracket(uid){
     // 1. Capture the bracket itself at high resolution
     const origOverflow=scrollEl.style.overflow,origW=scrollEl.style.width,origH=scrollEl.style.height;
     scrollEl.style.overflow='visible';
-    scrollEl.style.width=wrapEl.scrollWidth+'px';
+    // Force minimum width for high-quality capture (helps small screens)
+    const minCaptureW=Math.max(wrapEl.scrollWidth,1200);
+    scrollEl.style.width=minCaptureW+'px';
     scrollEl.style.height=wrapEl.scrollHeight+'px';
     await new Promise(r=>requestAnimationFrame(r));
     const bracketCanvas=await html2canvas(wrapEl,{
       backgroundColor:'#ffffff',
-      scale:2,
+      scale:3, // Higher scale = sharper output (was 2, now 3)
       useCORS:true,
       allowTaint:false,
-      logging:false
+      logging:false,
+      windowWidth:minCaptureW,
+      windowHeight:wrapEl.scrollHeight
     });
     scrollEl.style.overflow=origOverflow;
     scrollEl.style.width=origW;
