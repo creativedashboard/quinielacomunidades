@@ -794,11 +794,19 @@ function generateLicenseBatch(n){
   while(codes.size<n){codes.add(generateLicenseCode());}
   return Array.from(codes);
 }
-const TOURNAMENT_START=new Date('2026-06-11T16:00:00Z'); // 11 Jun 2026 — locks picks
+const TOURNAMENT_START=new Date('2026-06-11T16:00:00Z'); // 11 Jun 2026 — locks group picks
+// First R32 (16avos) match: 28 Jun 13:00 Los Angeles (PT) = 28 Jun 20:00 UTC
+// Once R32 begins, ALL bracket picks lock in Tournament Mode (Option B)
+const R32_START=new Date('2026-06-28T20:00:00Z');
 
 function isLocked(){
-  // Once tournament starts, picks are frozen (admin can still edit results)
+  // Once tournament starts, GROUP picks are frozen (admin can still edit results)
   return new Date()>=TOURNAMENT_START;
+}
+
+function isBracketLockedByDate(){
+  // Once R32 (16avos) starts, ALL bracket picks lock (Tournament Mode + Normal Mode)
+  return new Date()>=R32_START;
 }
 
 // ══════════════════════════════════════════════════════
@@ -1841,16 +1849,35 @@ function showTournamentLocked(){
   alert('🔒 Etapa 2: Eliminatorias\n\nEsta sección está bloqueada porque tu quiniela está en modo torneo. Tu admin abrirá esta etapa cuando termine la fase de Grupos.');
 }
 
-function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setR16(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}
+// Helper: should bracket setters be locked for non-admin user?
+// Returns lock reason ('locked' | 'tournament' | 'r32started' | null)
+function bracketSetterLockReason(){
+  // R32 started → no edits anywhere
+  if(isBracketLockedByDate())return 'r32started';
+  // Tournament Mode Stage 1: bracket is locked until admin opens Stage 2
+  if(isTournamentBracketLocked())return 'tournament';
+  // Tournament Mode Stage 2 OPEN: bracket editable even after Mundial started
+  if(useOfficialForBracket())return null;
+  // Normal mode: lock after Mundial starts (11 jun)
+  if(isLocked())return 'locked';
+  return null;
+}
+function showBracketLocked(reason){
+  if(reason==='r32started')alert('🔒 Los 16avos de final ya empezaron. El bracket está bloqueado.');
+  else if(reason==='tournament')showTournamentLocked();
+  else if(reason==='locked')showLocked();
+}
+
+function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setR16(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.r32done<16)return;}const p=adm?S.adminR:myPicks();p.r16[mi]=w;clrChain(p,'qf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setQF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}
+function setQF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.r16done<8)return;}const p=adm?S.adminR:myPicks();p.qf[mi]=w;clrChain(p,'sf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setSF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}
+function setSF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.qfDone<4)return;}const p=adm?S.adminR:myPicks();p.sf[mi]=w;p.fin='';p.thr='';if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setFin(w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}
+function setFin(w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.sfDone<2)return;}const p=adm?S.adminR:myPicks();p.fin=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setThr(w,adm){if(adm&&!ME.isAdmin)return;if(!adm&&isLocked()){showLocked();return;}if(!adm&&isTournamentBracketLocked()){showTournamentLocked();return;}const p=adm?S.adminR:myPicks();p.thr=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setThr(w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}const p=adm?S.adminR:myPicks();p.thr=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
 function setT3(mi,v){if(!ME.isAdmin)return;S.thirds_bracket[mi]=v;const ridx=R32_THIRDS[mi].i;S.adminR.r32[ridx]='';clrChain(S.adminR,'r16',R32_TO_R16[ridx]);saveAdminResults();render();}
 
 // ══════════════════════════════════════════════════════
@@ -2102,18 +2129,17 @@ function _seededRand(seed){
 function randomFillGroups(){
   if(isLocked()){showLocked();return;}
   showConfirm({
-    title:'🎲 Rellenar para prueba',
-    msg:'Esto va a rellenar TODOS los partidos de grupos con los mismos marcadores deterministas (para pruebas). ¿Continuar?',
-    okText:'Sí, rellenar',
+    title:'🎲 Llenar al azar',
+    msg:'Esto va a rellenar TODOS los partidos de grupos con marcadores aleatorios. Si ya tenías predicciones, se sobreescriben.\n\n¿Continuar?',
+    okText:'Sí, llenar al azar',
     danger:false,
     onOk:()=>{
       const p=myPicks();
-      const rnd=_seededRand(42); // fixed seed → same result every time
       for(const g of GKEYS){
         if(!p.grupos[g])p.grupos[g]=emptyGroup();
         if(!p.grupos[g].matches)p.grupos[g].matches=Array.from({length:6},()=>({a:0,b:0}));
         for(let mi=0;mi<6;mi++){
-          p.grupos[g].matches[mi]={a:Math.floor(rnd()*5),b:Math.floor(rnd()*5)};
+          p.grupos[g].matches[mi]={a:Math.floor(Math.random()*5),b:Math.floor(Math.random()*5)};
         }
       }
       cleanT8(p);
@@ -2253,7 +2279,8 @@ function acceptTerms(){
 // Open MY OWN bracket as visual overlay
 function openMyBracket(){
   // Block in Tournament Mode Stage 1 (bracket not unlocked yet)
-  if(!ME.isAdmin&&isTournamentBracketLocked()){
+  // Only super-admin is exempt (for debugging); community-admins still play normally
+  if(!ME.isSuperAdmin&&isTournamentBracketLocked()){
     showTournamentLocked();
     return;
   }
@@ -2297,6 +2324,7 @@ function rGrupos(adm){
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
       <button onclick="openMyBracket()" style="padding:11px 18px;background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:800;font-family:'DM Sans',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(37,99,235,.3);display:inline-flex;align-items:center;gap:7px">🏆 Ver mi bracket completo</button>
       <button onclick="captureGroups()" style="padding:12px 16px;background:var(--card);color:var(--ac);border:1.5px solid var(--ac);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Descargar tus picks de grupos como imagen">📸 Tomar Screenshot</button>
+      <button onclick="randomFillGroups()" style="padding:12px 16px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Rellenar al azar tus predicciones">🎲 Llenar al azar</button>
       <button onclick="clearAllPicks()" style="padding:12px 16px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Borrar todas mis predicciones">🗑 Borrar todo</button>
     </div>
     <div style="font-size:12px;color:var(--mt);margin-bottom:14px;padding:10px 14px;background:var(--acl);border-radius:8px;line-height:1.5">💡 Predice los goles de cada partido. La tabla y los terceros se calculan automáticamente.</div>`;
@@ -2986,14 +3014,26 @@ function rDashboard(){
   if(members.length===0){
     h+=`<div style="padding:24px;text-align:center;color:var(--mt);font-size:13px">Aún no hay participantes en esta comunidad.</div>`;
   }else{
+    const isTournament=comm&&comm.mode==='tournament';
     ranked.forEach((m,i)=>{
       const isMe=m.uid===ME.uid;
       const medals=['🥇','🥈','🥉'];
-      const chips=hasR?[m.bd.grp?`Grupos:${m.bd.grp}`:null,m.bd.t8?`3eros:${m.bd.t8}`:null,m.bd.r32?`16avos:${m.bd.r32}`:null,m.bd.r16?`Oct:${m.bd.r16}`:null,m.bd.qf?`1/4:${m.bd.qf}`:null,m.bd.sf?`SF:${m.bd.sf}`:null,m.bd.fin?`Final:${m.bd.fin}`:null].filter(Boolean).join(' · '):'Esperando resultados...';
+      let chips='Esperando resultados...';
+      if(hasR){
+        if(isTournament){
+          // Tournament Mode: show Stage 1 + Stage 2 separated
+          const stage1=m.bd.grp+m.bd.t8;
+          const stage2=m.bd.r32+m.bd.r16+m.bd.qf+m.bd.sf+m.bd.fin+m.bd.thr;
+          chips=`<span style="display:inline-flex;gap:4px;align-items:center;background:#fef3c7;color:#78350f;padding:2px 7px;border-radius:5px;font-weight:700;margin-right:5px">🥇 Etapa 1: ${stage1}</span><span style="display:inline-flex;gap:4px;align-items:center;background:#dbeafe;color:#1e3a8a;padding:2px 7px;border-radius:5px;font-weight:700">🏆 Etapa 2: ${stage2}</span>`;
+        }else{
+          // Normal Mode: show detailed chips per phase
+          chips=[m.bd.grp?`Grupos:${m.bd.grp}`:null,m.bd.t8?`3eros:${m.bd.t8}`:null,m.bd.r32?`16avos:${m.bd.r32}`:null,m.bd.r16?`Oct:${m.bd.r16}`:null,m.bd.qf?`1/4:${m.bd.qf}`:null,m.bd.sf?`SF:${m.bd.sf}`:null,m.bd.fin?`Final:${m.bd.fin}`:null].filter(Boolean).join(' · ')||'Sin puntos aún';
+        }
+      }
       h+=`<div class="lbrow${isMe?' me':''}" onclick="openBracket('${js(m.uid)}')">
         <div class="lbrnk">${medals[i]||i+1}</div>
         ${userPic(m,36)}
-        <div style="flex:1">
+        <div style="flex:1;min-width:0">
           <div class="lbnm">${esc(m.name)}${isMe?' <span style="font-size:10px;opacity:.6">(tú)</span>':''}</div>
           <div class="lbdet">${chips}</div>
         </div>
@@ -4407,9 +4447,10 @@ function render(){
   rProgStrip();
   renderFloatNext();
   // Update "Mi bracket" topbar button based on tournament lock
+  // Only super-admin sees the bracket button unrestricted; community-admins also play and are locked
   const mbBtn=document.getElementById('tb-mybracket-btn');
   if(mbBtn){
-    if(!ME.isAdmin&&isTournamentBracketLocked()){
+    if(!ME.isSuperAdmin&&isTournamentBracketLocked()){
       mbBtn.innerHTML='🔒 Bracket bloqueado';
       mbBtn.style.opacity='0.55';
       mbBtn.style.cursor='not-allowed';
