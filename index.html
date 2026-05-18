@@ -43,7 +43,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .gbtn-icon{width:20px;height:20px}
 
 /* ── SETUP SCREEN ───────────────────────────────────── */
-.setup-box{background:var(--card);border-radius:18px;padding:32px 28px;max-width:440px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.08);max-height:calc(100vh - 40px);overflow-y:auto}
+.setup-box{background:var(--card);border-radius:18px;padding:32px 28px;max-width:440px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.08);max-height:calc(100vh - 40px);overflow-y:auto;overflow-x:hidden;box-sizing:border-box}
+.setup-box>div{max-width:100%;box-sizing:border-box}
 .setup-user{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:12px;margin-bottom:18px}
 .setup-avatar{width:42px;height:42px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;flex-shrink:0;background-size:cover}
 .setup-uname{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;line-height:1.2}
@@ -602,19 +603,19 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
       </div>
       <div class="setup-field">
         <label>Modo de tu quiniela</label>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--bd);border-radius:10px;cursor:pointer;background:var(--card);transition:all .12s" id="mode-option-tournament">
-            <input type="radio" name="quiniela-mode" value="tournament" checked onchange="selectQuinielaMode('tournament')" style="margin-top:3px;flex-shrink:0">
-            <div style="flex:1">
-              <div style="font-weight:800;color:var(--tx);font-size:13.5px;margin-bottom:2px;font-family:'Outfit',sans-serif">🏆 Modo Torneo <span style="font-size:9.5px;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:4px;margin-left:4px;text-transform:uppercase;letter-spacing:.4px">Recomendado</span></div>
-              <div style="font-size:11px;color:var(--mt);line-height:1.45">Etapa 1: llenan marcadores de Grupos.<br>Etapa 2: TÚ abres las eliminatorias y todos llenan su bracket basado en los equipos REALES que pasaron.</div>
+        <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--bd);border-radius:10px;cursor:pointer;background:var(--card);transition:all .12s;width:100%;box-sizing:border-box" id="mode-option-tournament">
+            <input type="radio" name="quiniela-mode" value="tournament" checked onchange="selectQuinielaMode('tournament')" style="margin-top:3px;flex-shrink:0;width:16px;height:16px">
+            <div style="flex:1;min-width:0;width:100%;overflow:hidden">
+              <div style="font-weight:800;color:var(--tx);font-size:13.5px;margin-bottom:4px;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:6px;flex-wrap:wrap">🏆 Modo Torneo <span style="font-size:9.5px;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px;font-weight:800">Recomendado</span></div>
+              <div style="font-size:11px;color:var(--mt);line-height:1.45;font-family:'DM Sans',sans-serif;white-space:normal;word-wrap:break-word">Etapa 1: llenan marcadores de Grupos. Etapa 2: TÚ abres las eliminatorias y todos llenan su bracket basado en los equipos REALES que pasaron.</div>
             </div>
           </label>
-          <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--bd);border-radius:10px;cursor:pointer;background:var(--card);transition:all .12s" id="mode-option-normal">
-            <input type="radio" name="quiniela-mode" value="normal" onchange="selectQuinielaMode('normal')" style="margin-top:3px;flex-shrink:0">
-            <div style="flex:1">
-              <div style="font-weight:800;color:var(--tx);font-size:13.5px;margin-bottom:2px;font-family:'Outfit',sans-serif">🎯 Modo Normal</div>
-              <div style="font-size:11px;color:var(--mt);line-height:1.45">Cada quien predice TODO desde el inicio (grupos + bracket completo). Se cierra el 11 de junio cuando empieza el Mundial.</div>
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--bd);border-radius:10px;cursor:pointer;background:var(--card);transition:all .12s;width:100%;box-sizing:border-box" id="mode-option-normal">
+            <input type="radio" name="quiniela-mode" value="normal" onchange="selectQuinielaMode('normal')" style="margin-top:3px;flex-shrink:0;width:16px;height:16px">
+            <div style="flex:1;min-width:0;width:100%;overflow:hidden">
+              <div style="font-weight:800;color:var(--tx);font-size:13.5px;margin-bottom:4px;font-family:'Outfit',sans-serif">🎯 Modo Normal</div>
+              <div style="font-size:11px;color:var(--mt);line-height:1.45;font-family:'DM Sans',sans-serif;white-space:normal;word-wrap:break-word">Cada quien predice TODO desde el inicio (grupos + bracket completo). Se cierra el 11 de junio cuando empieza el Mundial.</div>
             </div>
           </label>
         </div>
@@ -699,7 +700,7 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
           </div>
         </div>
         <div class="tb-right">
-          <button class="tb-bracket-btn" onclick="openMyBracket()" title="Ver mi bracket completo">🏆 Mi bracket</button>
+          <button class="tb-bracket-btn" id="tb-mybracket-btn" onclick="openMyBracket()" title="Ver mi bracket completo">🏆 Mi bracket</button>
         </div>
       </div>
       <div class="main">
@@ -2251,6 +2252,11 @@ function acceptTerms(){
 
 // Open MY OWN bracket as visual overlay
 function openMyBracket(){
+  // Block in Tournament Mode Stage 1 (bracket not unlocked yet)
+  if(!ME.isAdmin&&isTournamentBracketLocked()){
+    showTournamentLocked();
+    return;
+  }
   openBracket(ME.uid);
 }
 
@@ -2291,8 +2297,7 @@ function rGrupos(adm){
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
       <button onclick="openMyBracket()" style="padding:11px 18px;background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:800;font-family:'DM Sans',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(37,99,235,.3);display:inline-flex;align-items:center;gap:7px">🏆 Ver mi bracket completo</button>
       <button onclick="captureGroups()" style="padding:12px 16px;background:var(--card);color:var(--ac);border:1.5px solid var(--ac);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Descargar tus picks de grupos como imagen">📸 Tomar Screenshot</button>
-      <button onclick="randomFillGroups()" style="padding:12px 16px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Solo para pruebas">🎲 Rellenar para prueba</button>
-      <button onclick="clearAllPicks()" style="padding:12px 16px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Solo para pruebas">🗑 Borrar todo</button>
+      <button onclick="clearAllPicks()" style="padding:12px 16px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Borrar todas mis predicciones">🗑 Borrar todo</button>
     </div>
     <div style="font-size:12px;color:var(--mt);margin-bottom:14px;padding:10px 14px;background:var(--acl);border-radius:8px;line-height:1.5">💡 Predice los goles de cada partido. La tabla y los terceros se calculan automáticamente.</div>`;
   }else{
@@ -2962,7 +2967,12 @@ function rDashboard(){
   setTimeout(startCountdown,100);
 
   const members=myCommunityMembers();
-  const hasR=Object.values(S.adminR?.grupos||{}).some(g=>g.p1);
+  // hasR = there are official admin results to compare against
+  // Check if at least one group has at least one match registered with goals
+  const hasR=Object.values(S.adminR?.grupos||{}).some(g=>{
+    const ms=g&&g.matches;
+    return ms&&ms.some(m=>m&&m.a!=null&&m.b!=null&&m.a!==''&&m.b!=='');
+  })||(S.adminR&&((S.adminR.r32||[]).some(Boolean)||(S.adminR.r16||[]).some(Boolean)||(S.adminR.qf||[]).some(Boolean)||(S.adminR.sf||[]).some(Boolean)||S.adminR.fin||S.adminR.thr));
 
   // Community leaderboard
   const ranked=members.map(m=>{const{tot,bd}=calcPts(m.uid);return{...m,tot,bd};}).sort((a,b)=>{
@@ -3444,7 +3454,10 @@ function setBannerUrl(cid,currentUrl){
 }
 
 function rAdmLeaderboard(){
-  const hasR=Object.values(S.adminR?.grupos||{}).some(g=>g.p1);
+  const hasR=Object.values(S.adminR?.grupos||{}).some(g=>{
+    const ms=g&&g.matches;
+    return ms&&ms.some(m=>m&&m.a!=null&&m.b!=null&&m.a!==''&&m.b!=='');
+  })||(S.adminR&&((S.adminR.r32||[]).some(Boolean)||(S.adminR.r16||[]).some(Boolean)||(S.adminR.qf||[]).some(Boolean)||(S.adminR.sf||[]).some(Boolean)||S.adminR.fin||S.adminR.thr));
   const comms=Object.entries(S.communities).map(([cid,c])=>{
     const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===cid).map(([uid])=>uid);
     const totals=members.map(uid=>calcPts(uid).tot);
@@ -4393,6 +4406,21 @@ function render(){
   rSidebar();
   rProgStrip();
   renderFloatNext();
+  // Update "Mi bracket" topbar button based on tournament lock
+  const mbBtn=document.getElementById('tb-mybracket-btn');
+  if(mbBtn){
+    if(!ME.isAdmin&&isTournamentBracketLocked()){
+      mbBtn.innerHTML='🔒 Bracket bloqueado';
+      mbBtn.style.opacity='0.55';
+      mbBtn.style.cursor='not-allowed';
+      mbBtn.title='Tu admin abrirá la Etapa 2 cuando termine grupos';
+    }else{
+      mbBtn.innerHTML='🏆 Mi bracket';
+      mbBtn.style.opacity='';
+      mbBtn.style.cursor='';
+      mbBtn.title='Ver mi bracket completo';
+    }
+  }
   const titles={
     dashboard:'Dashboard',grupos:'Mi Quiniela',
     r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',final:'Final',
