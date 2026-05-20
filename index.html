@@ -87,6 +87,7 @@ aside.sidebar{width:240px;background:var(--card);border-right:1.5px solid var(--
 .sb-comm{margin-top:10px;padding:7px 9px;background:var(--bg);border-radius:8px;display:flex;align-items:center;gap:7px}
 .sb-comm-dot{width:8px;height:8px;border-radius:50%;background:var(--gn);flex-shrink:0;animation:pulse 1.8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
 .sb-comm-name{font-size:11px;font-weight:700;color:var(--gnd);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .sb-section{padding:10px;display:flex;flex-direction:column;gap:2px}
@@ -968,6 +969,157 @@ const GROUP_DATES={"A":[{"d":"18 Jun","t":"19:00","c":"Guadalajara","sw":false},
 const TAB_ORDER=['grupos','r32','r16','qf','sf','final'];
 
 const GROUP_DISPLAY_ORDER={"A":[2,3,1,0,4,5],"B":[4,5,3,2,0,1],"C":[0,1,5,4,2,3],"D":[0,1,2,3,4,5],"E":[4,5,2,3,0,1],"F":[0,1,4,5,2,3],"G":[2,3,0,1,4,5],"H":[4,5,2,3,0,1],"I":[0,1,4,5,2,3],"J":[2,3,0,1,4,5],"K":[4,5,2,3,0,1],"L":[0,1,4,5,2,3]};
+
+// ═══════════════════════════════════════════════════════════════
+// AUTO-SYNC: openfootball/worldcup.json integration (free, no API key)
+// Maps Spanish team names <-> English (openfootball uses English)
+// ═══════════════════════════════════════════════════════════════
+const OF_TEAM_MAP={
+  'México':'Mexico','Corea del Sur':'South Korea','Sudáfrica':'South Africa','Rep. Checa':'Czech Republic',
+  'Canadá':'Canada','Suiza':'Switzerland','Qatar':'Qatar','Bosnia y Herz.':'Bosnia & Herzegovina',
+  'Brasil':'Brazil','Marruecos':'Morocco','Escocia':'Scotland','Haití':'Haiti',
+  'EE. UU.':'USA','Paraguay':'Paraguay','Australia':'Australia','Turquía':'Turkey',
+  'Alemania':'Germany','Ecuador':'Ecuador','Costa de Marfil':'Ivory Coast','Curazao':'Curaçao',
+  'Países Bajos':'Netherlands','Japón':'Japan','Túnez':'Tunisia','Suecia':'Sweden',
+  'Bélgica':'Belgium','Irán':'Iran','Egipto':'Egypt','Nueva Zelanda':'New Zealand',
+  'España':'Spain','Uruguay':'Uruguay','Arabia Saudita':'Saudi Arabia','Cabo Verde':'Cape Verde',
+  'Francia':'France','Senegal':'Senegal','Noruega':'Norway','Irak':'Iraq',
+  'Argentina':'Argentina','Austria':'Austria','Argelia':'Algeria','Jordania':'Jordan',
+  'Portugal':'Portugal','Colombia':'Colombia','Uzbekistán':'Uzbekistan','R.D. Congo':'DR Congo',
+  'Inglaterra':'England','Croacia':'Croatia','Panamá':'Panama','Ghana':'Ghana',
+};
+// Reverse map: English -> Spanish
+const OF_TEAM_MAP_REV={};
+for(const es in OF_TEAM_MAP){OF_TEAM_MAP_REV[OF_TEAM_MAP[es].toLowerCase()]=es;}
+// Normalize an openfootball English name to our Spanish name (or null if unknown/placeholder)
+function ofToSpanish(enName){
+  if(!enName)return null;
+  if(/winner|loser|path|tbd|undecided|runner|place|group\s/i.test(enName))return null; // placeholder
+  const key=enName.trim().toLowerCase();
+  return OF_TEAM_MAP_REV[key]||null;
+}
+const OPENFOOTBALL_URL='https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
+// Cache for the fetched calendar
+let _ofCalendarCache=null;
+let _ofCalendarFetchedAt=0;
+// Fetch the worldcup calendar/results (cached 5 min)
+async function fetchOpenFootball(force){
+  const now=Date.now();
+  if(!force&&_ofCalendarCache&&(now-_ofCalendarFetchedAt<300000))return _ofCalendarCache;
+  const r=await fetch(OPENFOOTBALL_URL,{cache:'no-store'});
+  if(!r.ok)throw new Error('No se pudo conectar (HTTP '+r.status+')');
+  const data=await r.json();
+  _ofCalendarCache=data;
+  _ofCalendarFetchedAt=now;
+  return data;
+}
+// Extract final score from an openfootball match object (returns {a,b} or null)
+function ofMatchScore(m){
+  if(!m)return null;
+  if(m.score){
+    if(Array.isArray(m.score.ft)&&m.score.ft.length===2)return{a:m.score.ft[0],b:m.score.ft[1]};
+    if(Array.isArray(m.score)&&m.score.length===2)return{a:m.score[0],b:m.score[1]};
+  }
+  if(typeof m.score1==='number'&&typeof m.score2==='number')return{a:m.score1,b:m.score2};
+  return null;
+}
+// Build a list of group-stage matches from openfootball mapped to our {group, mi, teamA_es, teamB_es, score, date, time}
+function ofParseGroupMatches(data){
+  const out=[];
+  const matches=data.matches||[];
+  for(const m of matches){
+    if(!m.group)continue; // skip knockout
+    const gMatch=/Group\s+([A-L])/i.exec(m.group);
+    if(!gMatch)continue;
+    const g=gMatch[1].toUpperCase();
+    const t1es=ofToSpanish(m.team1);
+    const t2es=ofToSpanish(m.team2);
+    if(!t1es||!t2es)continue; // placeholder team, skip
+    // Find which mi (match index) this corresponds to in our GROUP_MATCH_PAIRS
+    const groupTeams=GRP[g];
+    if(!groupTeams)continue;
+    const idx1=groupTeams.indexOf(t1es);
+    const idx2=groupTeams.indexOf(t2es);
+    if(idx1<0||idx2<0)continue; // team not in this group (shouldn't happen)
+    // Find the mi whose pair matches {idx1,idx2} (order-independent)
+    let mi=-1,swapped=false;
+    for(let k=0;k<GROUP_MATCH_PAIRS.length;k++){
+      const[a,b]=GROUP_MATCH_PAIRS[k];
+      if(a===idx1&&b===idx2){mi=k;swapped=false;break;}
+      if(a===idx2&&b===idx1){mi=k;swapped=true;break;}
+    }
+    if(mi<0)continue;
+    const sc=ofMatchScore(m);
+    // If swapped, our stored order is [a=groupTeams[pairA], b=groupTeams[pairB]] so flip the score
+    let score=sc;
+    if(sc&&swapped)score={a:sc.b,b:sc.a};
+    out.push({group:g,mi,teamA_es:groupTeams[GROUP_MATCH_PAIRS[mi][0]],teamB_es:groupTeams[GROUP_MATCH_PAIRS[mi][1]],score,date:m.date||'',time:m.time||'',round:m.round||''});
+  }
+  return out;
+}
+
+// Parse openfootball date+time into a JS Date (UTC). time format like "13:00 UTC-6"
+function ofParseDateTime(dateStr,timeStr){
+  if(!dateStr)return null;
+  try{
+    let hh=12,mm=0,offset=0;
+    if(timeStr){
+      const tm=/(\d{1,2}):(\d{2})/.exec(timeStr);
+      if(tm){hh=parseInt(tm[1]);mm=parseInt(tm[2]);}
+      const om=/UTC([+-]\d{1,2})/.exec(timeStr);
+      if(om)offset=parseInt(om[1]);
+    }
+    // Construct UTC time: local = UTC + offset, so UTC = local - offset
+    const[y,mo,d]=dateStr.split('-').map(Number);
+    const utcMs=Date.UTC(y,mo-1,d,hh-offset,mm);
+    return new Date(utcMs);
+  }catch(e){return null;}
+}
+// Get all matches (group + knockout) as {teamA_es, teamB_es, dateObj, ...} for upcoming/live display
+function ofAllMatchesForDisplay(data){
+  const out=[];
+  const matches=data.matches||[];
+  for(const m of matches){
+    const t1es=ofToSpanish(m.team1);
+    const t2es=ofToSpanish(m.team2);
+    const dateObj=ofParseDateTime(m.date,m.time);
+    out.push({
+      teamA:t1es||m.team1,teamB:t2es||m.team2,
+      teamA_known:!!t1es,teamB_known:!!t2es,
+      dateObj,group:m.group||'',round:m.round||'',
+      score:ofMatchScore(m)
+    });
+  }
+  out.sort((a,b)=>{
+    if(!a.dateObj)return 1;if(!b.dateObj)return -1;
+    return a.dateObj-b.dateObj;
+  });
+  return out;
+}
+// Match duration assumed ~2h for "live" window
+const MATCH_LIVE_WINDOW_MS=2*60*60*1000;
+// Returns {live:[...], upcoming:[...]} based on current time
+function ofClassifyMatches(allMatches){
+  const now=Date.now();
+  const live=[],upcoming=[];
+  for(const m of allMatches){
+    if(!m.dateObj)continue;
+    const start=m.dateObj.getTime();
+    const end=start+MATCH_LIVE_WINDOW_MS;
+    if(now>=start&&now<=end){live.push(m);}
+    else if(start>now){upcoming.push(m);}
+  }
+  return{live,upcoming:upcoming.slice(0,5)};
+}
+// Format a Date to CDMX-friendly string
+function fmtMatchDate(dateObj){
+  if(!dateObj)return '';
+  try{
+    return dateObj.toLocaleString('es-MX',{timeZone:'America/Mexico_City',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    return dateObj.toLocaleString('es-MX');
+  }
+}
 
 const UCOLORS=[
   {id:'blue',ac:'#2563eb',acd:'#1d4ed8',acl:'#eff6ff'},
@@ -2183,6 +2335,141 @@ function adminRandomFillGroups(){
   });
 }
 
+// SUPER-ADMIN TEST: inject fake scores into the real calendar to test sync flow today
+async function testSyncWithFakeScores(){
+  if(!ME.isSuperAdmin){alert('Solo super-admin.');return;}
+  let data;
+  try{
+    data=await fetchOpenFootball(true);
+  }catch(e){
+    alert('No se pudo cargar el calendario para la prueba: '+e.message);
+    return;
+  }
+  // Clone the data and inject fake final scores into the first ~6 group matches with known teams
+  const clone=JSON.parse(JSON.stringify(data));
+  let injected=0;
+  const seed=_seededRand(456);
+  for(const m of clone.matches){
+    if(!m.group)continue;
+    if(injected>=6)break;
+    const t1=ofToSpanish(m.team1),t2=ofToSpanish(m.team2);
+    if(!t1||!t2)continue;
+    m.score={ft:[Math.floor(seed()*4),Math.floor(seed()*4)]};
+    injected++;
+  }
+  // Temporarily override the cache so syncOfficialResults uses our fake data
+  _ofCalendarCache=clone;
+  _ofCalendarFetchedAt=Date.now();
+  alert(`🧪 MODO PRUEBA\n\nInyecté ${injected} marcadores ficticios en el calendario real del Mundial.\n\nAhora se abrirá la ventana de importación para que veas cómo funciona. Los marcadores son inventados (solo para probar).`);
+  // Call the real sync (which will now read fake-scored cache)
+  await syncOfficialResults();
+  // Invalidate cache so real data is fetched next time
+  _ofCalendarCache=null;
+  _ofCalendarFetchedAt=0;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Sync official results from openfootball (free, no API key)
+// Shows a preview of new/changed scores, admin confirms before saving
+// ═══════════════════════════════════════════════════════════════
+async function syncOfficialResults(){
+  if(!ME.isAdmin){alert('Solo el admin puede importar resultados.');return;}
+  // Loading toast
+  let loadingEl=document.getElementById('sync-loading');
+  if(!loadingEl){
+    loadingEl=document.createElement('div');
+    loadingEl.id='sync-loading';
+    loadingEl.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9000;background:#0f172a;color:#fff;padding:13px 22px;border-radius:11px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3)';
+    loadingEl.textContent='⏳ Conectando con resultados oficiales...';
+    document.body.appendChild(loadingEl);
+  }
+  let data;
+  try{
+    data=await fetchOpenFootball(true);
+  }catch(e){
+    if(loadingEl)loadingEl.remove();
+    alert('⚠️ No se pudieron obtener los resultados oficiales en este momento.\n\nIntenta de nuevo en unos minutos. Si el problema persiste, puedes meter los marcadores manualmente.');
+    return;
+  }
+  if(loadingEl)loadingEl.remove();
+  const parsed=ofParseGroupMatches(data);
+  const withScores=parsed.filter(m=>m.score&&m.score.a!=null&&m.score.b!=null);
+  if(withScores.length===0){
+    alert('📭 Todavía no hay resultados oficiales disponibles.\n\nLos marcadores aparecerán aquí conforme se jueguen los partidos del Mundial. Vuelve a intentar después de que termine algún partido.');
+    return;
+  }
+  // Compare against current admin results, build a list of changes
+  if(!S.adminR)S.adminR=mergeAdm({});
+  const p=S.adminR;
+  const changes=[];
+  for(const m of withScores){
+    if(!p.grupos[m.group])p.grupos[m.group]=emptyGroup();
+    if(!p.grupos[m.group].matches)p.grupos[m.group].matches=Array.from({length:6},()=>({a:null,b:null}));
+    const cur=p.grupos[m.group].matches[m.mi]||{a:null,b:null};
+    const isNew=(cur.a==null||cur.a===''||cur.b==null||cur.b==='');
+    const isDifferent=!isNew&&(Number(cur.a)!==Number(m.score.a)||Number(cur.b)!==Number(m.score.b));
+    if(isNew||isDifferent){
+      changes.push({...m,cur,isNew,isDifferent});
+    }
+  }
+  if(changes.length===0){
+    alert('✅ Ya estás al día.\n\nTodos los resultados oficiales disponibles ya están registrados en tu comunidad. No hay cambios nuevos.');
+    return;
+  }
+  // Build preview HTML
+  let preview=changes.map(c=>{
+    const tag=c.isNew?'<span style="color:#16a34a;font-weight:700">NUEVO</span>':'<span style="color:#d97706;font-weight:700">CAMBIO</span>';
+    const oldScore=c.isDifferent?` <span style="color:var(--mt2);text-decoration:line-through">(antes ${c.cur.a}-${c.cur.b})</span>`:'';
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div><span style="font-size:10px;color:var(--mt);font-weight:700">Grupo ${c.group}</span><br>${flag(c.teamA_es)} ${esc(c.teamA_es)} <strong>${c.score.a}-${c.score.b}</strong> ${esc(c.teamB_es)} ${flag(c.teamB_es)}${oldScore}</div>
+      <div style="font-size:10px;white-space:nowrap">${tag}</div>
+    </div>`;
+  }).join('');
+
+  showSyncPreview(changes.length,preview,()=>{
+    // Apply changes
+    for(const c of changes){
+      if(!p.grupos[c.group])p.grupos[c.group]=emptyGroup();
+      if(!p.grupos[c.group].matches)p.grupos[c.group].matches=Array.from({length:6},()=>({a:null,b:null}));
+      p.grupos[c.group].matches[c.mi]={a:Number(c.score.a),b:Number(c.score.b)};
+    }
+    cleanT8(p);
+    // NOTE: we do NOT call resetKO here — that would wipe admin's knockout picks.
+    // Group results changing may affect which teams advance, but admin controls KO manually.
+    saveAdminResults();
+    render();
+    setTimeout(()=>{
+      alert(`✅ ¡Listo! Se importaron ${changes.length} resultado${changes.length!==1?'s':''}.\n\nLos puntos de todos los participantes se recalcularon automáticamente.`);
+    },200);
+  });
+}
+
+// Preview modal for sync (reuses confirm modal styling)
+function showSyncPreview(count,previewHtml,onConfirm){
+  // Build a custom modal
+  let modal=document.getElementById('sync-modal');
+  if(modal)modal.remove();
+  modal=document.createElement('div');
+  modal.id='sync-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9500;display:flex;align-items:center;justify-content:center;padding:18px';
+  modal.innerHTML=`
+    <div style="background:var(--card);border-radius:16px;max-width:440px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="padding:20px 20px 12px">
+        <div style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:var(--tx);margin-bottom:4px">🔄 Importar resultados</div>
+        <div style="font-size:13px;color:var(--mt)">Se encontraron <strong>${count}</strong> resultado${count!==1?'s':''} para importar. Revisa antes de confirmar:</div>
+      </div>
+      <div style="padding:0 20px;overflow-y:auto;flex:1">${previewHtml}</div>
+      <div style="padding:14px 20px;display:flex;gap:8px;border-top:1px solid var(--bd)">
+        <button id="sync-cancel" style="flex:1;padding:12px;background:var(--card2);color:var(--tx);border:1px solid var(--bd);border-radius:9px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif">Cancelar</button>
+        <button id="sync-confirm" style="flex:1;padding:12px;background:var(--gn);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:800;font-family:'DM Sans',sans-serif">Importar ${count}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('sync-cancel').onclick=()=>modal.remove();
+  document.getElementById('sync-confirm').onclick=()=>{modal.remove();onConfirm();};
+  modal.onclick=(e)=>{if(e.target===modal)modal.remove();};
+}
+
 function clearAllPicks(){
   if(isLocked()){showLocked();return;}
   showConfirm({
@@ -2334,9 +2621,11 @@ function rGrupos(adm){
     </div>
     <div style="font-size:12px;color:var(--mt);margin-bottom:14px;padding:10px 14px;background:var(--acl);border-radius:8px;line-height:1.5">💡 Predice los goles de cada partido. La tabla y los terceros se calculan automáticamente.</div>`;
   }else{
-    // Admin view — add test-fill button
+    // Admin view — add sync + test-fill buttons
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button onclick="syncOfficialResults()" style="padding:10px 14px;background:var(--gn);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif" title="Importar marcadores oficiales del Mundial">🔄 Importar resultados oficiales</button>
       <button onclick="adminRandomFillGroups()" style="padding:10px 14px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif" title="Solo para pruebas">🎲 Rellenar para prueba (admin)</button>
+      ${ME.isSuperAdmin?`<button onclick="testSyncWithFakeScores()" style="padding:10px 14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif" title="Solo super-admin: prueba el sync con marcadores ficticios">🧪 Probar sync (ficticio)</button>`:''}
     </div>`;
   }
   h+='<div id="groups-capturable" class="ggrid">';
@@ -2983,6 +3272,56 @@ function cdHtml(t){
     <div class="cd-unit"><div class="cd-num">${String(t.s).padStart(2,'0')}</div><div class="cd-sublbl">seg</div></div>`;
 }
 
+// Render the live/upcoming matches widget (async, from openfootball)
+async function renderMatchesWidget(){
+  const el=document.getElementById('matches-widget');
+  if(!el)return;
+  el.innerHTML=`<div style="padding:14px;background:var(--card2);border:1px solid var(--bd);border-radius:var(--r);font-size:12px;color:var(--mt);text-align:center">⏳ Cargando partidos...</div>`;
+  let data;
+  try{
+    data=await fetchOpenFootball(false);
+  }catch(e){
+    el.innerHTML=`<div style="padding:12px 14px;background:var(--card2);border:1px solid var(--bd);border-radius:var(--r);font-size:12px;color:var(--mt)">⚠️ No se pudieron cargar los partidos en este momento.</div>`;
+    return;
+  }
+  if(!document.getElementById('matches-widget'))return; // user navigated away
+  const all=ofAllMatchesForDisplay(data);
+  const{live,upcoming}=ofClassifyMatches(all);
+  let html='';
+  // LIVE section
+  if(live.length>0){
+    html+=`<div style="background:linear-gradient(135deg,#fee2e2,#fecaca);border:1.5px solid #dc2626;border-radius:var(--r);padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:800;color:#991b1b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span style="width:8px;height:8px;background:#dc2626;border-radius:50%;display:inline-block;animation:livePulse 1.2s infinite"></span> Ahora en juego
+      </div>`;
+    for(const m of live){
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:13px">
+        <div style="font-weight:700;color:#7f1d1d">${flag(m.teamA)} ${esc(m.teamA)} <span style="color:#b91c1c;font-weight:500">vs</span> ${flag(m.teamB)} ${esc(m.teamB)}</div>
+        <div style="font-size:11px;color:#991b1b">${esc(m.group||m.round||'')}</div>
+      </div>`;
+    }
+    html+=`</div>`;
+  }
+  // UPCOMING section
+  if(upcoming.length>0){
+    html+=`<div style="background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px">
+      <div style="font-size:11px;font-weight:800;color:var(--mt);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📅 Próximos partidos</div>`;
+    for(const m of upcoming){
+      const teamADisp=m.teamA_known?`${flag(m.teamA)} ${esc(m.teamA)}`:`<span style="color:var(--mt2)">${esc(m.teamA)}</span>`;
+      const teamBDisp=m.teamB_known?`${flag(m.teamB)} ${esc(m.teamB)}`:`<span style="color:var(--mt2)">${esc(m.teamB)}</span>`;
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bd);font-size:12.5px">
+        <div style="font-weight:600;color:var(--tx)">${teamADisp} <span style="color:var(--mt2);font-weight:400">vs</span> ${teamBDisp}</div>
+        <div style="font-size:11px;color:var(--mt);text-align:right;white-space:nowrap;margin-left:8px">${fmtMatchDate(m.dateObj)}</div>
+      </div>`;
+    }
+    html+=`</div>`;
+  }
+  if(!html){
+    html=`<div style="padding:12px 14px;background:var(--card2);border:1px solid var(--bd);border-radius:var(--r);font-size:12px;color:var(--mt)">No hay partidos próximos programados.</div>`;
+  }
+  el.innerHTML=html;
+}
+
 function rDashboard(){
   const ct=getCountdown();
   let lockedBanner='';
@@ -2998,6 +3337,10 @@ function rDashboard(){
     <div class="cd-units" id="cd-nums">${cdHtml(ct)}</div>
   </div>`;
   setTimeout(startCountdown,100);
+
+  // Live / upcoming matches widget (populated async from openfootball)
+  h+=`<div id="matches-widget" style="margin-bottom:14px"></div>`;
+  setTimeout(renderMatchesWidget,50);
 
   const members=myCommunityMembers();
   // hasR = there are official admin results to compare against
