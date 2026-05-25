@@ -3993,15 +3993,9 @@ async function captureGroups(){
   const clone=groupsEl.cloneNode(true);
   // ── COMPACT SCREENSHOT: solo-lectura, sin campos de relleno ni fecha/hora/sede ──
   // (Solo afecta a la imagen; la interfaz de llenado real queda intacta)
-  // 1. Quitar las líneas de fecha/hora/sede de cada partido (lo que más altura ahorra)
-  clone.querySelectorAll('div').forEach(d=>{
-    if((d.textContent||'').trim().indexOf('📅')===0)d.remove();
-  });
-  // 2. Renombrar el rótulo "pon los goles" a algo de solo-lectura
-  clone.querySelectorAll('div').forEach(d=>{
-    if((d.textContent||'').indexOf('pon los goles')!==-1)d.textContent='Resultados';
-  });
-  // 3. Reemplazar cada par de inputs por el marcador en texto compacto
+  // IMPORTANTE: solo tocamos elementos "hoja" (sin hijos). Filtrar por textContent
+  // en contenedores borraría la tarjeta entera, porque su texto incluye el de adentro.
+  // 1. Reemplazar cada par de inputs por el marcador en texto compacto
   const _seenRows=new Set();
   clone.querySelectorAll('input[data-goalinput]').forEach(inp=>{
     const row=inp.parentElement;
@@ -4021,6 +4015,14 @@ async function captureGroups(){
     row.innerHTML=`<span style="flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t1}</span>`
       +`<span style="min-width:54px;text-align:center;font-weight:800;font-size:14px;color:var(--tx)">${score}</span>`
       +`<span style="flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t2}</span>`;
+  });
+  // 2. Quitar las líneas de fecha/hora/sede (solo divs hoja que empiezan con 📅)
+  clone.querySelectorAll('div').forEach(d=>{
+    if(d.children.length===0&&(d.textContent||'').trim().indexOf('📅')===0)d.remove();
+  });
+  // 3. Renombrar el rótulo "pon los goles" → "Resultados" (solo el div hoja del rótulo)
+  clone.querySelectorAll('div').forEach(d=>{
+    if(d.children.length===0&&(d.textContent||'').indexOf('pon los goles')!==-1)d.textContent='Resultados';
   });
   wrap.appendChild(clone);
   document.body.appendChild(wrap);
