@@ -3991,6 +3991,37 @@ async function captureGroups(){
   `;
   wrap.appendChild(header);
   const clone=groupsEl.cloneNode(true);
+  // ── COMPACT SCREENSHOT: solo-lectura, sin campos de relleno ni fecha/hora/sede ──
+  // (Solo afecta a la imagen; la interfaz de llenado real queda intacta)
+  // 1. Quitar las líneas de fecha/hora/sede de cada partido (lo que más altura ahorra)
+  clone.querySelectorAll('div').forEach(d=>{
+    if((d.textContent||'').trim().indexOf('📅')===0)d.remove();
+  });
+  // 2. Renombrar el rótulo "pon los goles" a algo de solo-lectura
+  clone.querySelectorAll('div').forEach(d=>{
+    if((d.textContent||'').indexOf('pon los goles')!==-1)d.textContent='Resultados';
+  });
+  // 3. Reemplazar cada par de inputs por el marcador en texto compacto
+  const _seenRows=new Set();
+  clone.querySelectorAll('input[data-goalinput]').forEach(inp=>{
+    const row=inp.parentElement;
+    if(!row||_seenRows.has(row))return;
+    _seenRows.add(row);
+    const ins=row.querySelectorAll('input[data-goalinput]');
+    if(ins.length<2)return;
+    const lv=(ins[0].value||'').trim();
+    const rv=(ins[1].value||'').trim();
+    const spans=row.querySelectorAll(':scope > span');
+    const t1=spans.length?spans[0].innerHTML:'';
+    const t2=spans.length?spans[spans.length-1].innerHTML:'';
+    const score=(lv===''&&rv==='')
+      ?'<span style="color:var(--mt);font-weight:700;font-size:12px">vs</span>'
+      :`${lv===''?'–':esc(lv)} - ${rv===''?'–':esc(rv)}`;
+    row.style.padding='2px 0';
+    row.innerHTML=`<span style="flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t1}</span>`
+      +`<span style="min-width:54px;text-align:center;font-weight:800;font-size:14px;color:var(--tx)">${score}</span>`
+      +`<span style="flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t2}</span>`;
+  });
   wrap.appendChild(clone);
   document.body.appendChild(wrap);
   try{
