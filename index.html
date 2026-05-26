@@ -3256,6 +3256,14 @@ function getCountdown(){
   if(diff<=0)return null;
   return{d:Math.floor(diff/86400000),h:Math.floor((diff%86400000)/3600000),m:Math.floor((diff%3600000)/60000),s:Math.floor((diff%60000)/1000)};
 }
+function getLockCountdown(){
+  return getCountdown(); // misma fecha: 11 Jun 16:00 UTC
+}
+function lockCdHtml(t){
+  if(!t)return'<strong>¡bloqueada!</strong>';
+  if(t.d>0)return`<strong>${t.d}d ${String(t.h).padStart(2,'0')}h ${String(t.m).padStart(2,'0')}m</strong>`;
+  return`<strong>${String(t.h).padStart(2,'0')}h ${String(t.m).padStart(2,'0')}m ${String(t.s).padStart(2,'0')}s</strong>`;
+}
 let _cdTimer=null;
 function startCountdown(){
   clearInterval(_cdTimer);
@@ -3265,6 +3273,8 @@ function startCountdown(){
     const t=getCountdown();
     if(!t){el.innerHTML='<div style="font-size:18px;font-weight:800">⚽ ¡El Mundial ha comenzado!</div>';clearInterval(_cdTimer);return;}
     el.innerHTML=cdHtml(t);
+    const lel=document.getElementById('lock-cd-nums');
+    if(lel)lel.innerHTML=lockCdHtml(getLockCountdown());
   },1000);
 }
 function cdHtml(t){
@@ -3335,9 +3345,12 @@ function rDashboard(){
     </div>`;
   }
   const comm=S.communities[ME.communityId];
-  let h=lockedBanner+`<div class="cd-wrap">
+  const myComm=comm;
+  const bannerHtml=myComm&&myComm.bannerUrl?`<div style="margin-bottom:14px;border-radius:var(--r);overflow:hidden;border:1.5px solid var(--bd);background:var(--card)"><img src="${esc(myComm.bannerUrl)}" alt="Banner de ${esc(myComm.name)}" style="width:100%;height:auto;display:block" onerror="this.parentElement.style.display='none'"></div>`:'';
+  let h=lockedBanner+bannerHtml+`<div class="cd-wrap">
     <div class="cd-label">⚽ Mundial 2026 · 11 Jun</div>
     <div class="cd-units" id="cd-nums">${cdHtml(ct)}</div>
+    ${!isLocked()?`<div id="lock-cd-wrap" style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);font-size:11px;font-weight:600;opacity:.9;letter-spacing:.3px">🔒 La quiniela se bloquea en <span id="lock-cd-nums" style="font-weight:800">${lockCdHtml(getLockCountdown())}</span></div>`:''}
   </div>`;
   setTimeout(startCountdown,100);
 
