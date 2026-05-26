@@ -2192,7 +2192,10 @@ function rSidebar(){
   u.innerHTML=`
     ${userPic({name:ME.name,photo:ME.photo,color:ME.color},32).replace('class="lbpic"','class="sb-user-pic"')}
     <div class="sb-user-info">
-      <div class="sb-user-name">${esc(ME.name)} <a onclick="showEditName()" style="font-size:11px;color:var(--ac);cursor:pointer;margin-left:4px" title="Cambiar nombre">✏️</a></div>
+      <div style="display:flex;align-items:center;gap:4px;min-width:0">
+        <div class="sb-user-name" style="flex:1;min-width:0">${esc(ME.name)}</div>
+        <a onclick="showEditName()" style="font-size:11px;color:var(--ac);cursor:pointer;flex-shrink:0;line-height:1" title="Cambiar nombre">✏️</a>
+      </div>
       <div class="sb-user-mail">${esc(ME.email)}</div>
       <div style="margin-top:4px"><a onclick="showTerms()" style="font-size:10px;color:var(--mt);cursor:pointer;text-decoration:underline">📋 Términos y Política</a></div>
     </div>
