@@ -291,7 +291,8 @@ html[data-ucolor] .lbbar-fill{background:var(--uc)}
 .terms-foot{padding:16px 24px;border-top:1.5px solid var(--bd);background:var(--bg)}
 .terms-foot .cnf-btn{width:100%}
 #bracket-overlay.on{display:flex}
-.br-topbar{display:flex;align-items:center;gap:14px;padding:16px 24px;background:linear-gradient(135deg,var(--card),var(--card2));border-bottom:2px solid var(--bd);flex-shrink:0}
+.br-topbar{display:flex;align-items:center;gap:14px;padding:16px 24px;background:linear-gradient(135deg,var(--card),var(--card2));border-bottom:2px solid var(--bd);flex-shrink:0;flex-wrap:wrap}
+@media(max-width:640px){.br-topbar{padding:12px 14px;gap:8px}.br-topbar .br-view-toggle button{padding:7px 12px;font-size:12px}.br-topbar .br-action{padding:7px 10px;font-size:12px}.br-topbar .br-close{padding:7px 12px;font-size:12px}}
 .br-avatar{width:48px;height:48px;border-radius:12px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;font-family:'Outfit',sans-serif;flex-shrink:0;background-color:var(--ac);box-shadow:0 2px 6px rgba(0,0,0,.08)}
 .br-name-wrap{flex:1;display:flex;flex-direction:column;min-width:0}
 .br-name{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:var(--tx);letter-spacing:-.3px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -3977,10 +3978,85 @@ function openBracket(uid){
   const ov=document.getElementById('bracket-overlay');
   const col=UCOLORS.find(c=>c.id===u.color);
   if(col){ov.style.setProperty('--uc',col.ac);ov.style.setProperty('--uc-l',col.acl);}
-  ov.innerHTML=buildBracket(uid,u,col);
+  // Vista por defecto: en Modo Torneo Etapa 1 (bracket bloqueado) → 'groups';
+  // en cualquier otro caso → 'bracket' (lo que ya hacía antes).
+  if(!S.overlayView){
+    S.overlayView=isTournamentBracketLocked()?'groups':'bracket';
+  }
+  // Guardar contexto para el toggle (poder re-renderizar)
+  S._overlayUid=uid;S._overlayU=u;S._overlayCol=col;
+  ov.innerHTML=(S.overlayView==='groups')?buildGroupsView(uid,u,col):buildBracket(uid,u,col);
   ov.classList.add('on');
 }
-function closeBracket(){document.getElementById('bracket-overlay').classList.remove('on');}
+function closeBracket(){
+  document.getElementById('bracket-overlay').classList.remove('on');
+  S.overlayView=null; // reset al cerrar para que la próxima vez se elija según etapa
+}
+function switchOverlayView(view){
+  S.overlayView=view;
+  const ov=document.getElementById('bracket-overlay');
+  if(!ov||!S._overlayUid)return;
+  ov.innerHTML=(view==='groups')?buildGroupsView(S._overlayUid,S._overlayU,S._overlayCol):buildBracket(S._overlayUid,S._overlayU,S._overlayCol);
+}
+
+// Build the groups view (read-only) for any participant
+function buildGroupsView(uid,u,col){
+  const p=userPicks(uid);
+  const ac=col?col.ac:'#2563eb';
+  const initial=(u.name[0]||'?').toUpperCase();
+  const avatarInner=u.photo
+    ? `<img src="${esc(u.photo)}" alt="${esc(initial)}" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;color:#fff;font-weight:800">${esc(initial)}</span>`
+    : `<span style="display:flex;width:100%;height:100%;align-items:center;justify-content:center;color:#fff;font-weight:800">${esc(initial)}</span>`;
+  const bracketLocked=isTournamentBracketLocked();
+  let h=`<div class="br-topbar">
+    <div class="br-avatar" style="background:${ac};overflow:hidden;display:flex;align-items:center;justify-content:center">${avatarInner}</div>
+    <div class="br-name-wrap">
+      <div class="br-name">${esc(u.name)}</div>
+      <div class="br-subtitle">🌎 Mundial 2026 · Fase de Grupos</div>
+    </div>
+    <div class="br-view-toggle" style="margin-right:8px">
+      <button class="active" onclick="switchOverlayView('groups')">📊 Grupos</button>
+      <button onclick="switchOverlayView('bracket')"${bracketLocked?' title="En Modo Torneo Etapa 1 el bracket está bloqueado"':''}>🏆 Bracket${bracketLocked?' 🔒':''}</button>
+    </div>
+    <button class="br-close" onclick="closeBracket()">✕ Cerrar</button>
+  </div>
+  <div class="br-scroll" style="padding:18px 16px">
+    <div class="ggrid" style="max-width:1200px;margin:0 auto">`;
+  for(const[g,teams]of Object.entries(GRP)){
+    const matches=(p.grupos[g]&&p.grupos[g].matches)||[];
+    const playedAll=matches.length===6&&matches.every(m=>m&&m.a!=null&&m.b!=null&&m.a!==''&&m.b!=='');
+    h+=`<div class="gcard" style="padding:0;overflow:hidden">
+      <div class="ghdr" style="padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--card2)">
+        <span class="glbl" style="font-size:14px;font-weight:800;color:var(--tx)">Grupo ${g}</span>
+        ${playedAll?'<span class="gok">✓ Completo</span>':''}
+      </div>`;
+    h+=renderGroupTable(g,p);
+    // Compact match predictions (read-only)
+    h+=`<div style="padding:6px 12px 12px;border-top:1px dashed var(--bd);margin-top:4px">
+      <div style="font-size:10px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 6px">Predicciones</div>`;
+    const displayOrder=GROUP_DISPLAY_ORDER[g]||[0,1,2,3,4,5];
+    displayOrder.forEach(mi=>{
+      const [i,j]=GROUP_MATCH_PAIRS[mi];
+      const gd=GROUP_DATES[g]&&GROUP_DATES[g][mi];
+      const swap=gd&&gd.sw;
+      const t1=swap?teams[j]:teams[i];
+      const t2=swap?teams[i]:teams[j];
+      const m=matches[mi]||{a:null,b:null};
+      const valLeft=swap?(m.b==null?'':m.b):(m.a==null?'':m.a);
+      const valRight=swap?(m.a==null?'':m.a):(m.b==null?'':m.b);
+      const hasScore=valLeft!==''&&valRight!=='';
+      const score=hasScore?`${esc(String(valLeft))} - ${esc(String(valRight))}`:'<span style="color:var(--mt);font-weight:700;font-size:11px">vs</span>';
+      h+=`<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px">
+        <span style="flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t1)}</span> ${esc(t1)}</span>
+        <span style="min-width:54px;text-align:center;font-weight:800;font-size:13px;color:var(--tx)">${score}</span>
+        <span style="flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t2)}</span> ${esc(t2)}</span>
+      </div>`;
+    });
+    h+='</div></div>';
+  }
+  h+='</div></div>';
+  return h;
+}
 
 // Capture user's groups section as PNG
 async function captureGroups(){
@@ -4650,6 +4726,10 @@ function buildBracket(uid,u,col){
     <div class="br-name-wrap">
       <div class="br-name">${esc(u.name)}</div>
       <div class="br-subtitle">🏆 Mundial 2026 · Quiniela</div>
+    </div>
+    <div class="br-view-toggle" style="margin-right:8px">
+      <button onclick="switchOverlayView('groups')">📊 Grupos</button>
+      <button class="active" onclick="switchOverlayView('bracket')">🏆 Bracket</button>
     </div>
     <button class="br-action" onclick="captureBracket('${js(uid)}')" title="Descargar bracket como imagen">📸 Capturar</button>
     <button class="br-close" onclick="closeBracket()">✕ Cerrar</button>
