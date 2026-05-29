@@ -4016,7 +4016,7 @@ function buildGroupsView(uid,u,col){
     </div>
     <div class="br-view-toggle" style="margin-right:8px">
       <button class="active" onclick="switchOverlayView('groups')">📊 Grupos</button>
-      <button onclick="switchOverlayView('bracket')">🏆 Bracket</button>
+      ${bracketLocked?'':`<button onclick="switchOverlayView('bracket')">🏆 Bracket</button>`}
     </div>
     <button class="br-close" onclick="closeBracket()">✕ Cerrar</button>
   </div>
