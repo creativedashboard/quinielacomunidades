@@ -3992,8 +3992,16 @@ async function captureGroups(){
   const ac=col?col.ac:'#2563eb';
   const initial=(u.name[0]||'?').toUpperCase();
   // Build temporary wrapper with header
+  // iOS Safari skips rendering elements at left:-9999px — by ponerlo visible pero
+  // detrás de un overlay tapando la vista, forzamos a Safari a renderizarlo bien.
   const wrap=document.createElement('div');
-  wrap.style.cssText='position:fixed;left:-9999px;top:0;background:#f9fafb;padding:20px;width:'+Math.max(groupsEl.scrollWidth,700)+'px';
+  wrap.style.cssText='position:fixed;left:0;top:0;background:#f9fafb;padding:20px;width:1200px;z-index:-1;opacity:0;pointer-events:none';
+  // Overlay para tapar visualmente mientras se renderiza (en iOS el wrap pudiera
+  // hacerse visible un instante; mejor cubrir con loading screen).
+  const captureOverlay=document.createElement('div');
+  captureOverlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:DM Sans,sans-serif;font-size:14px;font-weight:600';
+  captureOverlay.innerHTML='<div style="background:#0f172a;padding:14px 22px;border-radius:12px">⏳ Generando imagen...</div>';
+  document.body.appendChild(captureOverlay);
   const header=document.createElement('div');
   header.style.cssText='display:flex;align-items:center;gap:18px;padding:20px 24px;background:linear-gradient(135deg,#fff,#f9fafb);border-radius:14px;border:2px solid #e5e7eb;margin-bottom:18px';
   header.innerHTML=`
@@ -4007,6 +4015,9 @@ async function captureGroups(){
   `;
   wrap.appendChild(header);
   const clone=groupsEl.cloneNode(true);
+  // Force 4-column desktop grid (media queries no aplican dentro de html2canvas en celular)
+  clone.style.gridTemplateColumns='repeat(4,1fr)';
+  clone.style.maxWidth='none';
   // ── COMPACT SCREENSHOT: solo-lectura, sin campos de relleno ni fecha/hora/sede ──
   // (Solo afecta a la imagen; la interfaz de llenado real queda intacta)
   // IMPORTANTE: solo tocamos elementos "hoja" (sin hijos). Filtrar por textContent
@@ -4043,9 +4054,13 @@ async function captureGroups(){
   wrap.appendChild(clone);
   document.body.appendChild(wrap);
   try{
+    // Wait for fonts to fully load before snapshot (avoids cortes raros por fallback fonts)
+    if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
     await new Promise(r=>requestAnimationFrame(r));
-    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:3,useCORS:true,logging:false});
+    await new Promise(r=>setTimeout(r,150));
+    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:1240});
     document.body.removeChild(wrap);
+    if(captureOverlay.parentNode)document.body.removeChild(captureOverlay);
     const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
     const fileName=`grupos-mundial2026-${safeName}.png`;
     canvas.toBlob(async(blob)=>{
@@ -4063,6 +4078,7 @@ async function captureGroups(){
   }catch(err){
     console.error(err);
     if(wrap.parentNode)document.body.removeChild(wrap);
+    if(captureOverlay.parentNode)document.body.removeChild(captureOverlay);
     alert('Error: '+(err.message||err));
   }
 }
