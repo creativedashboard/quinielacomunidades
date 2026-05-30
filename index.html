@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- Twemoji: consistent emoji rendering across Mac/Windows/Linux (banderas, iconos) -->
+<script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
 
 <!-- Firebase v10 compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
@@ -26,6 +28,9 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased}
+/* Twemoji: convertir emojis a imágenes consistentes Mac/Win/Linux */
+img.emoji{height:1em;width:1em;margin:0 .05em 0 .1em;vertical-align:-.1em;display:inline-block}
+.flag img.emoji,.br-flag img.emoji{height:1.1em;width:1.45em}
 
 /* ── LOADING SCREEN ─────────────────────────────────── */
 #screen-loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:var(--bg);z-index:1000}
@@ -1192,6 +1197,11 @@ function showScreen(name){
     const el=document.getElementById('screen-'+s);
     if(el)el.style.display=s===name?(s==='app'?'flex':(s==='login'||s==='setup'?'flex':'flex')):'none';
   }
+  // Twemoji: aplicar a la pantalla recién mostrada (login/setup también usan emojis)
+  setTimeout(()=>{
+    const screen=document.getElementById('screen-'+name);
+    if(typeof parseTwemoji==='function'&&screen)parseTwemoji(screen);
+  },50);
 }
 
 // ══════════════════════════════════════════════════════
@@ -3395,11 +3405,31 @@ function rDashboard(){
           chips=[m.bd.grp?`Grupos:${m.bd.grp}`:null,m.bd.t8?`3eros:${m.bd.t8}`:null,m.bd.r32?`16avos:${m.bd.r32}`:null,m.bd.r16?`Oct:${m.bd.r16}`:null,m.bd.qf?`1/4:${m.bd.qf}`:null,m.bd.sf?`SF:${m.bd.sf}`:null,m.bd.fin?`Final:${m.bd.fin}`:null].filter(Boolean).join(' · ')||'Sin puntos aún';
         }
       }
+      // Indicador de completado (depende del modo)
+      const mPicks=userPicks(m.uid);
+      const mProg=calcProgress(mPicks);
+      let completionBadge='';
+      if(isTournament){
+        // En Modo Torneo Etapa 1: completo = los 12 grupos llenos
+        const complete=mProg.grpFilled===12;
+        completionBadge=complete
+          ?`<span title="Quiniela de grupos completa" style="display:inline-flex;align-items:center;gap:3px;background:#dcfce7;color:#166534;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">✓ Lista</span>`
+          :`<span title="${mProg.grpFilled}/12 grupos" style="display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⏳ ${mProg.grpFilled}/12</span>`;
+      }else{
+        // Modo Normal: completo = grupos + bracket completo
+        const complete=mProg.grpFilled===12&&mProg.r32done===16&&mProg.r16done===8&&mProg.qfDone===4&&mProg.sfDone===2&&mProg.finDone===1&&!!mPicks.thr;
+        const totalSteps=12+16+8+4+2+1+1; // 44
+        const doneSteps=mProg.grpFilled+mProg.r32done+mProg.r16done+mProg.qfDone+mProg.sfDone+mProg.finDone+(mPicks.thr?1:0);
+        const pct=Math.round((doneSteps/totalSteps)*100);
+        completionBadge=complete
+          ?`<span title="Quiniela completa" style="display:inline-flex;align-items:center;gap:3px;background:#dcfce7;color:#166534;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">✓ Lista</span>`
+          :`<span title="${pct}% llenado" style="display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⏳ ${pct}%</span>`;
+      }
       h+=`<div class="lbrow${isMe?' me':''}" onclick="openBracket('${js(m.uid)}')">
         <div class="lbrnk">${medals[i]||i+1}</div>
         ${userPic(m,36)}
         <div style="flex:1;min-width:0">
-          <div class="lbnm">${esc(m.name)}${isMe?' <span style="font-size:10px;opacity:.6">(tú)</span>':''}</div>
+          <div class="lbnm">${esc(m.name)}${isMe?' <span style="font-size:10px;opacity:.6">(tú)</span>':''}${completionBadge}</div>
           <div class="lbdet">${chips}</div>
         </div>
         <div class="lbpts" style="${hasR?'':'color:var(--mt);font-size:16px'}">${hasR?m.tot:'—'}${hasR?'<span style="font-size:11px;color:var(--mt);font-weight:500;margin-left:3px">pts</span>':''}</div>
@@ -3987,6 +4017,7 @@ function openBracket(uid){
   S._overlayUid=uid;S._overlayU=u;S._overlayCol=col;
   ov.innerHTML=(S.overlayView==='groups')?buildGroupsView(uid,u,col):buildBracket(uid,u,col);
   ov.classList.add('on');
+  parseTwemoji(ov);
 }
 function closeBracket(){
   document.getElementById('bracket-overlay').classList.remove('on');
@@ -3997,6 +4028,7 @@ function switchOverlayView(view){
   const ov=document.getElementById('bracket-overlay');
   if(!ov||!S._overlayUid)return;
   ov.innerHTML=(view==='groups')?buildGroupsView(S._overlayUid,S._overlayU,S._overlayCol):buildBracket(S._overlayUid,S._overlayU,S._overlayCol);
+  parseTwemoji(ov);
 }
 
 // Build the groups view (read-only) for any participant
@@ -4090,6 +4122,12 @@ async function captureGroups(){
     </div>
   `;
   wrap.appendChild(header);
+  // FIX bug Windows: forzar que los valores tipeados se reflejen como atributo HTML
+  // antes de clonar — porque cloneNode(true) en Windows (Chrome/Edge/Firefox) no
+  // siempre clona la .value property, solo el atributo HTML.
+  groupsEl.querySelectorAll('input[data-goalinput]').forEach(inp=>{
+    inp.setAttribute('value',inp.value||'');
+  });
   const clone=groupsEl.cloneNode(true);
   // Force 4-column desktop grid (media queries no aplican dentro de html2canvas en celular)
   clone.style.gridTemplateColumns='repeat(4,1fr)';
@@ -4980,6 +5018,16 @@ function render(){
 
   clearInterval(_cdTimer);
   if(S.tab==='dashboard')startCountdown();
+  // Twemoji: convertir emojis nativos en imágenes consistentes en todos los SO
+  parseTwemoji(document.body);
+}
+
+// Twemoji parse helper — convierte emojis nativos a <img> consistentes Mac/Win/Linux
+function parseTwemoji(root){
+  if(typeof twemoji==='undefined'||!root)return;
+  try{
+    twemoji.parse(root,{folder:'svg',ext:'.svg',base:'https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/'});
+  }catch(e){console.warn('twemoji parse failed:',e);}
 }
 
 let _floatNextAction=null;
