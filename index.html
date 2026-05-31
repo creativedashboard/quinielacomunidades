@@ -2629,7 +2629,8 @@ function rGrupos(adm){
     h+=`<div class="prog-wrap"><div class="prog-lbl"><span>Grupos</span><span>${prog.grpFilled}/12</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
       <button onclick="openMyBracket()" style="padding:11px 18px;background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:800;font-family:'DM Sans',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(37,99,235,.3);display:inline-flex;align-items:center;gap:7px">🏆 Ver mi bracket completo</button>
-      <button onclick="captureGroups()" style="padding:12px 16px;background:var(--card);color:var(--ac);border:1.5px solid var(--ac);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Descargar tus picks de grupos como imagen">📸 Tomar Screenshot</button>
+      <button onclick="captureGroupsSummary()" style="padding:12px 16px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Compartir un resumen visual con solo el 1° y 2° de cada grupo">📸 Compartir resumen</button>
+      <button onclick="captureGroups()" style="padding:12px 16px;background:var(--card);color:var(--ac);border:1.5px solid var(--ac);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Descargar tus picks con todos los marcadores">📸 Descargar detalle</button>
       <button onclick="randomFillGroups()" style="padding:12px 16px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Rellenar al azar tus predicciones">🎲 Llenar al azar</button>
       <button onclick="clearAllPicks()" style="padding:12px 16px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Borrar todas mis predicciones">🗑 Borrar todo</button>
     </div>
@@ -3407,23 +3408,36 @@ function rDashboard(){
       }
       // Indicador de completado (depende del modo)
       const mPicks=userPicks(m.uid);
-      const mProg=calcProgress(mPicks);
       let completionBadge='';
+      // Contar TODOS los partidos llenados (no solo grupos completos)
+      let groupMatchesFilled=0;
+      for(const g of GKEYS){
+        const matches=(mPicks.grupos[g]&&mPicks.grupos[g].matches)||[];
+        for(const x of matches){
+          if(x&&x.a!=null&&x.b!=null&&x.a!==''&&x.b!=='')groupMatchesFilled++;
+        }
+      }
       if(isTournament){
-        // En Modo Torneo Etapa 1: completo = los 12 grupos llenos
-        const complete=mProg.grpFilled===12;
+        // En Modo Torneo Etapa 1: completo = 72/72 partidos de grupos llenos
+        const complete=groupMatchesFilled===72;
+        const pct=Math.round((groupMatchesFilled/72)*100);
         completionBadge=complete
           ?`<span title="Quiniela de grupos completa" style="display:inline-flex;align-items:center;gap:3px;background:#dcfce7;color:#166534;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">✓ Lista</span>`
-          :`<span title="${mProg.grpFilled}/12 grupos" style="display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⏳ ${mProg.grpFilled}/12</span>`;
+          :groupMatchesFilled===0
+            ?`<span title="Sin empezar" style="display:inline-flex;align-items:center;gap:3px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⚠ Sin empezar</span>`
+            :`<span title="${groupMatchesFilled}/72 partidos (${pct}%)" style="display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⏳ ${pct}%</span>`;
       }else{
         // Modo Normal: completo = grupos + bracket completo
-        const complete=mProg.grpFilled===12&&mProg.r32done===16&&mProg.r16done===8&&mProg.qfDone===4&&mProg.sfDone===2&&mProg.finDone===1&&!!mPicks.thr;
-        const totalSteps=12+16+8+4+2+1+1; // 44
-        const doneSteps=mProg.grpFilled+mProg.r32done+mProg.r16done+mProg.qfDone+mProg.sfDone+mProg.finDone+(mPicks.thr?1:0);
+        const mProg=calcProgress(mPicks);
+        const complete=groupMatchesFilled===72&&mProg.r32done===16&&mProg.r16done===8&&mProg.qfDone===4&&mProg.sfDone===2&&mProg.finDone===1&&!!mPicks.thr;
+        const totalSteps=72+16+8+4+2+1+1; // 104 picks totales
+        const doneSteps=groupMatchesFilled+mProg.r32done+mProg.r16done+mProg.qfDone+mProg.sfDone+mProg.finDone+(mPicks.thr?1:0);
         const pct=Math.round((doneSteps/totalSteps)*100);
         completionBadge=complete
           ?`<span title="Quiniela completa" style="display:inline-flex;align-items:center;gap:3px;background:#dcfce7;color:#166534;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">✓ Lista</span>`
-          :`<span title="${pct}% llenado" style="display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⏳ ${pct}%</span>`;
+          :doneSteps===0
+            ?`<span title="Sin empezar" style="display:inline-flex;align-items:center;gap:3px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⚠ Sin empezar</span>`
+            :`<span title="${pct}% llenado" style="display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⏳ ${pct}%</span>`;
       }
       h+=`<div class="lbrow${isMe?' me':''}" onclick="openBracket('${js(m.uid)}')">
         <div class="lbrnk">${medals[i]||i+1}</div>
@@ -4182,6 +4196,119 @@ async function captureGroups(){
       const file=new File([blob],fileName,{type:'image/png'});
       if(navigator.canShare&&navigator.canShare({files:[file]})){
         try{await navigator.share({files:[file],title:'Mis picks de grupos · Mundial 2026'});return;}
+        catch(e){if(e&&e.name==='AbortError')return;}
+      }
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download=fileName;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+    },'image/png');
+  }catch(err){
+    console.error(err);
+    if(wrap.parentNode)document.body.removeChild(wrap);
+    if(captureOverlay.parentNode)document.body.removeChild(captureOverlay);
+    alert('Error: '+(err.message||err));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Compact summary screenshot: solo 1° y 2° de cada grupo
+// ═══════════════════════════════════════════════════════════════
+async function captureGroupsSummary(){
+  if(typeof html2canvas==='undefined'){alert('No se pudo cargar la herramienta de captura.');return;}
+  const p=myPicks();
+  const u={name:ME.name,photo:ME.photo,color:ME.color};
+  const col=u.color?UCOLORS.find(c=>c.id===u.color):null;
+  const ac=col?col.ac:'#2563eb';
+  const initial=(u.name[0]||'?').toUpperCase();
+
+  // Build wrap visible+oculto (mismo truco que captureGroups por iOS Safari)
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:fixed;left:0;top:0;background:#f9fafb;padding:24px;width:1100px;pointer-events:none';
+  const captureOverlay=document.createElement('div');
+  captureOverlay.style.cssText='position:fixed;inset:0;background:#0f172a;z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:DM Sans,sans-serif;font-size:15px;font-weight:600;flex-direction:column;gap:14px';
+  captureOverlay.innerHTML='<div style="width:28px;height:28px;border:3px solid #475569;border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite"></div><div>⏳ Generando imagen...</div>';
+  document.body.appendChild(captureOverlay);
+
+  // Header
+  const header=document.createElement('div');
+  header.style.cssText='display:flex;align-items:center;gap:18px;padding:20px 24px;background:linear-gradient(135deg,#fff,#f9fafb);border-radius:14px;border:2px solid #e5e7eb;margin-bottom:18px';
+  header.innerHTML=`
+    <div style="width:60px;height:60px;border-radius:14px;background:${ac};display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;overflow:hidden;flex-shrink:0">
+      ${u.photo?`<img src="${esc(u.photo)}" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${esc(initial)}</span>`:`<span>${esc(initial)}</span>`}
+    </div>
+    <div style="text-align:left;flex:1">
+      <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#0f172a;line-height:1.2">${esc(u.name)}</div>
+      <div style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:#64748b;margin-top:2px">🌎 Mundial 2026 · Mi predicción de clasificados</div>
+    </div>
+  `;
+  wrap.appendChild(header);
+
+  // Grid de 12 grupos en 4 columnas × 3 filas
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:14px';
+  for(const g of GKEYS){
+    const groupData=p.grupos&&p.grupos[g];
+    const matches=(groupData&&groupData.matches)||[];
+    const filledCount=matches.filter(m=>m&&m.a!=null&&m.b!=null&&m.a!==''&&m.b!=='').length;
+    const isComplete=filledCount===6;
+    const isEmpty=filledCount===0;
+    const table=isEmpty?[]:calcGroupTable(g,groupData);
+    const first=table[0]?table[0].name:null;
+    const second=table[1]?table[1].name:null;
+
+    // Incomplete badge
+    const incompleteBadge=isComplete?'':`<div style="display:inline-block;font-size:9px;font-weight:800;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:.3px">⚠ ${filledCount}/6</div>`;
+
+    const card=document.createElement('div');
+    card.style.cssText='background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)';
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #f3f4f6;padding-bottom:8px;margin-bottom:10px">
+        <span style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:#0f172a">Grupo ${g}</span>
+        ${incompleteBadge}
+      </div>
+      ${isEmpty?
+        `<div style="padding:14px 0;text-align:center;font-size:12px;color:#9ca3af;font-weight:600">— Sin predicciones —</div>`
+        :`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #fcd34d;border-radius:8px;margin-bottom:6px">
+            <span style="font-size:16px">🥇</span>
+            <span class="flag" style="font-size:20px">${first?flag(first):''}</span>
+            <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:#78350f;letter-spacing:.3px">${first?esc(first):'—'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);border:1.5px solid #cbd5e1;border-radius:8px">
+            <span style="font-size:16px">🥈</span>
+            <span class="flag" style="font-size:20px">${second?flag(second):''}</span>
+            <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:#334155;letter-spacing:.3px">${second?esc(second):'—'}</span>
+          </div>`
+      }
+    `;
+    grid.appendChild(card);
+  }
+  wrap.appendChild(grid);
+
+  // Footer
+  const footer=document.createElement('div');
+  footer.style.cssText='margin-top:18px;padding:12px 16px;text-align:center;font-size:11px;color:#9ca3af;font-weight:600;font-family:DM Sans,sans-serif;letter-spacing:.3px';
+  footer.textContent='Quiniela Chida · Mundial 2026 🏆';
+  wrap.appendChild(footer);
+
+  document.body.appendChild(wrap);
+  // Aplicar twemoji al wrap para que las banderas se vean igual en todos los SO
+  if(typeof parseTwemoji==='function')parseTwemoji(wrap);
+
+  try{
+    if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
+    await new Promise(r=>requestAnimationFrame(r));
+    await new Promise(r=>setTimeout(r,200));
+    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:1140});
+    document.body.removeChild(wrap);
+    if(captureOverlay.parentNode)document.body.removeChild(captureOverlay);
+    const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
+    const fileName=`resumen-mundial2026-${safeName}.png`;
+    canvas.toBlob(async(blob)=>{
+      if(!blob){alert('Error generando la imagen.');return;}
+      const file=new File([blob],fileName,{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        try{await navigator.share({files:[file],title:'Mi resumen de quiniela · Mundial 2026'});return;}
         catch(e){if(e&&e.name==='AbortError')return;}
       }
       const url=URL.createObjectURL(blob);
