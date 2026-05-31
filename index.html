@@ -4288,34 +4288,36 @@ async function captureGroupsSummary(){
   const u={name:ME.name,photo:ME.photo,color:ME.color};
   const col=u.color?UCOLORS.find(c=>c.id===u.color):null;
   const ac=col?col.ac:'#2563eb';
+  const acl=col?col.acl:'#eff6ff';
   const initial=(u.name[0]||'?').toUpperCase();
 
   // Build wrap visible+oculto (mismo truco que captureGroups por iOS Safari)
-  // Width más estrecho para mejor visualización en celular al compartir
+  // Width compacto para mejor visualización en celular y stories
   const wrap=document.createElement('div');
-  wrap.style.cssText='position:fixed;left:0;top:0;background:#f9fafb;padding:24px;width:900px;pointer-events:none';
+  wrap.style.cssText='position:fixed;left:0;top:0;background:#f9fafb;padding:22px;width:820px;pointer-events:none';
   const captureOverlay=document.createElement('div');
   captureOverlay.style.cssText='position:fixed;inset:0;background:#0f172a;z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:DM Sans,sans-serif;font-size:15px;font-weight:600;flex-direction:column;gap:14px';
   captureOverlay.innerHTML='<div style="width:28px;height:28px;border:3px solid #475569;border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite"></div><div>⏳ Generando imagen...</div>';
   document.body.appendChild(captureOverlay);
 
-  // Header
+  // Header con foto + nombre + título principal "Mis clasificados a 16avos"
   const header=document.createElement('div');
-  header.style.cssText='display:flex;align-items:center;gap:18px;padding:20px 24px;background:linear-gradient(135deg,#fff,#f9fafb);border-radius:14px;border:2px solid #e5e7eb;margin-bottom:18px';
+  header.style.cssText='display:flex;align-items:center;gap:14px;padding:16px 18px;background:#fff;border-radius:14px;border:1.5px solid #e5e7eb;margin-bottom:14px';
   header.innerHTML=`
-    <div style="width:60px;height:60px;border-radius:14px;background:${ac};display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;overflow:hidden;flex-shrink:0">
+    <div style="width:54px;height:54px;border-radius:12px;background:${ac};display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;overflow:hidden;flex-shrink:0">
       ${u.photo?`<img src="${esc(u.photo)}" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${esc(initial)}</span>`:`<span>${esc(initial)}</span>`}
     </div>
-    <div style="text-align:left;flex:1">
-      <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#0f172a;line-height:1.2">${esc(u.name)}</div>
-      <div style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:#64748b;margin-top:2px">🌎 Mundial 2026 · Mi predicción de clasificados</div>
+    <div style="text-align:left;flex:1;min-width:0">
+      <div style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${ac};letter-spacing:.4px;text-transform:uppercase;line-height:1">${esc(u.name)}</div>
+      <div style="font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;color:#0f172a;line-height:1.15;margin-top:4px">🏆 Mis clasificados a 16avos</div>
+      <div style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:#64748b;margin-top:2px">Mi 1° y 2° de cada grupo · Mundial 2026</div>
     </div>
   `;
   wrap.appendChild(header);
 
-  // Grid de 12 grupos en 3 columnas × 4 filas — mejor aspect ratio para compartir en celular
+  // Grid de 12 grupos en 3 columnas × 4 filas — compacto para compartir en celular
   const grid=document.createElement('div');
-  grid.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:12px';
+  grid.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:10px';
   for(const g of GKEYS){
     const groupData=p.grupos&&p.grupos[g];
     const matches=(groupData&&groupData.matches)||[];
@@ -4327,26 +4329,27 @@ async function captureGroupsSummary(){
     const second=table[1]?table[1].name:null;
 
     // Incomplete badge
-    const incompleteBadge=isComplete?'':`<div style="display:inline-block;font-size:9px;font-weight:800;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:.3px">⚠ ${filledCount}/6</div>`;
+    const incompleteBadge=isComplete?'':`<span style="display:inline-block;font-size:9px;font-weight:800;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;margin-left:5px;letter-spacing:.3px;vertical-align:middle">⚠ ${filledCount}/6</span>`;
 
     const card=document.createElement('div');
-    card.style.cssText='background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)';
+    card.style.cssText='background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.03)';
     card.innerHTML=`
-      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #f3f4f6;padding-bottom:8px;margin-bottom:10px">
-        <span style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:#0f172a">Grupo ${g}</span>
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:${ac};color:#fff;border-radius:5px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;flex-shrink:0">${g}</span>
+        <span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#64748b;letter-spacing:.3px;text-transform:uppercase">Grupo ${g}</span>
         ${incompleteBadge}
       </div>
       ${isEmpty?
-        `<div style="padding:14px 0;text-align:center;font-size:12px;color:#9ca3af;font-weight:600">— Sin predicciones —</div>`
-        :`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #fcd34d;border-radius:8px;margin-bottom:6px">
-            <span style="font-size:16px">🥇</span>
-            <span class="flag" style="font-size:20px">${first?flag(first):''}</span>
-            <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:#78350f;letter-spacing:.3px">${first?esc(first):'—'}</span>
+        `<div style="padding:12px 0;text-align:center;font-size:11px;color:#9ca3af;font-weight:600">— Sin predicciones —</div>`
+        :`<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;margin-bottom:4px">
+            <span style="font-size:14px;flex-shrink:0">🥇</span>
+            <span class="flag" style="font-size:18px;flex-shrink:0">${first?flag(first):''}</span>
+            <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:#78350f;letter-spacing:.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${first?esc(first):'—'}</span>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);border:1.5px solid #cbd5e1;border-radius:8px">
-            <span style="font-size:16px">🥈</span>
-            <span class="flag" style="font-size:20px">${second?flag(second):''}</span>
-            <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:#334155;letter-spacing:.3px">${second?esc(second):'—'}</span>
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px">
+            <span style="font-size:14px;flex-shrink:0">🥈</span>
+            <span class="flag" style="font-size:18px;flex-shrink:0">${second?flag(second):''}</span>
+            <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:#334155;letter-spacing:.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${second?esc(second):'—'}</span>
           </div>`
       }
     `;
@@ -4368,7 +4371,7 @@ async function captureGroupsSummary(){
     if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
     await new Promise(r=>requestAnimationFrame(r));
     await new Promise(r=>setTimeout(r,200));
-    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:940,allowTaint:true});
+    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:860,allowTaint:true});
     document.body.removeChild(wrap);
     if(captureOverlay.parentNode)document.body.removeChild(captureOverlay);
     const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
