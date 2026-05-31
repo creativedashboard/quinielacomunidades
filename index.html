@@ -4251,15 +4251,16 @@ async function captureGroups(){
     if(d.children.length===0&&(d.textContent||'').indexOf('pon los goles')!==-1)d.textContent='Resultados';
   });
   wrap.appendChild(clone);
+  // IMPORTANTE: si el clone vino del DOM con twemoji ya aplicado, sus banderas son <img>
+  // que html2canvas no renderiza bien. Las re-convertimos a emoji nativo usando el alt.
+  clone.querySelectorAll('img.emoji').forEach(img=>{
+    const txt=document.createTextNode(img.getAttribute('alt')||'');
+    img.parentNode.replaceChild(txt,img);
+  });
   document.body.appendChild(wrap);
-  // Aplicar twemoji al wrap (las banderas dentro de los matches usan emojis nativos)
-  if(typeof parseTwemoji==='function')parseTwemoji(wrap);
   try{
-    // Wait for fonts to fully load before snapshot (avoids cortes raros por fallback fonts)
     if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
     await new Promise(r=>requestAnimationFrame(r));
-    // Esperar a que carguen todas las imágenes (twemoji svgs) antes de capturar
-    await waitForImages(wrap);
     await new Promise(r=>setTimeout(r,150));
     const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:1240,allowTaint:true});
     document.body.removeChild(wrap);
@@ -4290,8 +4291,9 @@ async function captureGroupsSummary(){
   const initial=(u.name[0]||'?').toUpperCase();
 
   // Build wrap visible+oculto (mismo truco que captureGroups por iOS Safari)
+  // Width más estrecho para mejor visualización en celular al compartir
   const wrap=document.createElement('div');
-  wrap.style.cssText='position:fixed;left:0;top:0;background:#f9fafb;padding:24px;width:1100px;pointer-events:none';
+  wrap.style.cssText='position:fixed;left:0;top:0;background:#f9fafb;padding:24px;width:900px;pointer-events:none';
   const captureOverlay=document.createElement('div');
   captureOverlay.style.cssText='position:fixed;inset:0;background:#0f172a;z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:DM Sans,sans-serif;font-size:15px;font-weight:600;flex-direction:column;gap:14px';
   captureOverlay.innerHTML='<div style="width:28px;height:28px;border:3px solid #475569;border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite"></div><div>⏳ Generando imagen...</div>';
@@ -4311,9 +4313,9 @@ async function captureGroupsSummary(){
   `;
   wrap.appendChild(header);
 
-  // Grid de 12 grupos en 4 columnas × 3 filas
+  // Grid de 12 grupos en 3 columnas × 4 filas — mejor aspect ratio para compartir en celular
   const grid=document.createElement('div');
-  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:14px';
+  grid.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:12px';
   for(const g of GKEYS){
     const groupData=p.grupos&&p.grupos[g];
     const matches=(groupData&&groupData.matches)||[];
@@ -4359,16 +4361,14 @@ async function captureGroupsSummary(){
   wrap.appendChild(footer);
 
   document.body.appendChild(wrap);
-  // Aplicar twemoji al wrap para que las banderas se vean igual en todos los SO
-  if(typeof parseTwemoji==='function')parseTwemoji(wrap);
+  // NO aplicar twemoji aquí — los SVGs externos no se renderizan bien dentro de
+  // html2canvas. Mejor dejar que el SO renderice los emojis nativos.
 
   try{
     if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
     await new Promise(r=>requestAnimationFrame(r));
-    // Esperar a que carguen todas las imágenes (twemoji svgs) antes de capturar
-    await waitForImages(wrap);
     await new Promise(r=>setTimeout(r,200));
-    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:1140,allowTaint:true});
+    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:940,allowTaint:true});
     document.body.removeChild(wrap);
     if(captureOverlay.parentNode)document.body.removeChild(captureOverlay);
     const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
@@ -4761,9 +4761,14 @@ async function captureBracket(uid){
     const minCaptureW=Math.max(wrapEl.scrollWidth,1200);
     scrollEl.style.width=minCaptureW+'px';
     scrollEl.style.height=wrapEl.scrollHeight+'px';
+    // Twemoji injecta <img> que html2canvas no renderiza bien — re-convertir a emoji nativo
+    const twemojiImgs=Array.from(wrapEl.querySelectorAll('img.emoji'));
+    const twemojiBackup=twemojiImgs.map(img=>({img,parent:img.parentNode,next:img.nextSibling,alt:img.getAttribute('alt')||''}));
+    twemojiImgs.forEach(img=>{
+      const txt=document.createTextNode(img.getAttribute('alt')||'');
+      img.parentNode.replaceChild(txt,img);
+    });
     await new Promise(r=>requestAnimationFrame(r));
-    // Esperar a que carguen todas las imágenes (twemoji svgs de banderas)
-    await waitForImages(wrapEl);
     const bracketCanvas=await html2canvas(wrapEl,{
       backgroundColor:'#ffffff',
       scale:3, // Higher scale = sharper output (was 2, now 3)
@@ -4776,7 +4781,9 @@ async function captureBracket(uid){
     scrollEl.style.overflow=origOverflow;
     scrollEl.style.width=origW;
     scrollEl.style.height=origH;
-    
+    // Restaurar twemoji imgs en el overlay (las habíamos sustituido por texto)
+    if(typeof parseTwemoji==='function')parseTwemoji(wrapEl);
+
     // 2. Build the 1:1 square canvas (1080x1080)
     const SIZE=1080;
     const canvas=document.createElement('canvas');
