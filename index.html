@@ -2629,8 +2629,7 @@ function rGrupos(adm){
     h+=`<div class="prog-wrap"><div class="prog-lbl"><span>Grupos</span><span>${prog.grpFilled}/12</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
       <button onclick="openMyBracket()" style="padding:11px 18px;background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:800;font-family:'DM Sans',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(37,99,235,.3);display:inline-flex;align-items:center;gap:7px">🏆 Ver mi bracket completo</button>
-      <button onclick="captureGroupsSummary()" style="padding:12px 16px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Compartir un resumen visual con solo el 1° y 2° de cada grupo">📸 Compartir resumen</button>
-      <button onclick="captureGroups()" style="padding:12px 16px;background:var(--card);color:var(--ac);border:1.5px solid var(--ac);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Descargar tus picks con todos los marcadores">📸 Descargar detalle</button>
+      <button onclick="showScreenshotMenu()" style="padding:12px 16px;background:var(--card);color:var(--ac);border:1.5px solid var(--ac);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Generar imagen de tu quiniela">📸 Screenshot</button>
       <button onclick="randomFillGroups()" style="padding:12px 16px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Rellenar al azar tus predicciones">🎲 Llenar al azar</button>
       <button onclick="clearAllPicks()" style="padding:12px 16px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Borrar todas mis predicciones">🗑 Borrar todo</button>
     </div>
@@ -4104,6 +4103,68 @@ function buildGroupsView(uid,u,col){
   return h;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Screenshot menu: pick between summary (1°/2°) or full detail
+// ═══════════════════════════════════════════════════════════════
+function showScreenshotMenu(){
+  // Reuse el confirm-modal pattern para consistencia visual
+  const modal=document.getElementById('confirm-modal');
+  if(!modal)return;
+  modal.innerHTML=`<div class="cnf-box" style="max-width:420px">
+    <div class="cnf-ttl">📸 ¿Cómo quieres compartir?</div>
+    <div class="cnf-msg" style="margin-bottom:14px">Elige el tipo de imagen que quieres generar:</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+      <button onclick="hideScreenshotMenu();captureGroupsSummary()" style="display:flex;align-items:center;gap:12px;padding:14px;background:linear-gradient(135deg,#dcfce7,#bbf7d0);border:1.5px solid #16a34a;border-radius:10px;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;transition:all .15s" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(22,163,74,.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="font-size:28px;flex-shrink:0">🎯</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;color:#14532d;margin-bottom:2px">Resumen rápido</div>
+          <div style="font-size:11.5px;color:#166534;line-height:1.4">Solo 1° y 2° de cada grupo. Ideal para WhatsApp y stories.</div>
+        </div>
+      </button>
+      <button onclick="hideScreenshotMenu();captureGroups()" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--card);border:1.5px solid var(--bd);border-radius:10px;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='var(--ac)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform=''">
+        <div style="font-size:28px;flex-shrink:0">📋</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;color:var(--tx);margin-bottom:2px">Grupos completos</div>
+          <div style="font-size:11.5px;color:var(--mt);line-height:1.4">Tablas + todos los marcadores. Para guardar como respaldo.</div>
+        </div>
+      </button>
+    </div>
+    <button onclick="hideScreenshotMenu()" class="cnf-btn cancel" style="width:100%">Cancelar</button>
+  </div>`;
+  modal.classList.add('on');
+}
+function hideScreenshotMenu(){
+  const modal=document.getElementById('confirm-modal');
+  if(modal)modal.classList.remove('on');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Smart share/save: copia al portapapeles en desktop, share sheet en móvil
+// (evita el bug de macOS donde navigator.share duplica el pegado)
+// ═══════════════════════════════════════════════════════════════
+async function smartShareImage(blob,fileName,shareTitle){
+  const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const file=new File([blob],fileName,{type:'image/png'});
+  // MÓVIL: share sheet nativo (mejor UX para compartir)
+  if(isMobile&&navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],title:shareTitle});return;}
+    catch(e){if(e&&e.name==='AbortError')return;}
+  }
+  // DESKTOP: copiar al portapapeles directo (evita el doble-pegado de macOS)
+  if(!isMobile&&navigator.clipboard&&window.ClipboardItem){
+    try{
+      await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+      alert('✓ Imagen copiada al portapapeles.\n\nPégala donde quieras (Cmd+V).');
+      return;
+    }catch(e){console.warn('clipboard write failed, falling back to download:',e);}
+  }
+  // FALLBACK: descargar como archivo
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=fileName;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
 // Capture user's groups section as PNG
 async function captureGroups(){
   if(typeof html2canvas==='undefined'){alert('No se pudo cargar la herramienta de captura.');return;}
@@ -4193,15 +4254,7 @@ async function captureGroups(){
     const fileName=`grupos-mundial2026-${safeName}.png`;
     canvas.toBlob(async(blob)=>{
       if(!blob){alert('Error generando la imagen.');return;}
-      const file=new File([blob],fileName,{type:'image/png'});
-      if(navigator.canShare&&navigator.canShare({files:[file]})){
-        try{await navigator.share({files:[file],title:'Mis picks de grupos · Mundial 2026'});return;}
-        catch(e){if(e&&e.name==='AbortError')return;}
-      }
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');a.href=url;a.download=fileName;
-      document.body.appendChild(a);a.click();document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      await smartShareImage(blob,fileName,'Mis picks de grupos · Mundial 2026');
     },'image/png');
   }catch(err){
     console.error(err);
@@ -4306,15 +4359,7 @@ async function captureGroupsSummary(){
     const fileName=`resumen-mundial2026-${safeName}.png`;
     canvas.toBlob(async(blob)=>{
       if(!blob){alert('Error generando la imagen.');return;}
-      const file=new File([blob],fileName,{type:'image/png'});
-      if(navigator.canShare&&navigator.canShare({files:[file]})){
-        try{await navigator.share({files:[file],title:'Mi resumen de quiniela · Mundial 2026'});return;}
-        catch(e){if(e&&e.name==='AbortError')return;}
-      }
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');a.href=url;a.download=fileName;
-      document.body.appendChild(a);a.click();document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      await smartShareImage(blob,fileName,'Mi resumen de quiniela · Mundial 2026');
     },'image/png');
   }catch(err){
     console.error(err);
@@ -4833,23 +4878,8 @@ async function captureBracket(uid){
     const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
     const fileName=`bracket-mundial2026-${safeName}.png`;
     canvas.toBlob(async(blob)=>{
-      if(!blob){alert('Error generando la imagen.');return;}
-      const file=new File([blob],fileName,{type:'image/png'});
-      if(navigator.canShare&&navigator.canShare({files:[file]})){
-        try{
-          await navigator.share({files:[file],title:'Mi bracket Mundial 2026',text:`Bracket de ${u.name} — Mundial 2026`});
-          if(btn){btn.disabled=false;btn.textContent=origText;}
-          return;
-        }catch(e){
-          if(e&&e.name==='AbortError'){if(btn){btn.disabled=false;btn.textContent=origText;}return;}
-        }
-      }
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url;a.download=fileName;
-      document.body.appendChild(a);a.click();
-      document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      if(!blob){alert('Error generando la imagen.');if(btn){btn.disabled=false;btn.textContent=origText;}return;}
+      await smartShareImage(blob,fileName,`Bracket de ${u.name} — Mundial 2026`);
       if(btn){btn.disabled=false;btn.textContent=origText;}
     },'image/png');
   }catch(err){
