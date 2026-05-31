@@ -4184,6 +4184,7 @@ async function captureGroups(){
   const col=u.color?UCOLORS.find(c=>c.id===u.color):null;
   const ac=col?col.ac:'#2563eb';
   const initial=(u.name[0]||'?').toUpperCase();
+  const myComm=S.communities&&S.communities[ME.communityId];
   // Build temporary wrapper with header
   // iOS Safari skips rendering elements at left:-9999px (los "optimiza"). Ponemos
   // el wrap visible en top:0, left:0 y lo tapamos con un overlay opaco encima.
@@ -4195,6 +4196,20 @@ async function captureGroups(){
   captureOverlay.style.cssText='position:fixed;inset:0;background:#0f172a;z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:DM Sans,sans-serif;font-size:15px;font-weight:600;flex-direction:column;gap:14px';
   captureOverlay.innerHTML='<div style="width:28px;height:28px;border:3px solid #475569;border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite"></div><div>⏳ Generando imagen...</div>';
   document.body.appendChild(captureOverlay);
+  // Banner de la comunidad (si tiene uno) — gracefully omit si CORS o load falla
+  if(myComm&&myComm.bannerUrl){
+    const bannerWrap=document.createElement('div');
+    bannerWrap.style.cssText='margin-bottom:16px;border-radius:14px;overflow:hidden;border:2px solid #e5e7eb;background:#fff;max-height:240px';
+    const bannerImg=document.createElement('img');
+    bannerImg.crossOrigin='anonymous';
+    bannerImg.referrerPolicy='no-referrer';
+    bannerImg.src=myComm.bannerUrl;
+    bannerImg.alt='Banner '+myComm.name;
+    bannerImg.style.cssText='width:100%;height:auto;max-height:240px;object-fit:cover;display:block';
+    bannerImg.onerror=()=>{bannerWrap.remove();};
+    bannerWrap.appendChild(bannerImg);
+    wrap.appendChild(bannerWrap);
+  }
   const header=document.createElement('div');
   header.style.cssText='display:flex;align-items:center;gap:18px;padding:20px 24px;background:linear-gradient(135deg,#fff,#f9fafb);border-radius:14px;border:2px solid #e5e7eb;margin-bottom:18px';
   header.innerHTML=`
@@ -4261,6 +4276,8 @@ async function captureGroups(){
   try{
     if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
     await new Promise(r=>requestAnimationFrame(r));
+    // Esperar a que cargue el banner (si hay) antes de capturar
+    await waitForImages(wrap);
     await new Promise(r=>setTimeout(r,150));
     const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:1240,allowTaint:true});
     document.body.removeChild(wrap);
@@ -4290,6 +4307,7 @@ async function captureGroupsSummary(){
   const ac=col?col.ac:'#2563eb';
   const acl=col?col.acl:'#eff6ff';
   const initial=(u.name[0]||'?').toUpperCase();
+  const myComm=S.communities&&S.communities[ME.communityId];
 
   // Build wrap visible+oculto (mismo truco que captureGroups por iOS Safari)
   // Width compacto para mejor visualización en celular y stories
@@ -4299,6 +4317,21 @@ async function captureGroupsSummary(){
   captureOverlay.style.cssText='position:fixed;inset:0;background:#0f172a;z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:DM Sans,sans-serif;font-size:15px;font-weight:600;flex-direction:column;gap:14px';
   captureOverlay.innerHTML='<div style="width:28px;height:28px;border:3px solid #475569;border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite"></div><div>⏳ Generando imagen...</div>';
   document.body.appendChild(captureOverlay);
+
+  // Banner de la comunidad (si tiene uno) — se omite gracefully si falla CORS o load
+  if(myComm&&myComm.bannerUrl){
+    const bannerWrap=document.createElement('div');
+    bannerWrap.style.cssText='margin-bottom:12px;border-radius:14px;overflow:hidden;border:1.5px solid #e5e7eb;background:#fff;max-height:200px';
+    const bannerImg=document.createElement('img');
+    bannerImg.crossOrigin='anonymous';
+    bannerImg.referrerPolicy='no-referrer';
+    bannerImg.src=myComm.bannerUrl;
+    bannerImg.alt='Banner '+myComm.name;
+    bannerImg.style.cssText='width:100%;height:auto;max-height:200px;object-fit:cover;display:block';
+    bannerImg.onerror=()=>{bannerWrap.remove();};
+    bannerWrap.appendChild(bannerImg);
+    wrap.appendChild(bannerWrap);
+  }
 
   // Header con foto + nombre + título principal "Mis clasificados a 16avos"
   const header=document.createElement('div');
@@ -4370,6 +4403,8 @@ async function captureGroupsSummary(){
   try{
     if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
     await new Promise(r=>requestAnimationFrame(r));
+    // Esperar a que cargue el banner (si hay) antes de capturar
+    await waitForImages(wrap);
     await new Promise(r=>setTimeout(r,200));
     const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:860,allowTaint:true});
     document.body.removeChild(wrap);
