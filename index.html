@@ -4222,20 +4222,16 @@ async function captureGroups(){
     </div>
   `;
   wrap.appendChild(header);
-  // FIX bug Windows: forzar que los valores tipeados se reflejen como atributo HTML
-  // antes de clonar — porque cloneNode(true) en Windows (Chrome/Edge/Firefox) no
-  // siempre clona la .value property, solo el atributo HTML.
-  groupsEl.querySelectorAll('input[data-goalinput]').forEach(inp=>{
-    inp.setAttribute('value',inp.value||'');
-  });
+  // FIX: leer datos directamente desde myPicks() (source of truth) en lugar de
+  // input.value del DOM, porque cloneNode + input.value es inconsistente entre
+  // navegadores y a veces pierde valores recién tipeados.
+  const pData=myPicks();
   const clone=groupsEl.cloneNode(true);
   // Force 4-column desktop grid (media queries no aplican dentro de html2canvas en celular)
   clone.style.gridTemplateColumns='repeat(4,1fr)';
   clone.style.maxWidth='none';
   // ── COMPACT SCREENSHOT: solo-lectura, sin campos de relleno ni fecha/hora/sede ──
   // (Solo afecta a la imagen; la interfaz de llenado real queda intacta)
-  // IMPORTANTE: solo tocamos elementos "hoja" (sin hijos). Filtrar por textContent
-  // en contenedores borraría la tarjeta entera, porque su texto incluye el de adentro.
   // 1. Reemplazar cada par de inputs por el marcador en texto compacto
   const _seenRows=new Set();
   clone.querySelectorAll('input[data-goalinput]').forEach(inp=>{
@@ -4244,8 +4240,16 @@ async function captureGroups(){
     _seenRows.add(row);
     const ins=row.querySelectorAll('input[data-goalinput]');
     if(ins.length<2)return;
-    const lv=(ins[0].value||'').trim();
-    const rv=(ins[1].value||'').trim();
+    // Leer del objeto de datos, no del DOM
+    const g=ins[0].getAttribute('data-g');
+    const mi=parseInt(ins[0].getAttribute('data-mi'),10);
+    const matchData=(pData.grupos&&pData.grupos[g]&&pData.grupos[g].matches&&pData.grupos[g].matches[mi])||{};
+    const side1=ins[0].getAttribute('data-side');
+    const side2=ins[1].getAttribute('data-side');
+    const v1=matchData[side1];
+    const v2=matchData[side2];
+    const lv=(v1==null||v1==='')?'':String(v1).trim();
+    const rv=(v2==null||v2==='')?'':String(v2).trim();
     const spans=row.querySelectorAll(':scope > span');
     const t1=spans.length?spans[0].innerHTML:'';
     const t2=spans.length?spans[spans.length-1].innerHTML:'';
