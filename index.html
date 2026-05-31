@@ -4139,8 +4139,7 @@ function hideScreenshotMenu(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Smart share/save: copia al portapapeles en desktop, share sheet en móvil
-// (evita el bug de macOS donde navigator.share duplica el pegado)
+// Smart share/save: en móvil usa share sheet; en desktop descarga el PNG.
 // ═══════════════════════════════════════════════════════════════
 async function smartShareImage(blob,fileName,shareTitle){
   const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -4150,19 +4149,30 @@ async function smartShareImage(blob,fileName,shareTitle){
     try{await navigator.share({files:[file],title:shareTitle});return;}
     catch(e){if(e&&e.name==='AbortError')return;}
   }
-  // DESKTOP: copiar al portapapeles directo (evita el doble-pegado de macOS)
-  if(!isMobile&&navigator.clipboard&&window.ClipboardItem){
-    try{
-      await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-      alert('✓ Imagen copiada al portapapeles.\n\nPégala donde quieras (Cmd+V).');
-      return;
-    }catch(e){console.warn('clipboard write failed, falling back to download:',e);}
-  }
-  // FALLBACK: descargar como archivo
+  // DESKTOP (o fallback): descargar como archivo PNG
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=fileName;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Espera a que TODAS las <img> dentro de un elemento carguen antes
+// de capturar — necesario porque twemoji inyecta <img> SVG que tardan.
+// ═══════════════════════════════════════════════════════════════
+async function waitForImages(root){
+  const imgs=root.querySelectorAll('img');
+  if(!imgs.length)return;
+  await Promise.all(Array.from(imgs).map(img=>{
+    if(img.complete&&img.naturalWidth>0)return Promise.resolve();
+    return new Promise(resolve=>{
+      const done=()=>resolve();
+      img.addEventListener('load',done,{once:true});
+      img.addEventListener('error',done,{once:true});
+      // Safety timeout: si por algo no carga, no se cuelga la captura
+      setTimeout(done,3000);
+    });
+  }));
 }
 
 // Capture user's groups section as PNG
@@ -4242,12 +4252,16 @@ async function captureGroups(){
   });
   wrap.appendChild(clone);
   document.body.appendChild(wrap);
+  // Aplicar twemoji al wrap (las banderas dentro de los matches usan emojis nativos)
+  if(typeof parseTwemoji==='function')parseTwemoji(wrap);
   try{
     // Wait for fonts to fully load before snapshot (avoids cortes raros por fallback fonts)
     if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
     await new Promise(r=>requestAnimationFrame(r));
+    // Esperar a que carguen todas las imágenes (twemoji svgs) antes de capturar
+    await waitForImages(wrap);
     await new Promise(r=>setTimeout(r,150));
-    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:1240});
+    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:1240,allowTaint:true});
     document.body.removeChild(wrap);
     if(captureOverlay.parentNode)document.body.removeChild(captureOverlay);
     const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
@@ -4351,8 +4365,10 @@ async function captureGroupsSummary(){
   try{
     if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
     await new Promise(r=>requestAnimationFrame(r));
+    // Esperar a que carguen todas las imágenes (twemoji svgs) antes de capturar
+    await waitForImages(wrap);
     await new Promise(r=>setTimeout(r,200));
-    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:1140});
+    const canvas=await html2canvas(wrap,{backgroundColor:'#f9fafb',scale:2,useCORS:true,logging:false,windowWidth:1140,allowTaint:true});
     document.body.removeChild(wrap);
     if(captureOverlay.parentNode)document.body.removeChild(captureOverlay);
     const safeName=(u.name||'usuario').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
@@ -4746,11 +4762,13 @@ async function captureBracket(uid){
     scrollEl.style.width=minCaptureW+'px';
     scrollEl.style.height=wrapEl.scrollHeight+'px';
     await new Promise(r=>requestAnimationFrame(r));
+    // Esperar a que carguen todas las imágenes (twemoji svgs de banderas)
+    await waitForImages(wrapEl);
     const bracketCanvas=await html2canvas(wrapEl,{
       backgroundColor:'#ffffff',
       scale:3, // Higher scale = sharper output (was 2, now 3)
       useCORS:true,
-      allowTaint:false,
+      allowTaint:true,
       logging:false,
       windowWidth:minCaptureW,
       windowHeight:wrapEl.scrollHeight
