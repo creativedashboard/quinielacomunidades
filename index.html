@@ -1660,6 +1660,47 @@ function shareCommunityWhatsApp(commName,inviteLink,inviteCode){
   const url='https://wa.me/?text='+encodeURIComponent(msg);
   window.open(url,'_blank');
 }
+// Copy emails of a specific community's members to clipboard
+// Permission: only super-admin or community-admin of this community
+function copyCommunityEmails(cid,separator){
+  if(!cid){alert('Comunidad no válida.');return;}
+  const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede copiar los correos.');return;}
+  const sep=(separator==='\n')?'\n':', ';
+  // Collect emails: iterate users with this communityId
+  const emails=[];
+  for(const uid in (S.users||{})){
+    const u=S.users[uid];
+    if(u&&u.communityId===cid&&u.email&&typeof u.email==='string'){
+      emails.push(u.email.trim());
+    }
+  }
+  // De-dupe and remove empty
+  const uniq=Array.from(new Set(emails.filter(Boolean)));
+  if(uniq.length===0){alert('No hay correos registrados en esta comunidad.');return;}
+  const text=uniq.join(sep);
+  // Use clipboard API
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>{
+      alert(`✓ ${uniq.length} correo${uniq.length!==1?'s':''} copiado${uniq.length!==1?'s':''} al portapapeles.\n\nPégalo en el campo CCO (BCC) de tu correo.`);
+    }).catch(()=>{
+      // Fallback: textarea + execCommand
+      copyTextFallback(text,uniq.length);
+    });
+  }else{
+    copyTextFallback(text,uniq.length);
+  }
+}
+function copyTextFallback(text,n){
+  const ta=document.createElement('textarea');
+  ta.value=text;
+  ta.style.cssText='position:fixed;left:-9999px;top:0';
+  document.body.appendChild(ta);
+  ta.select();
+  try{document.execCommand('copy');alert(`✓ ${n} correo${n!==1?'s':''} copiado${n!==1?'s':''}.\n\nPégalo en el campo CCO de tu correo.`);}
+  catch(e){alert('No se pudo copiar automáticamente. Selecciona y copia manualmente:\n\n'+text);}
+  document.body.removeChild(ta);
+}
 function finishSetup(){
   // Reload the app so all data refreshes properly
   loadApp(true); // forceAdmin=true because user is now community-admin
@@ -3863,6 +3904,14 @@ function rAdmCommunities(){
             <button onclick="navigator.clipboard.writeText('${esc(inviteLink)}').then(()=>alert('Link copiado'))" style="padding:6px 10px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif" title="Copiar link">📋 Copiar</button>
             <button onclick="shareCommunityWhatsApp('${js(c.name)}','${esc(inviteLink)}','${esc(c.inviteCode)}')" style="padding:6px 10px;background:#25d366;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif" title="Compartir por WhatsApp">💬 WhatsApp</button>
           </div>
+        </div>
+        <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:10.5px;color:#78350f;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">📧 Correos de esta comunidad</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <button onclick="copyCommunityEmails('${js(cid)}',',')" style="padding:7px 12px;background:#92400e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif" title="Copia todos los correos separados por coma (para pegar en CCO/BCC de Gmail, Zoho, etc.)">📋 Copiar emails (CCO)</button>
+            <button onclick="copyCommunityEmails('${js(cid)}','\\n')" style="padding:7px 12px;background:var(--card);color:#78350f;border:1.5px solid #d97706;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif" title="Copia los correos en lista (uno por línea)">📄 Copiar en lista</button>
+          </div>
+          <div style="font-size:10px;color:#92400e;margin-top:6px;line-height:1.4">💡 Pega en el campo <strong>CCO</strong> (BCC) de tu correo para no revelar la lista entre tus participantes.</div>
         </div>`;
       if(members.length>0){
         h+=`<div style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px;margin-bottom:10px">`;
