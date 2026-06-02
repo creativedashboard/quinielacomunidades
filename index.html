@@ -4685,47 +4685,76 @@ function adminRevokeLicense(code){
 }
 
 // ─── ADMIN: Download full backup as JSON ───
-function adminDownloadBackup(){
+async function adminDownloadBackup(){
   if(!ME.isSuperAdmin){alert('Solo el super-admin puede descargar respaldos.');return;}
-  // Fetch ALL data including new paths
-  Promise.all([
-    db.ref('users').once('value'),
-    db.ref('picks').once('value'),
-    db.ref('communities').once('value'),
-    db.ref('community_admins').once('value'),
-    db.ref('community_results').once('value'),
-    db.ref('community_thirds_bracket').once('value'),
-    db.ref('admin').once('value'),
-    db.ref('thirds_bracket').once('value'),
-    db.ref('licenses').once('value'),
-    db.ref('admins').once('value'),
-  ]).then(([u,p,c,ca,cr,ctb,a,tb,l,adm])=>{
-    const backup={
-      version:'2.0',
-      generated_at:new Date().toISOString(),
-      note:'Respaldo COMPLETO de Quiniela Chida — incluye todo lo nuevo',
-      data:{
-        users:u.val()||{},
-        picks:p.val()||{},
-        communities:c.val()||{},
-        community_admins:ca.val()||{},
-        community_results:cr.val()||{},
-        community_thirds_bracket:ctb.val()||{},
-        admin_results_legacy:a.val()||{},
-        thirds_bracket_legacy:tb.val()||{},
-        licenses:l.val()||{},
-        admins:adm.val()||{},
-      }
-    };
-    const json=JSON.stringify(backup,null,2);
-    const blob=new Blob([json],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a2=document.createElement('a');
-    const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-    a2.href=url;a2.download=`quinielachida-backup-${ts}.json`;
-    document.body.appendChild(a2);a2.click();document.body.removeChild(a2);
-    setTimeout(()=>URL.revokeObjectURL(url),1500);
-  }).catch(e=>alert('Error: '+(e.message||e)));
+  // Helper: read a path with graceful fallback if permission denied
+  const safeRead=async(path)=>{
+    try{
+      const snap=await db.ref(path).once('value');
+      return{ok:true,data:snap.val()};
+    }catch(e){
+      console.warn('Backup: no permission for path',path,e.message||e);
+      return{ok:false,error:e.message||String(e)};
+    }
+  };
+  // Read top-level paths individually (so 1 failure doesn't break the whole backup)
+  const skipped=[];
+  const [u,p,c,ca,ctb,a,tb,l,adm]=await Promise.all([
+    safeRead('users'),
+    safeRead('picks'),
+    safeRead('communities'),
+    safeRead('community_admins'),
+    safeRead('community_thirds_bracket'),
+    safeRead('admin'),
+    safeRead('thirds_bracket'),
+    safeRead('licenses'),
+    safeRead('admins'),
+  ]);
+  [['users',u],['picks',p],['communities',c],['community_admins',ca],['community_thirds_bracket',ctb],['admin',a],['thirds_bracket',tb],['licenses',l],['admins',adm]].forEach(([n,r])=>{if(!r.ok)skipped.push(n);});
+
+  // community_results: leer por comunidad (evita el permission_denied de la raíz)
+  const communitiesObj=(c.ok&&c.data)?c.data:{};
+  const communityResults={};
+  const crSkipped=[];
+  for(const cid in communitiesObj){
+    const r=await safeRead('community_results/'+cid);
+    if(r.ok){
+      if(r.data)communityResults[cid]=r.data;
+    }else{
+      crSkipped.push(cid);
+    }
+  }
+  if(crSkipped.length)skipped.push('community_results ('+crSkipped.length+' comunidades)');
+
+  const backup={
+    version:'2.1',
+    generated_at:new Date().toISOString(),
+    note:'Respaldo de Quiniela Chida — leído path por path con tolerancia a permisos.',
+    skipped_paths:skipped,
+    data:{
+      users:u.data||{},
+      picks:p.data||{},
+      communities:c.data||{},
+      community_admins:ca.data||{},
+      community_results:communityResults,
+      community_thirds_bracket:ctb.data||{},
+      admin_results_legacy:a.data||{},
+      thirds_bracket_legacy:tb.data||{},
+      licenses:l.data||{},
+      admins:adm.data||{},
+    }
+  };
+  const json=JSON.stringify(backup,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a2=document.createElement('a');
+  const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  a2.href=url;a2.download=`quinielachida-backup-${ts}.json`;
+  document.body.appendChild(a2);a2.click();document.body.removeChild(a2);
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  if(skipped.length){
+    alert(`✓ Respaldo descargado.\n\n⚠️ Saltadas por permisos:\n• ${skipped.join('\n• ')}\n\nEl JSON incluye la lista en el campo "skipped_paths".`);
+  }
 }
 
 // ─── ADMIN: Restore from JSON ───
