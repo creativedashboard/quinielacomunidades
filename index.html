@@ -5266,40 +5266,199 @@ function buildBracket(uid,u,col){
 // INSTRUCCIONES
 // ══════════════════════════════════════════════════════
 function rInstrucciones(){
-  return`<div class="ins-wrap">
+  const comm=S.communities&&S.communities[ME.communityId];
+  const isTournament=comm&&comm.mode==='tournament';
+  // Common: banner del modo
+  const modeBanner=isTournament
+    ?`<div class="ins-card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#fcd34d">
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <div style="font-size:32px;line-height:1;flex-shrink:0">🏆</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:#92400e;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:4px">Tu quiniela</div>
+            <div class="ins-title" style="color:#78350f">Estás en Modo Torneo</div>
+            <div class="ins-desc" style="color:#78350f">Esta quiniela funciona en <strong>2 etapas separadas</strong>. Primero llenas los grupos. Cuando termine la fase de grupos REAL del Mundial, tu admin abre la Etapa 2 y completas tu bracket con los equipos que <strong>realmente clasificaron</strong>.</div>
+          </div>
+        </div>
+      </div>`
+    :`<div class="ins-card" style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border-color:#93c5fd">
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <div style="font-size:32px;line-height:1;flex-shrink:0">🎯</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:#1e40af;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:4px">Tu quiniela</div>
+            <div class="ins-title" style="color:#1e3a8a">Estás en Modo Normal</div>
+            <div class="ins-desc" style="color:#1e3a8a">Llenas <strong>TODO desde el inicio</strong>: marcadores de grupos + bracket completo (16avos → Final). Se cierra el <strong>11 de junio a las 10am</strong> cuando empieza el Mundial.</div>
+          </div>
+        </div>
+      </div>`;
+
+  // Timeline (solo Tournament)
+  const timeline=isTournament?`
+    <div class="ins-card">
+      <div class="ins-title" style="margin-bottom:14px">📅 Línea de tiempo</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-size:11.5px">
+        <div style="background:var(--bg);padding:12px 10px;border-radius:8px;text-align:center;border-left:3px solid #2563eb">
+          <div style="font-family:'Outfit',sans-serif;font-weight:800;color:#2563eb;font-size:13px;margin-bottom:4px">AHORA</div>
+          <div style="color:var(--mt);line-height:1.4">Llenando grupos</div>
+        </div>
+        <div style="background:var(--bg);padding:12px 10px;border-radius:8px;text-align:center;border-left:3px solid #dc2626">
+          <div style="font-family:'Outfit',sans-serif;font-weight:800;color:#dc2626;font-size:13px;margin-bottom:4px">11 JUN</div>
+          <div style="color:var(--mt);line-height:1.4">Cierre de grupos. Inicia Mundial</div>
+        </div>
+        <div style="background:var(--bg);padding:12px 10px;border-radius:8px;text-align:center;border-left:3px solid #d97706">
+          <div style="font-family:'Outfit',sans-serif;font-weight:800;color:#d97706;font-size:13px;margin-bottom:4px">~25 JUN</div>
+          <div style="color:var(--mt);line-height:1.4">Admin abre Etapa 2</div>
+        </div>
+        <div style="background:var(--bg);padding:12px 10px;border-radius:8px;text-align:center;border-left:3px solid #7c3aed">
+          <div style="font-family:'Outfit',sans-serif;font-weight:800;color:#7c3aed;font-size:13px;margin-bottom:4px">28 JUN</div>
+          <div style="color:var(--mt);line-height:1.4">Inicia bracket (16avos)</div>
+        </div>
+        <div style="background:var(--bg);padding:12px 10px;border-radius:8px;text-align:center;border-left:3px solid #059669">
+          <div style="font-family:'Outfit',sans-serif;font-weight:800;color:#059669;font-size:13px;margin-bottom:4px">19 JUL</div>
+          <div style="color:var(--mt);line-height:1.4">Final del Mundial</div>
+        </div>
+      </div>
+    </div>
+  `:'';
+
+  // Etapas (solo Tournament)
+  const etapas=isTournament?`
+    <div class="ins-card" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fcd34d">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:8px">
+        <div style="background:#fcd34d;color:#78350f;font-family:'Outfit',sans-serif;font-weight:800;font-size:16px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+        <div style="flex:1;min-width:0">
+          <div class="ins-title" style="color:#78350f">Etapa 1 — Fase de Grupos</div>
+          <div style="font-size:11px;color:#92400e;font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-top:2px">AHORA · hasta el 11 jun</div>
+        </div>
+      </div>
+      <div class="ins-desc" style="color:#78350f">
+        Llenas los <strong>72 marcadores de grupos</strong> en "Mi Quiniela". Cada vez que metes un marcador:
+        <ul style="margin:8px 0 0 18px;padding:0;line-height:1.7">
+          <li>La <strong>tabla del grupo</strong> se calcula automática con reglas FIFA</li>
+          <li>Los <strong>8 mejores terceros</strong> se calculan solos cuando termines los 72</li>
+          <li>Tus puntos de Etapa 1 se actualizan en el Dashboard en tiempo real</li>
+        </ul>
+        <div style="margin-top:10px;padding:8px 12px;background:rgba(220,38,38,.1);border-left:3px solid #dc2626;border-radius:4px;font-size:12.5px"><strong>⚠️ Importante:</strong> el 11 de junio a las 10am AM (México) se bloquea TODO. Lo que dejes, queda.</div>
+      </div>
+    </div>
+    <div class="ins-card" style="background:linear-gradient(135deg,#f0f9ff,#dbeafe);border-color:#93c5fd">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:8px">
+        <div style="background:#93c5fd;color:#1e3a8a;font-family:'Outfit',sans-serif;font-weight:800;font-size:16px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+        <div style="flex:1;min-width:0">
+          <div class="ins-title" style="color:#1e3a8a">Etapa 2 — Eliminatorias</div>
+          <div style="font-size:11px;color:#1e40af;font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-top:2px">A partir del ~25 jun · cuando admin abra</div>
+        </div>
+      </div>
+      <div class="ins-desc" style="color:#1e3a8a">
+        Cuando termine la fase de grupos REAL del Mundial, tu admin abre la Etapa 2 y aparecen los <strong>32 equipos OFICIALES</strong> que clasificaron. Tú completas:
+        <ul style="margin:8px 0 0 18px;padding:0;line-height:1.7">
+          <li><strong>16avos</strong> (16 partidos) — quiénes pasan a octavos</li>
+          <li><strong>Octavos</strong> (8) — a cuartos</li>
+          <li><strong>Cuartos</strong> (4) — a semis</li>
+          <li><strong>Semis</strong> (2) — finalistas</li>
+          <li><strong>Final</strong> — el campeón</li>
+          <li><strong>3er lugar</strong> — entre los 2 perdedores de semis</li>
+        </ul>
+        <div style="margin-top:10px;padding:8px 12px;background:rgba(124,58,237,.1);border-left:3px solid #7c3aed;border-radius:4px;font-size:12.5px"><strong>💡 Lo importante:</strong> aunque te haya fallado un grupo, en Etapa 2 todos parten de los mismos 32 equipos REALES. Sigues compitiendo al máximo.</div>
+        <div style="margin-top:8px;padding:8px 12px;background:rgba(220,38,38,.1);border-left:3px solid #dc2626;border-radius:4px;font-size:12.5px"><strong>⚠️ Cierre del bracket:</strong> el 28 de junio cuando inicia el primer partido de 16avos.</div>
+      </div>
+    </div>
+  `:'';
+
+  // Pasos para Modo Normal (mantienen estructura simple)
+  const pasosNormal=!isTournament?`
     <div class="ins-card"><div class="ins-step"><div class="ins-num">1</div><div>
-      <div class="ins-title">Entrar a tu comunidad</div>
-      <div class="ins-desc">Inicia sesión con Google y pide el <strong>código de invitación</strong> a quien te invitó.</div>
+      <div class="ins-title">Predice los 72 partidos de grupos</div>
+      <div class="ins-desc">En <strong>Mi Quiniela</strong>, ingresa los goles de cada equipo. La tabla del grupo se calcula automáticamente con reglas FIFA: <strong>Puntos → Diferencia de goles → Goles a favor → Resultado directo</strong>.</div>
     </div></div></div>
     <div class="ins-card"><div class="ins-step"><div class="ins-num">2</div><div>
-      <div class="ins-title">Predice los marcadores de los 72 partidos de grupos</div>
-      <div class="ins-desc">En <strong>Mi Quiniela</strong>, ingresa los goles de cada equipo en cada partido. La tabla del grupo se calcula automáticamente con las reglas oficiales de FIFA: <strong>Puntos → Diferencia de goles → Goles a favor → Resultado directo</strong>.</div>
+      <div class="ins-title">8 mejores terceros (automático)</div>
+      <div class="ins-desc">Al terminar los 72 marcadores, los <strong>8 mejores terceros</strong> se calculan solos según los puntos que les diste. Aparecen en la sección inferior.</div>
     </div></div></div>
     <div class="ins-card"><div class="ins-step"><div class="ins-num">3</div><div>
-      <div class="ins-title">Tus 8 mejores terceros (automático)</div>
-      <div class="ins-desc">Al terminar tus predicciones de grupos, los <strong>8 mejores terceros</strong> se calculan solos basados en los puntos que les diste. Aparecen en la sección inferior con su ranking.</div>
+      <div class="ins-title">Llena el bracket completo</div>
+      <div class="ins-desc">16avos → Octavos → Cuartos → Semis → Final. Elige el ganador de cada partido. Se llena automáticamente con tus picks anteriores.</div>
     </div></div></div>
     <div class="ins-card"><div class="ins-step"><div class="ins-num">4</div><div>
-      <div class="ins-title">Avanza por el bracket</div>
-      <div class="ins-desc">En 16avos → Octavos → Cuartos → Semis → Final, elige el ganador de cada partido. Se llenan automáticamente con tus picks anteriores.</div>
+      <div class="ins-title">Cierre el 11 de junio a las 10am</div>
+      <div class="ins-desc">Después de esa hora, ya no se puede modificar nada. Asegúrate de tener todo listo antes.</div>
     </div></div></div>
+  `:'';
+
+  // Sistema de puntos en 2 columnas (etapa 1 / etapa 2)
+  const puntosSeparados=`
     <div class="ins-card">
-      <div class="ins-title" style="margin-bottom:10px">⭐ Puntuación</div>
-      <table class="pts-table">
-        <tr><th>Predicción</th><th style="text-align:right">Pts</th></tr>
-        <tr><td><strong>Marcador exacto</strong> de partido de grupos</td><td class="pts-val">3</td></tr>
-        <tr><td>Solo acertar al ganador del partido</td><td class="pts-val">1</td></tr>
-        <tr><td>1° de grupo correcto</td><td class="pts-val">${PTS.p1}</td></tr>
-        <tr><td>2° de grupo correcto</td><td class="pts-val">${PTS.p2}</td></tr>
-        <tr><td>Cada mejor tercero correcto</td><td class="pts-val">${PTS.t8}</td></tr>
-        <tr><td>Ganador de 16avos</td><td class="pts-val">${PTS.r32}</td></tr>
-        <tr><td>Ganador de Octavos</td><td class="pts-val">${PTS.r16}</td></tr>
-        <tr><td>Ganador de Cuartos</td><td class="pts-val">${PTS.qf}</td></tr>
-        <tr><td>Ganador de Semis</td><td class="pts-val">${PTS.sf}</td></tr>
-        <tr><td><strong>Campeón correcto</strong></td><td class="pts-val">${PTS.fin}</td></tr>
-        <tr><td>3er lugar correcto</td><td class="pts-val">${PTS.thr}</td></tr>
-      </table>
+      <div class="ins-title" style="margin-bottom:14px">⭐ Sistema de puntos</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+        <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #fcd34d;border-radius:10px;padding:14px">
+          <div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:#92400e;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px">🥇 Etapa 1 · Grupos</div>
+          <table style="width:100%;font-size:13px;color:#78350f">
+            <tr><td style="padding:4px 0">Marcador exacto</td><td style="text-align:right;font-weight:800">3</td></tr>
+            <tr><td style="padding:4px 0">Solo ganador</td><td style="text-align:right;font-weight:800">1</td></tr>
+            <tr><td style="padding:4px 0">1° de grupo</td><td style="text-align:right;font-weight:800">${PTS.p1}</td></tr>
+            <tr><td style="padding:4px 0">2° de grupo</td><td style="text-align:right;font-weight:800">${PTS.p2}</td></tr>
+            <tr><td style="padding:4px 0">Mejor tercero (c/u)</td><td style="text-align:right;font-weight:800">${PTS.t8}</td></tr>
+          </table>
+        </div>
+        <div style="background:linear-gradient(135deg,#f0f9ff,#dbeafe);border:1.5px solid #93c5fd;border-radius:10px;padding:14px">
+          <div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:#1e40af;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px">🏆 Etapa 2 · Bracket</div>
+          <table style="width:100%;font-size:13px;color:#1e3a8a">
+            <tr><td style="padding:4px 0">Ganador 16avos</td><td style="text-align:right;font-weight:800">${PTS.r32}</td></tr>
+            <tr><td style="padding:4px 0">Ganador Octavos</td><td style="text-align:right;font-weight:800">${PTS.r16}</td></tr>
+            <tr><td style="padding:4px 0">Ganador Cuartos</td><td style="text-align:right;font-weight:800">${PTS.qf}</td></tr>
+            <tr><td style="padding:4px 0">Ganador Semis</td><td style="text-align:right;font-weight:800">${PTS.sf}</td></tr>
+            <tr><td style="padding:4px 0">Campeón</td><td style="text-align:right;font-weight:800">${PTS.fin}</td></tr>
+            <tr><td style="padding:4px 0">3er lugar</td><td style="text-align:right;font-weight:800">${PTS.thr}</td></tr>
+          </table>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--mt);line-height:1.6">
+        💡 <strong>Total máximo posible:</strong> 268 pts en Etapa 1 + 94 pts en Etapa 2 = <strong style="color:var(--tx)">362 pts</strong>
+      </div>
     </div>
+  `;
+
+  // FAQ
+  const faq=`
+    <div class="ins-card">
+      <div class="ins-title" style="margin-bottom:14px">❓ Preguntas frecuentes</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        ${isTournament?`
+        <div>
+          <div style="font-weight:700;color:var(--tx);font-size:13.5px;margin-bottom:4px">¿Por qué no puedo llenar el bracket todavía?</div>
+          <div style="font-size:13px;color:var(--mt);line-height:1.6">En Modo Torneo el bracket se desbloquea hasta que tu admin abra la Etapa 2 (después que terminen los grupos reales del Mundial).</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:var(--tx);font-size:13.5px;margin-bottom:4px">¿Y si me equivoco en grupos, ya perdí?</div>
+          <div style="font-size:13px;color:var(--mt);line-height:1.6">No. En Etapa 2 todos parten de los <strong>32 equipos reales</strong> que clasificaron, así que aunque te falle un grupo, sigues compitiendo al máximo en el bracket.</div>
+        </div>
+        `:''}
+        <div>
+          <div style="font-weight:700;color:var(--tx);font-size:13.5px;margin-bottom:4px">¿Qué pasa si no lleno todos los partidos?</div>
+          <div style="font-size:13px;color:var(--mt);line-height:1.6">Los partidos sin marcador <strong>no suman puntos</strong>. Trata de llenar todo lo que puedas antes del 11 de junio.</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:var(--tx);font-size:13.5px;margin-bottom:4px">¿Cómo veo cómo voy?</div>
+          <div style="font-size:13px;color:var(--mt);line-height:1.6">Entra al <strong>Dashboard</strong>. Ahí ves tu posición en la comunidad y tus puntos en tiempo real.</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:var(--tx);font-size:13.5px;margin-bottom:4px">¿Puedo cambiar mis predicciones después del cierre?</div>
+          <div style="font-size:13px;color:var(--mt);line-height:1.6">No. El 11 de junio a las 10am se bloquea todo automáticamente. Lo que dejaste, queda.</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:var(--tx);font-size:13.5px;margin-bottom:4px">¿De dónde salen los resultados oficiales?</div>
+          <div style="font-size:13px;color:var(--mt);line-height:1.6">Tu admin los mete manualmente y/o los sincroniza desde una fuente abierta de la FIFA. Tus puntos se recalculan automáticamente.</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return`<div class="ins-wrap">
+    ${modeBanner}
+    ${timeline}
+    ${etapas}
+    ${pasosNormal}
+    ${puntosSeparados}
+    ${faq}
   </div>`;
 }
 
