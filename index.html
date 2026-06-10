@@ -1921,6 +1921,27 @@ function scheduleSavePicks(picks){
     try{await db.ref('picks/'+ME.uid).set(p);}catch(e){console.warn('Save fail',e);}
   },500);
 }
+// FIX A: Flush save inmediatamente cuando la pestaña se va al fondo o se cierra.
+// Esto evita pérdida de datos cuando el usuario tipea su última predicción y
+// cierra la pestaña / cambia de app / bloquea el celular antes de los 500ms.
+function flushPendingSave(){
+  if(!_pendingPicks||!ME.uid)return;
+  clearTimeout(_saveTimer);
+  const p=_pendingPicks;_pendingPicks=null;
+  try{db.ref('picks/'+ME.uid).set(p).catch(e=>console.warn('Flush save failed',e));}
+  catch(e){console.warn('Flush save error',e);}
+}
+// Eventos que disparan el flush (en orden de confiabilidad cross-platform):
+// - visibilitychange: el más confiable en móvil (iOS/Android suspenden pestañas ocultas)
+// - pagehide: reemplazo moderno de beforeunload, mejor en Safari iOS
+// - beforeunload: fallback para desktop tradicional
+if(typeof window!=='undefined'){
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='hidden')flushPendingSave();
+  });
+  window.addEventListener('pagehide',flushPendingSave);
+  window.addEventListener('beforeunload',flushPendingSave);
+}
 function saveAdminResults(){
   if(!ME.isAdmin)return;
   // NEW: Save per-community (each community has its own official results)
@@ -2696,11 +2717,12 @@ function rGrupos(adm){
     const prog=calcProgress(p);
     const pct=Math.round((prog.grpFilled/12)*100);
     h+=`<div class="prog-wrap"><div class="prog-lbl"><span>Grupos</span><span>${prog.grpFilled}/12</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
+    const _quinielaLocked=isLocked();
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
       <button onclick="openMyBracket()" style="padding:11px 18px;background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:800;font-family:'DM Sans',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(37,99,235,.3);display:inline-flex;align-items:center;gap:7px">🏆 Ver mi bracket completo</button>
       <button onclick="showScreenshotMenu()" style="padding:12px 16px;background:var(--card);color:var(--ac);border:1.5px solid var(--ac);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Generar imagen de tu quiniela">📸 Screenshot</button>
-      <button onclick="randomFillGroups()" style="padding:12px 16px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Rellenar al azar tus predicciones">🎲 Llenar al azar</button>
-      <button onclick="clearAllPicks()" style="padding:12px 16px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Borrar todas mis predicciones">🗑 Borrar todo</button>
+      ${_quinielaLocked?'':`<button onclick="randomFillGroups()" style="padding:12px 16px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Rellenar al azar tus predicciones">🎲 Llenar al azar</button>
+      <button onclick="clearAllPicks()" style="padding:12px 16px;background:var(--card);color:var(--rd);border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;min-height:44px" title="Borrar todas mis predicciones">🗑 Borrar todo</button>`}
     </div>
     <div style="font-size:12px;color:var(--mt);margin-bottom:14px;padding:10px 14px;background:var(--acl);border-radius:8px;line-height:1.5">💡 Predice los goles de cada partido. La tabla y los terceros se calculan automáticamente.</div>`;
   }else{
@@ -3912,6 +3934,11 @@ function rAdmCommunities(){
             <button onclick="copyCommunityEmails('${js(cid)}','\\n')" style="padding:7px 12px;background:var(--card);color:#78350f;border:1.5px solid #d97706;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif" title="Copia los correos en lista (uno por línea)">📄 Copiar en lista</button>
           </div>
           <div style="font-size:10px;color:#92400e;margin-top:6px;line-height:1.4">💡 Pega en el campo <strong>CCO</strong> (BCC) de tu correo para no revelar la lista entre tus participantes.</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #16a34a;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:10.5px;color:#14532d;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">💾 Respaldo de esta comunidad</div>
+          <button onclick="communityAdminDownloadBackup('${js(cid)}')" style="padding:7px 12px;background:#15803d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif" title="Descarga JSON con todos los picks y datos de tu comunidad (sin correos)">📥 Descargar respaldo (JSON)</button>
+          <div style="font-size:10px;color:#166534;margin-top:6px;line-height:1.4">💡 Incluye comunidad, miembros (sin correos), sus picks, resultados oficiales y terceros. Por privacidad NO incluye correos electrónicos.</div>
         </div>`;
       if(members.length>0){
         h+=`<div style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px;margin-bottom:10px">`;
@@ -4755,6 +4782,80 @@ async function adminDownloadBackup(){
   if(skipped.length){
     alert(`✓ Respaldo descargado.\n\n⚠️ Saltadas por permisos:\n• ${skipped.join('\n• ')}\n\nEl JSON incluye la lista en el campo "skipped_paths".`);
   }
+}
+
+// ─── COMMUNITY ADMIN: Download backup of ONE community (sin correos) ───
+async function communityAdminDownloadBackup(cid){
+  if(!cid){alert('Comunidad inválida.');return;}
+  // Permission: super-admin OR community-admin of this cid
+  const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede descargar el respaldo.');return;}
+  const safeRead=async(path)=>{
+    try{const snap=await db.ref(path).once('value');return{ok:true,data:snap.val()};}
+    catch(e){console.warn('Backup com: no perm for',path,e.message||e);return{ok:false,error:e.message||String(e)};}
+  };
+  const skipped=[];
+  // 1) Comunidad
+  const commR=await safeRead('communities/'+cid);
+  if(!commR.ok){alert('No se pudo leer la comunidad.');return;}
+  const community=commR.data||{};
+  // 2) Miembros (filtrar de S.users que ya está en memoria) — REMOVER EMAILS
+  const members={};
+  const memberUids=[];
+  for(const uid in (S.users||{})){
+    const u=S.users[uid];
+    if(u&&u.communityId===cid){
+      memberUids.push(uid);
+      // Clonar pero excluir email y cualquier campo sensible adicional
+      const{email,...rest}=u;
+      members[uid]=rest;
+    }
+  }
+  // 3) Picks de los miembros (leer por uid para respetar permisos)
+  const picks={};
+  for(const uid of memberUids){
+    const r=await safeRead('picks/'+uid);
+    if(r.ok){if(r.data)picks[uid]=r.data;}
+    else{skipped.push('picks/'+uid);}
+  }
+  // 4) Resultados oficiales y terceros de la comunidad
+  const crR=await safeRead('community_results/'+cid);
+  const ctbR=await safeRead('community_thirds_bracket/'+cid);
+  if(!crR.ok)skipped.push('community_results/'+cid);
+  if(!ctbR.ok)skipped.push('community_thirds_bracket/'+cid);
+  // 5) Admins de la comunidad (lista de uids, sin info personal)
+  const caR=await safeRead('community_admins/'+cid);
+  if(!caR.ok)skipped.push('community_admins/'+cid);
+
+  const backup={
+    version:'community-1.0',
+    type:'community_backup',
+    community_id:cid,
+    generated_at:new Date().toISOString(),
+    generated_by:ME.uid,
+    note:'Respaldo de UNA comunidad — sin correos por privacidad.',
+    skipped_paths:skipped,
+    data:{
+      community:community,
+      members:members, // sin emails
+      picks:picks,
+      community_results:crR.ok?(crR.data||{}):{},
+      community_thirds_bracket:ctbR.ok?(ctbR.data||{}):{},
+      community_admins:caR.ok?(caR.data||{}):{},
+    }
+  };
+  const json=JSON.stringify(backup,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a2=document.createElement('a');
+  const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  const safeName=(community.name||'comunidad').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
+  a2.href=url;a2.download=`respaldo-${safeName}-${ts}.json`;
+  document.body.appendChild(a2);a2.click();document.body.removeChild(a2);
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  const memberCount=Object.keys(members).length;
+  const pickCount=Object.keys(picks).length;
+  alert(`✓ Respaldo descargado.\n\n📊 Resumen:\n• ${memberCount} miembros\n• ${pickCount} picks\n• Resultados oficiales: ${crR.ok?'sí':'no'}\n\n🔒 NO incluye correos (por privacidad).${skipped.length?`\n\n⚠️ Saltadas: ${skipped.length} ruta(s).`:''}`);
 }
 
 // ─── ADMIN: Restore from JSON ───
