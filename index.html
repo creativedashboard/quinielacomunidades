@@ -165,6 +165,59 @@ html[data-ucolor] .pstrip-step.active .pstrip-dot{background:var(--uc)}
 
 #content-inner{flex:1;padding:22px 24px;overflow-y:auto}
 
+/* ── ÚLTIMOS RESULTADOS ────────────────────────────── */
+.rm-section-header{display:flex;align-items:center;justify-content:space-between;margin:6px 0 12px}
+.rm-section-title{font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;display:flex;align-items:center;gap:7px}
+.rm-cards-row{display:flex;gap:10px;overflow-x:auto;padding:0 0 10px;margin-bottom:18px;scrollbar-width:thin}
+.rm-cards-row::-webkit-scrollbar{height:6px}
+.rm-cards-row::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px}
+.rm-card{flex:0 0 215px;background:var(--card);border:1.5px solid var(--bd);border-radius:12px;padding:12px;cursor:pointer;transition:border-color .15s var(--ease-out),transform .15s var(--ease-out),box-shadow .15s var(--ease-out);position:relative}
+@media (hover:hover) and (pointer:fine){.rm-card:hover:not(.upcoming){border-color:var(--ac);transform:translateY(-2px);box-shadow:0 4px 14px rgba(37,99,235,.1)}}
+.rm-card:not(.upcoming):active{transform:scale(0.98)}
+.rm-card.upcoming{cursor:default;opacity:.75}
+.rm-card-date{font-size:9.5px;color:var(--mt);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.rm-card-group{display:inline-block;background:var(--acl);color:var(--ac);padding:2px 6px;border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.4px}
+.rm-card-teams{display:flex;flex-direction:column;gap:6px;margin-bottom:11px}
+.rm-card-team{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600}
+.rm-card-team .flag{font-size:17px;line-height:1}
+.rm-card-team-name{flex:1;font-family:'Outfit',sans-serif;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rm-card-team-score{font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;min-width:22px;text-align:right;color:var(--tx)}
+.rm-card-team.loser{color:var(--mt);opacity:.7}
+.rm-card-stats{padding-top:9px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;font-size:10.5px;font-weight:600;color:var(--mt)}
+.rm-card-stats strong{color:var(--gn)}
+.rm-card-cta{color:var(--ac);font-weight:800}
+.rm-card-pending{padding:5px 0;text-align:center;font-size:10.5px;color:var(--mt);font-weight:600;font-style:italic}
+
+/* Modal partido */
+#match-detail-modal{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:850;display:none;align-items:center;justify-content:center;padding:18px;transition:background .22s var(--ease-out)}
+#match-detail-modal.on{display:flex;background:rgba(0,0,0,.55)}
+.mdm-box{background:var(--card);border-radius:16px;max-width:500px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);opacity:0;transform:scale(0.96);transition:opacity .18s var(--ease-out),transform .18s var(--ease-out);overflow:hidden}
+#match-detail-modal.on .mdm-box{opacity:1;transform:scale(1)}
+.mdm-header{padding:16px 18px;background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff}
+.mdm-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mdm-header-info{font-size:10.5px;font-weight:600;letter-spacing:.5px;opacity:.85;text-transform:uppercase}
+.mdm-close{background:rgba(255,255,255,.2);color:#fff;border:none;width:26px;height:26px;border-radius:7px;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.mdm-close:hover{background:rgba(255,255,255,.35)}
+.mdm-match{display:flex;align-items:center;gap:10px;font-family:'Outfit',sans-serif}
+.mdm-match-team{display:flex;align-items:center;gap:6px;flex:1;font-size:15px;font-weight:800;overflow:hidden}
+.mdm-match-team.right{justify-content:flex-end}
+.mdm-match-team-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mdm-match-score{font-size:20px;font-weight:800;padding:2px 10px;background:rgba(255,255,255,.2);border-radius:8px;flex-shrink:0}
+.mdm-body{flex:1;overflow-y:auto;padding:14px 18px}
+.mdm-divider{font-size:10.5px;font-weight:800;color:var(--mt);letter-spacing:.6px;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin:14px 0 8px}
+.mdm-divider:first-child{margin-top:0}
+.mdm-divider::after{content:'';flex:1;height:1px;background:var(--bd)}
+.mdm-row{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px}
+.mdm-row:hover{background:var(--bg)}
+.mdm-avatar{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;flex-shrink:0;background-size:cover;background-position:center}
+.mdm-name{flex:1;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mdm-pred{font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--tx);background:var(--bg);padding:3px 8px;border-radius:5px;letter-spacing:.5px;min-width:42px;text-align:center}
+.mdm-pts{font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:5px;letter-spacing:.3px;min-width:36px;text-align:center}
+.mdm-pts-exact{background:#dcfce7;color:#166534}
+.mdm-pts-winner{background:#dbeafe;color:#1e40af}
+.mdm-pts-zero{background:#f3f4f6;color:#6b7280}
+.mdm-pts-none{background:#fef3c7;color:#92400e}
+
 /* ── PARTICIPANTS BAR ──────────────────────────────── */
 .parts-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;align-items:center}
 .parts-lbl{font-size:11px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin-right:5px}
@@ -753,6 +806,7 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
 
 <!-- ── MODAL ───────────────────────────────────────── -->
 <div id="modal-overlay"><div id="modal-box"></div></div>
+<div id="match-detail-modal" onclick="closeMatchDetail(event)"><div class="mdm-box" onclick="event.stopPropagation()"><div class="mdm-header" id="mdm-header"></div><div class="mdm-body" id="mdm-body"></div></div></div>
 
 <!-- ── FLOAT NEXT ──────────────────────────────────── -->
 <div id="float-next">
@@ -3390,6 +3444,182 @@ function cdHtml(t){
     <div class="cd-unit"><div class="cd-num">${String(t.s).padStart(2,'0')}</div><div class="cd-sublbl">seg</div></div>`;
 }
 
+// ═══════════════════════════════════════════════════════
+// ÚLTIMOS RESULTADOS — sección y modal de detalle por partido
+// ═══════════════════════════════════════════════════════
+// Convierte un GROUP_DATES item ({d:"11 Jun", t:"13:00"}) a Date para ordenar
+const _RM_MONTHS={Ene:0,Feb:1,Mar:2,Abr:3,May:4,Jun:5,Jul:6,Ago:7,Sep:8,Oct:9,Nov:10,Dic:11};
+function rmMatchDate(g,mi){
+  const gd=GROUP_DATES[g]&&GROUP_DATES[g][mi];
+  if(!gd)return null;
+  const parts=(gd.d||'').split(' ');
+  const day=parseInt(parts[0],10);
+  const mon=_RM_MONTHS[parts[1]];
+  if(mon==null||isNaN(day))return null;
+  const tParts=(gd.t||'00:00').split(':');
+  const h=parseInt(tParts[0],10)||0,m=parseInt(tParts[1],10)||0;
+  return new Date(2026,mon,day,h,m);
+}
+// Calcula puntos para una predicción vs marcador oficial
+function rmCalcPts(pred,adm){
+  if(!pred||!adm)return null;
+  const pa=parseInt(pred.a),pb=parseInt(pred.b),aa=parseInt(adm.a),ab=parseInt(adm.b);
+  if(isNaN(pa)||isNaN(pb)||isNaN(aa)||isNaN(ab))return null;
+  if(pa===aa&&pb===ab)return 3;
+  if(Math.sign(pa-pb)===Math.sign(aa-ab))return 1;
+  return 0;
+}
+// Devuelve los últimos N partidos con resultado oficial (ordenados desc por fecha)
+function rmLastMatches(n){
+  const list=[];
+  if(!S.adminR||!S.adminR.grupos)return list;
+  for(const g of GKEYS){
+    const matches=(S.adminR.grupos[g]&&S.adminR.grupos[g].matches)||[];
+    for(let mi=0;mi<matches.length;mi++){
+      const m=matches[mi];
+      if(!m||m.a==null||m.b==null||m.a===''||m.b==='')continue;
+      const dt=rmMatchDate(g,mi);
+      list.push({g,mi,a:m.a,b:m.b,dt});
+    }
+  }
+  list.sort((x,y)=>{
+    if(!x.dt&&!y.dt)return 0;
+    if(!x.dt)return 1;
+    if(!y.dt)return -1;
+    return y.dt-x.dt;
+  });
+  return list.slice(0,n);
+}
+// Render de la sección de "Últimos resultados"
+function rRecentMatches(members){
+  const recent=rmLastMatches(5);
+  if(recent.length===0)return''; // sin resultados todavía, no mostramos nada
+  let h=`<div class="rm-section-header">
+    <div class="rm-section-title">🔥 Últimos resultados</div>
+  </div>
+  <div class="rm-cards-row">`;
+  for(const r of recent){
+    const teams=GRP[r.g]||[];
+    const [i,j]=GROUP_MATCH_PAIRS[r.mi]||[0,1];
+    const gd=GROUP_DATES[r.g]&&GROUP_DATES[r.g][r.mi];
+    const swap=gd&&gd.sw;
+    const team1=swap?teams[j]:teams[i];
+    const team2=swap?teams[i]:teams[j];
+    const score1=swap?r.b:r.a;
+    const score2=swap?r.a:r.b;
+    // Stats: cuántos de la comunidad acertaron exacto
+    let exact=0,total=0;
+    for(const mem of members){
+      const picks=S.picks&&S.picks[mem.uid];
+      const matches=picks&&picks.grupos&&picks.grupos[r.g]&&picks.grupos[r.g].matches;
+      const pred=matches&&matches[r.mi];
+      if(pred&&pred.a!=null&&pred.b!=null&&pred.a!==''&&pred.b!==''){
+        total++;
+        const pts=rmCalcPts(pred,{a:r.a,b:r.b});
+        if(pts===3)exact++;
+      }
+    }
+    const w1=score1>score2,w2=score2>score1;
+    const dateLbl=gd?`${gd.d} · ${gd.t}`:'';
+    h+=`<div class="rm-card" onclick="openMatchDetail('${r.g}',${r.mi})">
+      <div class="rm-card-date">
+        <span class="rm-card-group">GRUPO ${r.g}</span>
+        <span>${esc(dateLbl)}</span>
+      </div>
+      <div class="rm-card-teams">
+        <div class="rm-card-team ${w2?'loser':''}">
+          <span class="flag">${flag(team1)}</span>
+          <span class="rm-card-team-name">${esc(team1)}</span>
+          <span class="rm-card-team-score">${score1}</span>
+        </div>
+        <div class="rm-card-team ${w1?'loser':''}">
+          <span class="flag">${flag(team2)}</span>
+          <span class="rm-card-team-name">${esc(team2)}</span>
+          <span class="rm-card-team-score">${score2}</span>
+        </div>
+      </div>
+      <div class="rm-card-stats">
+        <span>🎯 <strong>${exact}</strong>/${total} exactos</span>
+        <span class="rm-card-cta">Ver →</span>
+      </div>
+    </div>`;
+  }
+  h+='</div>';
+  return h;
+}
+// Abre el modal de detalle de un partido
+function openMatchDetail(g,mi){
+  const matches=(S.adminR&&S.adminR.grupos&&S.adminR.grupos[g]&&S.adminR.grupos[g].matches)||[];
+  const adm=matches[mi];
+  if(!adm||adm.a==null||adm.b==null||adm.a===''||adm.b==='')return;
+  const teams=GRP[g]||[];
+  const [i,j]=GROUP_MATCH_PAIRS[mi]||[0,1];
+  const gd=GROUP_DATES[g]&&GROUP_DATES[g][mi];
+  const swap=gd&&gd.sw;
+  const team1=swap?teams[j]:teams[i];
+  const team2=swap?teams[i]:teams[j];
+  const score1=swap?adm.b:adm.a;
+  const score2=swap?adm.a:adm.b;
+  const dateLbl=gd?`${gd.d} · ${gd.t} · 📍 ${gd.c||''}`:'';
+  document.getElementById('mdm-header').innerHTML=`
+    <div class="mdm-header-top">
+      <div class="mdm-header-info">Grupo ${esc(g)} · ${esc(dateLbl)}</div>
+      <button class="mdm-close" onclick="closeMatchDetail()" title="Cerrar">✕</button>
+    </div>
+    <div class="mdm-match">
+      <div class="mdm-match-team">
+        <span style="font-size:20px">${flag(team1)}</span>
+        <span class="mdm-match-team-name">${esc(team1)}</span>
+      </div>
+      <span class="mdm-match-score">${score1} - ${score2}</span>
+      <div class="mdm-match-team right">
+        <span class="mdm-match-team-name">${esc(team2)}</span>
+        <span style="font-size:20px">${flag(team2)}</span>
+      </div>
+    </div>
+  `;
+  // Construir lista de participantes de la comunidad
+  const members=myCommunityMembers();
+  const rows=members.map(mem=>{
+    const picks=S.picks&&S.picks[mem.uid];
+    const matchesUser=picks&&picks.grupos&&picks.grupos[g]&&picks.grupos[g].matches;
+    const pred=matchesUser&&matchesUser[mi];
+    const hasPred=pred&&pred.a!=null&&pred.b!=null&&pred.a!==''&&pred.b!=='';
+    const pts=hasPred?rmCalcPts(pred,adm):null;
+    // Display: respeta swap para mostrar predicción en el mismo orden visual del marcador
+    let predLeft='—',predRight='—';
+    if(hasPred){
+      predLeft=swap?String(pred.b):String(pred.a);
+      predRight=swap?String(pred.a):String(pred.b);
+    }
+    return {...mem,hasPred,pred:hasPred?`${predLeft} - ${predRight}`:'—',pts};
+  });
+  const exact=rows.filter(r=>r.pts===3);
+  const winner=rows.filter(r=>r.pts===1);
+  const zero=rows.filter(r=>r.pts===0);
+  const noPred=rows.filter(r=>!r.hasPred);
+  function renderRow(r,cls,lbl){
+    const pic=userPic(r,28).replace('class="lbpic"','class="mdm-avatar"');
+    return `<div class="mdm-row">${pic}<div class="mdm-name">${esc(r.name)}</div><div class="mdm-pred">${esc(r.pred)}</div><div class="mdm-pts ${cls}">${lbl}</div></div>`;
+  }
+  let body='';
+  if(exact.length){body+=`<div class="mdm-divider">🎯 Marcador exacto · ${exact.length}</div>`;body+=exact.map(r=>renderRow(r,'mdm-pts-exact','+3')).join('');}
+  if(winner.length){body+=`<div class="mdm-divider">✓ Solo ganador · ${winner.length}</div>`;body+=winner.map(r=>renderRow(r,'mdm-pts-winner','+1')).join('');}
+  if(zero.length){body+=`<div class="mdm-divider">❌ No acertaron · ${zero.length}</div>`;body+=zero.map(r=>renderRow(r,'mdm-pts-zero','0')).join('');}
+  if(noPred.length){body+=`<div class="mdm-divider">— Sin predicción · ${noPred.length}</div>`;body+=noPred.map(r=>renderRow(r,'mdm-pts-none','—')).join('');}
+  if(!body)body='<div style="padding:20px;text-align:center;color:var(--mt);font-size:13px">Sin participantes en la comunidad.</div>';
+  document.getElementById('mdm-body').innerHTML=body;
+  document.getElementById('match-detail-modal').classList.add('on');
+  if(typeof parseTwemoji==='function')parseTwemoji(document.getElementById('match-detail-modal'));
+}
+function closeMatchDetail(e){
+  if(e&&e.currentTarget!==e.target)return; // ignora clicks dentro del box
+  document.getElementById('match-detail-modal').classList.remove('on');
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){const m=document.getElementById('match-detail-modal');if(m&&m.classList.contains('on'))m.classList.remove('on');}
+});
+
 // Render the live/upcoming matches widget (async, from openfootball)
 async function renderMatchesWidget(){
   const el=document.getElementById('matches-widget');
@@ -3464,6 +3694,8 @@ function rDashboard(){
   setTimeout(renderMatchesWidget,50);
 
   const members=myCommunityMembers();
+  // Sección: últimos resultados (solo si hay marcadores oficiales)
+  h+=rRecentMatches(members);
   // hasR = there are official admin results to compare against
   // Check if at least one group has at least one match registered with goals
   const hasR=Object.values(S.adminR?.grupos||{}).some(g=>{
