@@ -1916,19 +1916,34 @@ function eAdm(){return{
   t8:[],r32:Array(16).fill(''),r16:Array(8).fill(''),qf:Array(4).fill(''),sf:Array(2).fill(''),fin:'',thr:''
 };}
 
+// Helper: Firebase guarda arrays sparse como objetos con keys numéricas tipo
+// {"0":x,"4":y}. Object.values(x) pierde los índices reales — devuelve [x,y]
+// poniéndolos en posiciones 0,1 en vez de 0,4. Esta función preserva las keys.
+function _iterIndexed(v,maxLen,cb){
+  if(!v)return;
+  if(Array.isArray(v)){
+    v.forEach((item,i)=>{if(i<maxLen)cb(i,item);});
+  }else{
+    for(const k in v){
+      const i=parseInt(k,10);
+      if(!isNaN(i)&&i>=0&&i<maxLen)cb(i,v[k]);
+    }
+  }
+}
 function mergeP(v){
   const b=ep();if(!v)return b;
   if(v.grupos)for(const g of GKEYS){
     const vg=v.grupos[g];
     if(!vg)continue;
     if(vg.matches){
-      const mArr=Array.isArray(vg.matches)?vg.matches:Object.values(vg.matches);
-      mArr.forEach((m,i)=>{if(i<6&&m)b.grupos[g].matches[i]={a:m.a==null?null:m.a,b:m.b==null?null:m.b};});
+      _iterIndexed(vg.matches,6,(i,m)=>{
+        if(m)b.grupos[g].matches[i]={a:m.a==null?null:m.a,b:m.b==null?null:m.b};
+      });
     }
   }
   if(v.t8)b.t8=(Array.isArray(v.t8)?v.t8:Object.values(v.t8)).filter(Boolean);
   for(const k of['r32','r16','qf','sf']){
-    if(v[k]){const a=Array.isArray(v[k])?v[k]:Object.values(v[k]);a.forEach((x,i)=>{if(i<b[k].length)b[k][i]=x||'';});}
+    if(v[k])_iterIndexed(v[k],b[k].length,(i,x)=>{b[k][i]=x||'';});
   }
   if(v.fin)b.fin=v.fin;if(v.thr)b.thr=v.thr;
   return b;
@@ -1939,13 +1954,14 @@ function mergeAdm(v){
     const vg=v.grupos[g];
     if(!vg)continue;
     if(vg.matches){
-      const mArr=Array.isArray(vg.matches)?vg.matches:Object.values(vg.matches);
-      mArr.forEach((m,i)=>{if(i<6&&m)b.grupos[g].matches[i]={a:m.a==null?null:m.a,b:m.b==null?null:m.b};});
+      _iterIndexed(vg.matches,6,(i,m)=>{
+        if(m)b.grupos[g].matches[i]={a:m.a==null?null:m.a,b:m.b==null?null:m.b};
+      });
     }
   }
   if(v.t8)b.t8=(Array.isArray(v.t8)?v.t8:Object.values(v.t8)).filter(Boolean);
   for(const k of['r32','r16','qf','sf']){
-    if(v[k]){const a=Array.isArray(v[k])?v[k]:Object.values(v[k]);a.forEach((x,i)=>{if(i<b[k].length)b[k][i]=x||'';});}
+    if(v[k])_iterIndexed(v[k],b[k].length,(i,x)=>{b[k][i]=x||'';});
   }
   if(v.fin)b.fin=v.fin;if(v.thr)b.thr=v.thr;
   return b;
@@ -2496,39 +2512,6 @@ function adminRandomFillGroups(){
   });
 }
 
-// SUPER-ADMIN TEST: inject fake scores into the real calendar to test sync flow today
-async function testSyncWithFakeScores(){
-  if(!ME.isSuperAdmin){alert('Solo super-admin.');return;}
-  let data;
-  try{
-    data=await fetchOpenFootball(true);
-  }catch(e){
-    alert('No se pudo cargar el calendario para la prueba: '+e.message);
-    return;
-  }
-  // Clone the data and inject fake final scores into the first ~6 group matches with known teams
-  const clone=JSON.parse(JSON.stringify(data));
-  let injected=0;
-  const seed=_seededRand(456);
-  for(const m of clone.matches){
-    if(!m.group)continue;
-    if(injected>=6)break;
-    const t1=ofToSpanish(m.team1),t2=ofToSpanish(m.team2);
-    if(!t1||!t2)continue;
-    m.score={ft:[Math.floor(seed()*4),Math.floor(seed()*4)]};
-    injected++;
-  }
-  // Temporarily override the cache so syncOfficialResults uses our fake data
-  _ofCalendarCache=clone;
-  _ofCalendarFetchedAt=Date.now();
-  alert(`🧪 MODO PRUEBA\n\nInyecté ${injected} marcadores ficticios en el calendario real del Mundial.\n\nAhora se abrirá la ventana de importación para que veas cómo funciona. Los marcadores son inventados (solo para probar).`);
-  // Call the real sync (which will now read fake-scored cache)
-  await syncOfficialResults();
-  // Invalidate cache so real data is fetched next time
-  _ofCalendarCache=null;
-  _ofCalendarFetchedAt=0;
-}
-
 // ═══════════════════════════════════════════════════════════════
 // Sync official results from openfootball (free, no API key)
 // Shows a preview of new/changed scores, admin confirms before saving
@@ -2787,7 +2770,6 @@ function rGrupos(adm){
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <button onclick="syncOfficialResults()" style="padding:10px 14px;background:var(--gn);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif" title="Importar marcadores oficiales del Mundial">🔄 Importar resultados oficiales</button>
       <button onclick="adminRandomFillGroups()" style="padding:10px 14px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif" title="Solo para pruebas">🎲 Rellenar para prueba (admin)</button>
-      ${ME.isSuperAdmin?`<button onclick="testSyncWithFakeScores()" style="padding:10px 14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif" title="Solo super-admin: prueba el sync con marcadores ficticios">🧪 Probar sync (ficticio)</button>`:''}
     </div>`;
   }
   h+='<div id="groups-capturable" class="ggrid">';
