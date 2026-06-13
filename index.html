@@ -1877,13 +1877,17 @@ function loadApp(forceAdmin){
     {path:cid?'community_thirds_bracket/'+cid:'thirds_bracket', handler:snap=>{
       const v=snap.val();
       if(v){
-        S.thirds_bracket=Array.isArray(v)?v:Object.values(v);
+        // FIX: preservar índices si Firebase guardó sparse array como objeto
+        const out=Array(8).fill('');
+        _iterIndexed(v,8,(i,x)=>{out[i]=x||'';});
+        S.thirds_bracket=out;
       }else if(cid&&ME.isSuperAdmin){
         // Only super-admin gets legacy fallback
         db.ref('thirds_bracket').once('value').then(s=>{
           const vv=s.val()||[];
-          S.thirds_bracket=Array.isArray(vv)?vv:Object.values(vv);
-          while(S.thirds_bracket.length<8)S.thirds_bracket.push('');
+          const out=Array(8).fill('');
+          _iterIndexed(vv,8,(i,x)=>{out[i]=x||'';});
+          S.thirds_bracket=out;
           safeRender();
         });
         return;
