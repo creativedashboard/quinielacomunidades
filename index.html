@@ -1827,7 +1827,7 @@ function showAdminUnlock(){
 function loadApp(forceAdmin){
   showScreen('app');
   if(forceAdmin)S.tab='admin';
-  else S.tab='grupos'; // regular users land on "Mi Quiniela"
+  else S.tab='dashboard'; // regular users land on Dashboard
 
   // Check if user has accepted terms — show modal if not
   setTimeout(()=>{
@@ -3538,7 +3538,7 @@ function _getLiveAndUpcoming() {
       upcoming.push(m);
     }
   }
-  return { live, upcoming: upcoming.slice(0, live ? 2 : 3) };
+  return { live, upcoming: upcoming.slice(0, live ? 4 : 5) };
 }
 // Helper: calcula el minuto del partido (aprox)
 function _liveMinute(match) {
@@ -3935,10 +3935,6 @@ function rDashboard(){
     ${!isLocked()?`<div id="lock-cd-wrap" style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);font-size:11px;font-weight:600;opacity:.9;letter-spacing:.3px">🔒 La quiniela se bloquea en <span id="lock-cd-nums" style="font-weight:800">${lockCdHtml(getLockCountdown())}</span></div>`:''}
   </div>`;
   setTimeout(startCountdown,100);
-
-  // Live / upcoming matches widget (populated async from openfootball)
-  h+=`<div id="matches-widget" style="margin-bottom:14px"></div>`;
-  setTimeout(renderMatchesWidget,50);
 
   const members=myCommunityMembers();
   // Sección: en vivo / próximos partidos (con predicciones de la comunidad)
