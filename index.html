@@ -165,6 +165,18 @@ html[data-ucolor] .pstrip-step.active .pstrip-dot{background:var(--uc)}
 
 #content-inner{flex:1;padding:22px 24px;overflow-y:auto}
 
+/* ── EN VIVO / PRÓXIMOS ────────────────────────────── */
+.lv-card{position:relative}
+.lv-card-live{border-color:#dc2626;background:linear-gradient(135deg,#fff,#fef2f2)}
+@media (hover:hover) and (pointer:fine){.lv-card-live:hover{border-color:#b91c1c;box-shadow:0 4px 16px rgba(220,38,38,.18)}}
+.lv-card-status{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:6px}
+.lv-live-badge{display:inline-flex;align-items:center;gap:4px;background:#dc2626;color:#fff;padding:3px 8px;border-radius:5px;font-size:9.5px;font-weight:800;letter-spacing:.5px;animation:lvPulse 1.4s ease infinite}
+.lv-upcoming-badge{display:inline-flex;align-items:center;gap:4px;background:var(--bg);color:var(--mt);padding:3px 8px;border-radius:5px;font-size:9.5px;font-weight:800;letter-spacing:.5px}
+.lv-minute{font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:#dc2626}
+.lv-minute.halftime{color:#d97706;font-size:11px}
+.lv-countdown{font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:700;color:var(--ac)}
+@keyframes lvPulse{0%,100%{opacity:1}50%{opacity:.55}}
+
 /* ── ÚLTIMOS RESULTADOS ────────────────────────────── */
 .rm-section-header{display:flex;align-items:center;justify-content:space-between;margin:6px 0 12px}
 .rm-section-title{font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;display:flex;align-items:center;gap:7px}
@@ -3476,6 +3488,255 @@ function rmLastMatches(n){
   });
   return list.slice(0,n);
 }
+// ═══════════════════════════════════════════════════════
+// EN VIVO / PRÓXIMOS — sección y modal de predicciones por partido
+// ═══════════════════════════════════════════════════════
+// Offsets UTC de cada sede (junio 2026, considerando DST en USA/Canadá)
+const _LIVE_CITY_OFFSETS = {
+  'CDMX': -6, 'Guadalajara': -6, 'Monterrey': -6,
+  'Atlanta': -4, 'Boston': -4, 'Miami': -4, 'Nueva York': -4, 'Philadelphia': -4, 'Toronto': -4,
+  'Kansas City': -5, 'Houston': -5, 'Dallas': -5,
+  'Los Angeles': -7, 'SF Bay': -7, 'Seattle': -7, 'Vancouver': -7,
+};
+// Convierte hora local del estadio (gd.t + gd.c) a Date UTC
+function _liveMatchDateUTC(g, mi) {
+  const gd = GROUP_DATES[g] && GROUP_DATES[g][mi];
+  if (!gd) return null;
+  const parts = (gd.d || '').split(' ');
+  const day = parseInt(parts[0], 10);
+  const mon = _RM_MONTHS[parts[1]];
+  if (mon == null || isNaN(day)) return null;
+  const tParts = (gd.t || '00:00').split(':');
+  const h = parseInt(tParts[0], 10) || 0;
+  const m = parseInt(tParts[1], 10) || 0;
+  const offset = _LIVE_CITY_OFFSETS[gd.c] != null ? _LIVE_CITY_OFFSETS[gd.c] : -6;
+  // local time = UTC + offset → UTC = local - offset
+  return new Date(Date.UTC(2026, mon, day, h - offset, m));
+}
+// Devuelve {live, upcoming} (1 en vivo + 2 próximos)
+function _getLiveAndUpcoming() {
+  const now = Date.now();
+  const MATCH_DURATION = 120 * 60 * 1000; // 2 horas (90 min + medio tiempo + tiempo extra + buffer)
+  let live = null;
+  const upcoming = [];
+  const all = [];
+  for (const g of GKEYS) {
+    for (let mi = 0; mi < 6; mi++) {
+      const dt = _liveMatchDateUTC(g, mi);
+      if (!dt) continue;
+      all.push({ g, mi, dt: dt.getTime() });
+    }
+  }
+  all.sort((a, b) => a.dt - b.dt);
+  for (const m of all) {
+    const elapsed = now - m.dt;
+    if (elapsed >= 0 && elapsed < MATCH_DURATION) {
+      // En vivo
+      if (!live) live = m;
+    } else if (elapsed < 0) {
+      // Futuro
+      upcoming.push(m);
+    }
+  }
+  return { live, upcoming: upcoming.slice(0, live ? 2 : 3) };
+}
+// Helper: calcula el minuto del partido (aprox)
+function _liveMinute(match) {
+  const now = Date.now();
+  const elapsed = Math.floor((now - match.dt) / 60000);
+  // Si va más del minuto 45, simulamos halftime
+  if (elapsed > 45 && elapsed <= 60) return { label: 'MEDIO TIEMPO', class: 'halftime' };
+  if (elapsed > 60) return { label: `~${elapsed - 15}'`, class: 'second' };
+  return { label: `~${elapsed}'`, class: 'first' };
+}
+// Helper: countdown hasta el partido
+function _liveCountdown(match) {
+  const diff = match.dt - Date.now();
+  if (diff <= 0) return '¡Empezó!';
+  const days = Math.floor(diff / 86400000);
+  const hrs = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  if (days > 0) return `En ${days}d ${hrs}h`;
+  if (hrs > 0) return `En ${hrs}h ${mins}m`;
+  return `En ${mins} min`;
+}
+// Render de la sección "En vivo / próximos"
+function rLiveUpcoming(members) {
+  const { live, upcoming } = _getLiveAndUpcoming();
+  if (!live && upcoming.length === 0) return ''; // No hay nada que mostrar
+  let h = `<div class="rm-section-header">
+    <div class="rm-section-title">${live ? '🔴 En vivo y próximos' : '📅 Próximos partidos'}</div>
+  </div>
+  <div class="rm-cards-row">`;
+
+  // Helper para renderizar una card
+  function renderCard(match, isLive) {
+    const { g, mi } = match;
+    const teams = GRP[g] || [];
+    const [i, j] = GROUP_MATCH_PAIRS[mi] || [0, 1];
+    const gd = GROUP_DATES[g] && GROUP_DATES[g][mi];
+    const swap = gd && gd.sw;
+    const team1 = swap ? teams[j] : teams[i];
+    const team2 = swap ? teams[i] : teams[j];
+    const dateLbl = gd ? `${gd.d} · ${gd.t} ${gd.c}` : '';
+
+    let statusBadge, statusInfo;
+    if (isLive) {
+      const minute = _liveMinute(match);
+      statusBadge = `<span class="lv-live-badge">🔴 EN VIVO</span>`;
+      statusInfo = `<span class="lv-minute lv-${minute.class}">${minute.label}</span>`;
+    } else {
+      const countdown = _liveCountdown(match);
+      statusBadge = `<span class="lv-upcoming-badge">⏰ PRÓXIMO</span>`;
+      statusInfo = `<span class="lv-countdown">${countdown}</span>`;
+    }
+
+    // Contar predicciones de la comunidad
+    let predCount = 0;
+    for (const mem of members) {
+      const picks = S.picks && S.picks[mem.uid];
+      const matches = picks && picks.grupos && picks.grupos[g] && picks.grupos[g].matches;
+      const pred = matches && matches[mi];
+      if (pred && pred.a != null && pred.b != null && pred.a !== '' && pred.b !== '') predCount++;
+    }
+
+    return `<div class="rm-card lv-card ${isLive ? 'lv-card-live' : ''}" onclick="openMatchPredictions('${g}',${mi})">
+      <div class="lv-card-status">
+        ${statusBadge}
+        ${statusInfo}
+      </div>
+      <div class="rm-card-date">
+        <span class="rm-card-group">GRUPO ${g}</span>
+        <span>${esc(dateLbl)}</span>
+      </div>
+      <div class="rm-card-teams">
+        <div class="rm-card-team">
+          <span class="flag">${flag(team1)}</span>
+          <span class="rm-card-team-name">${esc(team1)}</span>
+          <span class="rm-card-team-score" style="opacity:.4">?</span>
+        </div>
+        <div class="rm-card-team">
+          <span class="flag">${flag(team2)}</span>
+          <span class="rm-card-team-name">${esc(team2)}</span>
+          <span class="rm-card-team-score" style="opacity:.4">?</span>
+        </div>
+      </div>
+      <div class="rm-card-stats">
+        <span>📊 ${predCount} ${predCount === 1 ? 'predicción' : 'predicciones'}</span>
+        <span class="rm-card-cta">Ver →</span>
+      </div>
+    </div>`;
+  }
+
+  if (live) h += renderCard(live, true);
+  for (const m of upcoming) h += renderCard(m, false);
+  h += '</div>';
+  return h;
+}
+// Abre el modal con predicciones de la comunidad para un partido
+function openMatchPredictions(g, mi) {
+  const teams = GRP[g] || [];
+  const [i, j] = GROUP_MATCH_PAIRS[mi] || [0, 1];
+  const gd = GROUP_DATES[g] && GROUP_DATES[g][mi];
+  const swap = gd && gd.sw;
+  const team1 = swap ? teams[j] : teams[i];
+  const team2 = swap ? teams[i] : teams[j];
+  const dateLbl = gd ? `${gd.d} · ${gd.t} · 📍 ${gd.c || ''}` : '';
+
+  // Verificar estado del partido (en vivo, próximo, o ya jugado)
+  const matchDt = _liveMatchDateUTC(g, mi);
+  const now = Date.now();
+  const elapsed = matchDt ? now - matchDt.getTime() : -Infinity;
+  const MATCH_DURATION = 120 * 60 * 1000;
+  let statusHtml = '';
+  if (matchDt) {
+    if (elapsed >= 0 && elapsed < MATCH_DURATION) {
+      const minute = _liveMinute({ dt: matchDt.getTime() });
+      statusHtml = `<span class="lv-live-badge" style="background:#dc2626">🔴 EN VIVO · ${minute.label}</span>`;
+    } else if (elapsed < 0) {
+      statusHtml = `<span class="lv-upcoming-badge" style="background:rgba(255,255,255,.2)">⏰ ${_liveCountdown({ dt: matchDt.getTime() })}</span>`;
+    }
+  }
+
+  document.getElementById('mdm-header').innerHTML = `
+    <div class="mdm-header-top">
+      <div class="mdm-header-info">Grupo ${esc(g)} · ${esc(dateLbl)}</div>
+      <button class="mdm-close" onclick="closeMatchDetail()" title="Cerrar">✕</button>
+    </div>
+    <div class="mdm-match">
+      <div class="mdm-match-team">
+        <span style="font-size:20px">${flag(team1)}</span>
+        <span class="mdm-match-team-name">${esc(team1)}</span>
+      </div>
+      <span class="mdm-match-score" style="background:rgba(255,255,255,.18);font-size:14px;padding:4px 12px">vs</span>
+      <div class="mdm-match-team right">
+        <span class="mdm-match-team-name">${esc(team2)}</span>
+        <span style="font-size:20px">${flag(team2)}</span>
+      </div>
+    </div>
+    ${statusHtml ? `<div style="margin-top:10px;text-align:center">${statusHtml}</div>` : ''}
+  `;
+
+  // Construir lista de participantes con sus predicciones
+  const members = myCommunityMembers();
+  const rows = members.map(mem => {
+    const picks = S.picks && S.picks[mem.uid];
+    const matchesUser = picks && picks.grupos && picks.grupos[g] && picks.grupos[g].matches;
+    const pred = matchesUser && matchesUser[mi];
+    const hasPred = pred && pred.a != null && pred.b != null && pred.a !== '' && pred.b !== '';
+    let predA = null, predB = null, predLeft = '—', predRight = '—';
+    if (hasPred) {
+      predA = parseInt(pred.a, 10);
+      predB = parseInt(pred.b, 10);
+      predLeft = swap ? String(pred.b) : String(pred.a);
+      predRight = swap ? String(pred.a) : String(pred.b);
+    }
+    let winner = null; // 1 = team1 wins, 0 = draw, 2 = team2 wins, null = no pred
+    if (hasPred && !isNaN(predA) && !isNaN(predB)) {
+      // Storage: a=teams[i], b=teams[j]. Display swap doesn't affect outcome.
+      if (predA === predB) winner = 0;
+      else {
+        // Si swap, team1 mostrado = teams[j], gana si pred.b > pred.a
+        const team1IsI = !swap;
+        if (team1IsI) winner = predA > predB ? 1 : 2;
+        else winner = predB > predA ? 1 : 2;
+      }
+    }
+    return { ...mem, hasPred, pred: hasPred ? `${predLeft} - ${predRight}` : '—', winner };
+  });
+
+  const wins1 = rows.filter(r => r.winner === 1);
+  const draws = rows.filter(r => r.winner === 0);
+  const wins2 = rows.filter(r => r.winner === 2);
+  const noPred = rows.filter(r => !r.hasPred);
+
+  function renderRow(r) {
+    const pic = userPic(r, 28).replace('class="lbpic"', 'class="mdm-avatar"');
+    return `<div class="mdm-row">${pic}<div class="mdm-name">${esc(r.name)}</div><div class="mdm-pred">${esc(r.pred)}</div></div>`;
+  }
+
+  let body = '';
+  if (wins1.length) {
+    body += `<div class="mdm-divider"><span class="flag" style="font-size:14px">${flag(team1)}</span> Gana ${esc(team1)} · ${wins1.length}</div>`;
+    body += wins1.map(renderRow).join('');
+  }
+  if (draws.length) {
+    body += `<div class="mdm-divider">⚖️ Empate · ${draws.length}</div>`;
+    body += draws.map(renderRow).join('');
+  }
+  if (wins2.length) {
+    body += `<div class="mdm-divider"><span class="flag" style="font-size:14px">${flag(team2)}</span> Gana ${esc(team2)} · ${wins2.length}</div>`;
+    body += wins2.map(renderRow).join('');
+  }
+  if (noPred.length) {
+    body += `<div class="mdm-divider">— Sin predicción · ${noPred.length}</div>`;
+    body += noPred.map(renderRow).join('');
+  }
+  if (!body) body = '<div style="padding:20px;text-align:center;color:var(--mt);font-size:13px">Sin participantes en la comunidad.</div>';
+  document.getElementById('mdm-body').innerHTML = body;
+  document.getElementById('match-detail-modal').classList.add('on');
+  if (typeof parseTwemoji === 'function') parseTwemoji(document.getElementById('match-detail-modal'));
+}
 // Render de la sección de "Últimos resultados"
 function rRecentMatches(members){
   const recent=rmLastMatches(5);
@@ -3680,6 +3941,8 @@ function rDashboard(){
   setTimeout(renderMatchesWidget,50);
 
   const members=myCommunityMembers();
+  // Sección: en vivo / próximos partidos (con predicciones de la comunidad)
+  h+=rLiveUpcoming(members);
   // Sección: últimos resultados (solo si hay marcadores oficiales)
   h+=rRecentMatches(members);
   // hasR = there are official admin results to compare against
