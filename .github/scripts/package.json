@@ -1,0 +1,10 @@
+{
+  "name": "sync-mundial",
+  "version": "1.0.0",
+  "description": "Sync openfootball results to Firebase for all communities",
+  "main": "sync-mundial.js",
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
