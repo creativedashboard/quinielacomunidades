@@ -2229,7 +2229,10 @@ function setT3(mi,v){if(!ME.isAdmin)return;S.thirds_bracket[mi]=v;const ridx=R32
 // ══════════════════════════════════════════════════════
 function calcPts(uid){
   const p=userPicks(uid),r=S.adminR||eAdm();let tot=0;
-  const bd={grp:0,t8:0,r32:0,r16:0,qf:0,sf:0,fin:0,thr:0};
+  // bd: breakdown de puntos por fase + stats para desempate (NO suman a tot)
+  // Tiebreakers: exact = marcadores exactos acertados, group1 = 1° de grupo correctos,
+  //              gdDiff = suma de |diferencia de goles predicha − oficial| (menor = mejor)
+  const bd={grp:0,t8:0,r32:0,r16:0,qf:0,sf:0,fin:0,thr:0,exact:0,group1:0,gdDiff:0};
   // Group standings comparison: must have ALL 6 matches played by both sides
   function groupComplete(p,g){
     const m=p.grupos&&p.grupos[g]&&p.grupos[g].matches;
@@ -2239,7 +2242,7 @@ function calcPts(uid){
     if(!groupComplete(p,g)||!groupComplete(r,g))continue;
     const myTable=calcGroupTable(g,p.grupos[g]);
     const adminTable=calcGroupTable(g,r.grupos[g]);
-    if(myTable[0]&&adminTable[0]&&myTable[0].name===adminTable[0].name){tot+=PTS.p1;bd.grp+=PTS.p1;}
+    if(myTable[0]&&adminTable[0]&&myTable[0].name===adminTable[0].name){tot+=PTS.p1;bd.grp+=PTS.p1;bd.group1++;}
     if(myTable[1]&&adminTable[1]&&myTable[1].name===adminTable[1].name){tot+=PTS.p2;bd.grp+=PTS.p2;}
   }
   // Match prediction bonus: 3 pts exact score, 1 pt just-correct-winner
@@ -2255,7 +2258,9 @@ function calcPts(uid){
       if(adm.a==null||adm.b==null||adm.a===''||adm.b==='')continue;
       const ma=parseInt(my.a),mb=parseInt(my.b),aa=parseInt(adm.a),ab=parseInt(adm.b);
       if(isNaN(ma)||isNaN(mb)||isNaN(aa)||isNaN(ab))continue;
-      if(ma===aa&&mb===ab){tot+=3;bd.grp+=3;} // exact score
+      // Tiebreaker: distancia entre diferencia de goles predicha vs oficial
+      bd.gdDiff+=Math.abs((ma-mb)-(aa-ab));
+      if(ma===aa&&mb===ab){tot+=3;bd.grp+=3;bd.exact++;} // exact score
       else{
         const myDiff=Math.sign(ma-mb),admDiff=Math.sign(aa-ab);
         if(myDiff===admDiff){tot+=1;bd.grp+=1;}
@@ -3968,8 +3973,13 @@ function rDashboard(){
   })||(S.adminR&&((S.adminR.r32||[]).some(Boolean)||(S.adminR.r16||[]).some(Boolean)||(S.adminR.qf||[]).some(Boolean)||(S.adminR.sf||[]).some(Boolean)||S.adminR.fin||S.adminR.thr));
 
   // Community leaderboard
+  // Desempates (en orden): 1) más puntos, 2) más marcadores exactos,
+  // 3) más 1° de grupo correctos, 4) menor distancia en diferencia de goles
   const ranked=members.map(m=>{const{tot,bd}=calcPts(m.uid);return{...m,tot,bd};}).sort((a,b)=>{
     if(b.tot!==a.tot)return b.tot-a.tot;
+    if(b.bd.exact!==a.bd.exact)return b.bd.exact-a.bd.exact;
+    if(b.bd.group1!==a.bd.group1)return b.bd.group1-a.bd.group1;
+    if(a.bd.gdDiff!==b.bd.gdDiff)return a.bd.gdDiff-b.bd.gdDiff;
     if(a.uid===ME.uid)return -1;
     if(b.uid===ME.uid)return 1;
     return 0;
@@ -3983,6 +3993,29 @@ function rDashboard(){
     ranked.forEach((m,i)=>{
       const isMe=m.uid===ME.uid;
       const medals=['🥇','🥈','🥉'];
+      // Chip de desempate: aparece SOLO si está empatado en pts con el vecino de arriba o abajo
+      // Muestra el criterio activo que lo desempata (🎯 exactos, 🥇 1°, 📐 dif. goles)
+      let tieChip='';
+      if(hasR){
+        const prev=ranked[i-1],next=ranked[i+1];
+        const tiedWithPrev=prev&&prev.tot===m.tot;
+        const tiedWithNext=next&&next.tot===m.tot;
+        if(tiedWithPrev||tiedWithNext){
+          // Determinar qué criterio lo separa del vecino
+          const cmp=tiedWithNext?next:prev;
+          let why='';
+          if(m.bd.exact!==cmp.bd.exact){
+            why=`🎯 ${m.bd.exact} exacto${m.bd.exact===1?'':'s'}`;
+          }else if(m.bd.group1!==cmp.bd.group1){
+            why=`🥇 ${m.bd.group1} de 1°`;
+          }else if(m.bd.gdDiff!==cmp.bd.gdDiff){
+            why=`📐 ΔGD ${m.bd.gdDiff}`;
+          }else{
+            why=`🤝 empate total`;
+          }
+          tieChip=`<span title="Criterio de desempate" style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;color:#1e40af;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px;border:1px solid #bfdbfe">${why}</span>`;
+        }
+      }
       let chips='Esperando resultados...';
       if(hasR){
         if(isTournament){
@@ -4032,7 +4065,7 @@ function rDashboard(){
         <div class="lbrnk">${medals[i]||i+1}</div>
         ${userPic(m,36)}
         <div style="flex:1;min-width:0">
-          <div class="lbnm">${esc(m.name)}${isMe?' <span style="font-size:10px;opacity:.6">(tú)</span>':''}${completionBadge}</div>
+          <div class="lbnm">${esc(m.name)}${isMe?' <span style="font-size:10px;opacity:.6">(tú)</span>':''}${completionBadge}${tieChip}</div>
           <div class="lbdet">${chips}</div>
         </div>
         <div class="lbpts" style="${hasR?'':'color:var(--mt);font-size:16px'}">${hasR?m.tot:'—'}${hasR?'<span style="font-size:11px;color:var(--mt);font-weight:500;margin-left:3px">pts</span>':''}</div>
@@ -4409,7 +4442,12 @@ function rAdmCommunities(){
     h+=`<div style="padding:24px;text-align:center;color:var(--mt)">No hay comunidades aún.${ME.isSuperAdmin?' Crea la primera arriba.':''}</div>`;
   }else{
     for(const[cid,c]of comms){
-      const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>b.tot-a.tot);
+      const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>{
+        if(b.tot!==a.tot)return b.tot-a.tot;
+        if(b.bd.exact!==a.bd.exact)return b.bd.exact-a.bd.exact;
+        if(b.bd.group1!==a.bd.group1)return b.bd.group1-a.bd.group1;
+        return a.bd.gdDiff-b.bd.gdDiff;
+      });
       const inviteLink=buildInviteLink(c.inviteCode);
       // Tournament Mode info (only if this user is admin of this community)
       const canManage=ME.isSuperAdmin||(S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true);
@@ -4568,7 +4606,12 @@ function rAdmLeaderboard(){
   // Detail per community
   if(hasR){
     for(const c of comms){
-      const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===c.cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>b.tot-a.tot);
+      const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===c.cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>{
+        if(b.tot!==a.tot)return b.tot-a.tot;
+        if(b.bd.exact!==a.bd.exact)return b.bd.exact-a.bd.exact;
+        if(b.bd.group1!==a.bd.group1)return b.bd.group1-a.bd.group1;
+        return a.bd.gdDiff-b.bd.gdDiff;
+      });
       h+=`<div class="lb" style="margin-top:14px"><div class="lbhdr" style="background:var(--card);color:var(--tx);border-bottom:1.5px solid var(--bd)"><span class="lbhtitle">${esc(c.name)}</span><span class="lbhsub">Detalle</span></div>`;
       members.forEach((m,i)=>{
         h+=`<div class="lbrow" onclick="openBracket('${js(m.uid)}')">
