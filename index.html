@@ -2817,7 +2817,8 @@ function rGrupos(adm){
       const valLeft=swap?(m.b==null?'':m.b):(m.a==null?'':m.a);
       const valRight=swap?(m.a==null?'':m.a):(m.b==null?'':m.b);
       const kbHandler="if(event.key==='Enter'||event.key==='Tab'||event.key===' '){event.preventDefault();focusNextGoalInput(this)}";
-      const dateLbl=gd?`<div style="font-size:9.5px;color:var(--mt);font-weight:600;margin-top:6px;margin-bottom:2px;letter-spacing:.2px">📅 ${gd.d} · ⏰ ${gd.t} · 📍 ${gd.c}</div>`:'';
+      const _mexDT=_toMexicoDateTime(g,mi);
+      const dateLbl=gd?`<div style="font-size:9.5px;color:var(--mt);font-weight:600;margin-top:6px;margin-bottom:2px;letter-spacing:.2px">📅 ${_mexDT.date} · ⏰ ${_mexDT.time} MX · 📍 ${esc(gd.c)}</div>`:'';
       h+=`${dateLbl}<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px">
         <span style="flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="flag">${flag(t1)}</span> ${esc(t1)}</span>
         <input type="text" inputmode="numeric" maxlength="2" placeholder="—" value="${valLeft}" data-goalinput="1" data-g="${g}" data-mi="${mi}" data-side="${sideLeft}" style="width:38px;padding:6px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif" onfocus="this.select()" oninput="setGroupMatch('${g}',${mi},'${sideLeft}',this.value,${a})" onkeydown="${kbHandler}">
@@ -3541,6 +3542,20 @@ function _getLiveAndUpcoming() {
   return { live, upcoming: upcoming.slice(0, live ? 4 : 5) };
 }
 // Helper: calcula el minuto del partido (aprox)
+// Helper: convierte un partido a fecha/hora en CDMX (México, UTC-6)
+const _MONTH_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function _toMexicoDateTime(g, mi) {
+  const matchDt = _liveMatchDateUTC(g, mi);
+  if (!matchDt) return { date: '', time: '' };
+  // CDMX es UTC-6 todo el año (México eliminó horario de verano en 2022)
+  const cdmxMs = matchDt.getTime() + (-6 * 3600 * 1000);
+  const d = new Date(cdmxMs);
+  const day = d.getUTCDate();
+  const month = _MONTH_ES[d.getUTCMonth()];
+  const h = String(d.getUTCHours()).padStart(2, '0');
+  const m = String(d.getUTCMinutes()).padStart(2, '0');
+  return { date: day + ' ' + month, time: h + ':' + m };
+}
 function _liveMinute(match) {
   const now = Date.now();
   const elapsed = Math.floor((now - match.dt) / 60000);
@@ -3578,7 +3593,8 @@ function rLiveUpcoming(members) {
     const swap = gd && gd.sw;
     const team1 = swap ? teams[j] : teams[i];
     const team2 = swap ? teams[i] : teams[j];
-    const dateLbl = gd ? `${gd.d} · ${gd.t} ${gd.c}` : '';
+    const mexDT = _toMexicoDateTime(g, mi);
+    const dateLbl = gd ? `${mexDT.date} · ${mexDT.time} MX · ${esc(gd.c)}` : '';
 
     let statusBadge, statusInfo;
     if (isLive) {
@@ -3641,7 +3657,8 @@ function openMatchPredictions(g, mi) {
   const swap = gd && gd.sw;
   const team1 = swap ? teams[j] : teams[i];
   const team2 = swap ? teams[i] : teams[j];
-  const dateLbl = gd ? `${gd.d} · ${gd.t} · 📍 ${gd.c || ''}` : '';
+  const mexDT = _toMexicoDateTime(g, mi);
+  const dateLbl = gd ? `${mexDT.date} · ${mexDT.time} MX · 📍 ${gd.c || ''}` : '';
 
   // Verificar estado del partido (en vivo, próximo, o ya jugado)
   const matchDt = _liveMatchDateUTC(g, mi);
@@ -3767,7 +3784,8 @@ function rRecentMatches(members){
       }
     }
     const w1=score1>score2,w2=score2>score1;
-    const dateLbl=gd?`${gd.d} · ${gd.t}`:'';
+    const mexDT=_toMexicoDateTime(r.g,r.mi);
+    const dateLbl=gd?`${mexDT.date} · ${mexDT.time} MX`:'';
     h+=`<div class="rm-card" onclick="openMatchDetail('${r.g}',${r.mi})">
       <div class="rm-card-date">
         <span class="rm-card-group">GRUPO ${r.g}</span>
@@ -3807,7 +3825,8 @@ function openMatchDetail(g,mi){
   const team2=swap?teams[i]:teams[j];
   const score1=swap?adm.b:adm.a;
   const score2=swap?adm.a:adm.b;
-  const dateLbl=gd?`${gd.d} · ${gd.t} · 📍 ${gd.c||''}`:'';
+  const mexDT=_toMexicoDateTime(g,mi);
+  const dateLbl=gd?`${mexDT.date} · ${mexDT.time} MX · 📍 ${gd.c||''}`:'';
   document.getElementById('mdm-header').innerHTML=`
     <div class="mdm-header-top">
       <div class="mdm-header-info">Grupo ${esc(g)} · ${esc(dateLbl)}</div>
@@ -4235,6 +4254,31 @@ async function adminAssignToCommunity(uid,cid){
     }
   });
 }
+// Editar nombre de un participante (super-admin o community-admin de su comunidad)
+async function adminEditUserName(uid, currentName) {
+  if (!ME.isAdmin) { alert('Solo admin.'); return; }
+  // Verificar que el usuario exista
+  const u = S.users && S.users[uid];
+  if (!u) { alert('Usuario no encontrado.'); return; }
+  // Si no es super-admin, validar que sea community-admin de la comunidad del usuario
+  if (!ME.isSuperAdmin) {
+    const userCid = u.communityId;
+    const isCommAdmin = userCid && S.community_admins && S.community_admins[userCid] && S.community_admins[userCid][ME.uid] === true;
+    if (!isCommAdmin) { alert('Solo puedes editar nombres de miembros de TU comunidad.'); return; }
+  }
+  const newName = prompt(`Cambiar el nombre visible de:\n"${currentName}"\n\nNuevo nombre (máx 25 caracteres):`, currentName);
+  if (newName == null) return; // canceló
+  const trimmed = newName.trim();
+  if (!trimmed) { alert('El nombre no puede estar vacío.'); return; }
+  if (trimmed.length > 25) { alert('Máximo 25 caracteres.'); return; }
+  if (trimmed === currentName) return; // sin cambios
+  try {
+    await db.ref('users/' + uid + '/name').set(trimmed);
+    alert(`✓ Nombre cambiado de "${currentName}" a "${trimmed}".\n\nTodos los participantes lo verán actualizado.`);
+  } catch (e) {
+    alert('Error al guardar: ' + (e.message || e));
+  }
+}
 async function adminDeleteUser(uid,name){
   // Either super-admin can delete anyone, OR community-admin can delete from their community
   if(uid===ME.uid){alert('No puedes eliminarte a ti mismo.');return;}
@@ -4426,6 +4470,8 @@ function rAdmCommunities(){
           const medal=['🥇','🥈','🥉'][i]||`<span style="color:var(--mt);font-weight:700;font-size:11px;width:18px;display:inline-block;text-align:center">${i+1}</span>`;
           // Can this user delete the member?
           const canDelete=(m.uid!==ME.uid)&&(m.uid!==SUPER_ADMIN_UID)&&(ME.isSuperAdmin||(ME.communityAdminOf.indexOf(cid)>=0));
+          // Can edit name? super-admin OR community-admin de esta comunidad
+          const canEditName=ME.isSuperAdmin||(ME.communityAdminOf&&ME.communityAdminOf.indexOf(cid)>=0);
           // Is this user a community-admin of this community?
           const isThisCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][m.uid]===true;
           h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .12s" onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background='transparent'" onclick="openBracket('${js(m.uid)}')">
@@ -4433,6 +4479,7 @@ function rAdmCommunities(){
             ${userPic(m,26).replace('class="lbpic"','class="commmem-pic" style="width:26px;height:26px;border-radius:50%;flex-shrink:0"')}
             <div style="flex:1;font-size:12px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}${isThisCommAdmin?' <span title="Admin de esta comunidad" style="margin-left:3px">👑</span>':''}</div>
             <div style="font-size:13px;font-weight:800;color:var(--ac)">${m.tot}<span style="font-size:10px;color:var(--mt);font-weight:500;margin-left:2px">pts</span></div>
+            ${canEditName?`<button onclick="event.stopPropagation();adminEditUserName('${js(m.uid)}','${js(m.name)}')" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:2px 4px;font-size:13px" title="Cambiar nombre">✏️</button>`:''}
             ${ME.isSuperAdmin&&m.uid!==SUPER_ADMIN_UID?(isThisCommAdmin
               ?`<button onclick="event.stopPropagation();adminToggleCommunityAdmin('${js(cid)}','${js(m.uid)}','${js(m.name)}',false)" style="background:none;border:none;color:var(--am);cursor:pointer;padding:2px 4px;font-size:13px" title="Quitar admin de esta comunidad">🔓</button>`
               :`<button onclick="event.stopPropagation();adminToggleCommunityAdmin('${js(cid)}','${js(m.uid)}','${js(m.name)}',true)" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:2px 4px;font-size:13px" title="Hacer admin de esta comunidad">👑</button>`):''}
