@@ -4024,25 +4024,30 @@ function rMyResultsContent(uid,u){
     const idx=members.findIndex(m=>m.uid===uid);
     if(idx>=0)pos='#'+(idx+1);
   }
-  // Recopilar partidos jugados (los que tienen marcador oficial en S.adminR Y ya empezaron)
-  // FILTRO CRÍTICO: solo incluir partidos cuya fecha real ya pasó. Esto evita mostrar
-  // marcadores fantasma (datos de prueba viejos o capturas erróneas) para partidos futuros.
+  // Recopilar partidos jugados con 3 capas defensivas contra datos basura:
+  //   1. GROUP_DATES debe tener entry válida para (g, mi) — el partido existe en el calendario
+  //   2. La fecha real del partido ya debe haber pasado (now >= matchDt)
+  //   3. Dedupe global por par de equipos (evita duplicados por datos en grupos equivocados)
   const now=Date.now();
-  const MATCH_STARTED_BUFFER=0; // 0 = partido ya empezó. Usar 120*60*1000 para "ya terminó".
+  const MATCH_STARTED_BUFFER=0; // 0 = ya empezó
   const playedMatches=[];
+  const _diag={total:0,sinFecha:0,futuro:0,duplicado:0,mostrado:0};
   for(const g of GKEYS){
     const myMs=(p.grupos&&p.grupos[g]&&p.grupos[g].matches)||[];
     const admMs=(r.grupos&&r.grupos[g]&&r.grupos[g].matches)||[];
     const pairs=(typeof GROUP_MATCH_PAIRS!=='undefined'&&GROUP_MATCH_PAIRS[g])||[];
     for(let mi=0;mi<6;mi++){
       const adm=admMs[mi];
-      // Solo incluir partidos con marcador oficial
       if(!adm||adm.a==null||adm.b==null||adm.a===''||adm.b==='')continue;
       const aa=parseInt(adm.a),ab=parseInt(adm.b);
       if(isNaN(aa)||isNaN(ab))continue;
-      // ★ FILTRO POR FECHA: el partido debe haber comenzado (su hora real ya pasó)
+      _diag.total++;
+      // ★ CAPA 1: el partido debe existir en GROUP_DATES (calendario oficial)
+      const gd=GROUP_DATES[g]&&GROUP_DATES[g][mi];
+      if(!gd||!gd.d||!gd.t){_diag.sinFecha++;continue;}
+      // ★ CAPA 2: la fecha real ya debe haber pasado
       const dtCheck=_liveMatchDateUTC(g,mi);
-      if(!dtCheck||(now-dtCheck.getTime())<MATCH_STARTED_BUFFER)continue;
+      if(!dtCheck||(now-dtCheck.getTime())<MATCH_STARTED_BUFFER){_diag.futuro++;continue;}
       const my=myMs[mi];
       const myHasPick=my&&my.a!=null&&my.b!=null&&my.a!==''&&my.b!=='';
       const ma=myHasPick?parseInt(my.a):null;
@@ -4054,18 +4059,35 @@ function rMyResultsContent(uid,u){
         else if(Math.sign(ma-mb)===Math.sign(aa-ab)){pts=1;type='winner';ico='✅';}
         else{pts=0;type='zero';ico='❌';}
       }else{type='zero';ico='–';}
-      // Determinar equipos (considerar swap)
+      // Determinar equipos (gd ya está validado arriba como existente)
       const teams=GRP[g]||[];
       const pair=pairs[mi]||[0,1];
-      const gd=GROUP_DATES[g]&&GROUP_DATES[g][mi];
       const swap=gd&&gd.sw;
       const team1=swap?teams[pair[1]]:teams[pair[0]];
       const team2=swap?teams[pair[0]]:teams[pair[1]];
-      const dt=_liveMatchDateUTC(g,mi);
-      playedMatches.push({g,mi,team1,team2,aa,ab,ma,mb,myHasPick,pts,type,ico,dt:dt?dt.getTime():0});
+      // CAPA EXTRA: si algún equipo viene vacío (GRP/PAIRS inconsistente), saltar
+      if(!team1||!team2){_diag.sinFecha++;continue;}
+      playedMatches.push({g,mi,team1,team2,aa,ab,ma,mb,myHasPick,pts,type,ico,dt:dtCheck.getTime()});
     }
   }
+  // Ordenar por fecha (ascendente)
   playedMatches.sort((a,b)=>a.dt-b.dt);
+  // ★ CAPA 3: dedupe por par de equipos (caso: marcadores en grupos equivocados)
+  // Si el mismo par sale 2 veces, mantenemos el de fecha más temprana (probable real)
+  const _seenPairs=new Set();
+  const dedupedMatches=[];
+  for(const m of playedMatches){
+    const key=[m.team1,m.team2].sort().join('|');
+    if(_seenPairs.has(key)){_diag.duplicado++;continue;}
+    _seenPairs.add(key);
+    dedupedMatches.push(m);
+  }
+  _diag.mostrado=dedupedMatches.length;
+  // Exponer diagnóstico para super-admin (vía window._mrDiag para consola)
+  if(typeof window!=='undefined')window._mrDiag={..._diag,uid,raw:playedMatches.length,final:dedupedMatches.length};
+  // Reemplazar playedMatches con la lista deduplicada para el resto del render
+  playedMatches.length=0;
+  playedMatches.push(...dedupedMatches);
   // Calcular puntos totales solo de grupos jugados (para mostrar en el header)
   const grpPts=playedMatches.reduce((s,m)=>s+m.pts,0);
   const exactCount=playedMatches.filter(m=>m.type==='exact').length;
