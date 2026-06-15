@@ -4091,8 +4091,9 @@ function rMyResultsContent(uid,u){
   // Exponer diagnóstico para super-admin (vía window._mrDiag para consola)
   if(typeof window!=='undefined')window._mrDiag={..._diag,uid,raw:playedMatches.length,final:dedupedMatches.length};
   // Reemplazar playedMatches con la lista deduplicada para el resto del render
+  // Invertir orden: el partido MÁS RECIENTE aparece primero en la card
   playedMatches.length=0;
-  playedMatches.push(...dedupedMatches);
+  playedMatches.push(...dedupedMatches.reverse());
   // Calcular puntos totales solo de grupos jugados (para mostrar en el header)
   const grpPts=playedMatches.reduce((s,m)=>s+m.pts,0);
   const exactCount=playedMatches.filter(m=>m.type==='exact').length;
