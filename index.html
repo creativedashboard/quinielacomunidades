@@ -3623,7 +3623,6 @@ function _getPendingResults() {
   const pending = [];
   const r = S.adminR || {};
   for (const g of GKEYS) {
-    const pairs = (typeof GROUP_MATCH_PAIRS !== 'undefined' && GROUP_MATCH_PAIRS[g]) || null;
     for (let mi = 0; mi < 6; mi++) {
       const dt = _liveMatchDateUTC(g, mi);
       if (!dt) continue;
@@ -3634,7 +3633,8 @@ function _getPendingResults() {
       const match = r.grupos && r.grupos[g] && r.grupos[g].matches && r.grupos[g].matches[mi];
       const hasScore = match && match.a != null && match.b != null && match.a !== '' && match.b !== '';
       if (hasScore) continue;
-      pending.push({ g, mi, dt: dt.getTime(), pair: pairs && pairs[mi] });
+      // FIX: GROUP_MATCH_PAIRS es array global de 6 pares — indexar por mi, no por g
+      pending.push({ g, mi, dt: dt.getTime(), pair: GROUP_MATCH_PAIRS[mi] || null });
     }
   }
   pending.sort((a, b) => a.dt - b.dt);
@@ -4035,7 +4035,8 @@ function rMyResultsContent(uid,u){
   for(const g of GKEYS){
     const myMs=(p.grupos&&p.grupos[g]&&p.grupos[g].matches)||[];
     const admMs=(r.grupos&&r.grupos[g]&&r.grupos[g].matches)||[];
-    const pairs=(typeof GROUP_MATCH_PAIRS!=='undefined'&&GROUP_MATCH_PAIRS[g])||[];
+    // NOTA: GROUP_MATCH_PAIRS es un array GLOBAL de 6 pares (FIFA round-robin),
+    // no un objeto por grupo. Se indexa por mi (0-5), no por letra de grupo.
     for(let mi=0;mi<6;mi++){
       const adm=admMs[mi];
       if(!adm||adm.a==null||adm.b==null||adm.a===''||adm.b==='')continue;
@@ -4060,8 +4061,9 @@ function rMyResultsContent(uid,u){
         else{pts=0;type='zero';ico='❌';}
       }else{type='zero';ico='–';}
       // Determinar equipos (gd ya está validado arriba como existente)
+      // FIX: GROUP_MATCH_PAIRS es un array de 6 pares (no objeto por grupo) → indexar por mi
       const teams=GRP[g]||[];
-      const pair=pairs[mi]||[0,1];
+      const pair=GROUP_MATCH_PAIRS[mi]||[0,1];
       const swap=gd&&gd.sw;
       const team1=swap?teams[pair[1]]:teams[pair[0]];
       const team2=swap?teams[pair[0]]:teams[pair[1]];
