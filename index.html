@@ -4072,7 +4072,13 @@ function rMyResultsContent(uid,u){
       const team2=swap?teams[pair[0]]:teams[pair[1]];
       // CAPA EXTRA: si algún equipo viene vacío (GRP/PAIRS inconsistente), saltar
       if(!team1||!team2){_diag.sinFecha++;continue;}
-      playedMatches.push({g,mi,team1,team2,aa,ab,ma,mb,myHasPick,pts,type,ico,dt:dtCheck.getTime()});
+      // Storage convention (ver línea 2850): adm.a/my.a corresponden a teams[pair[0]] (sin swap).
+      // Si hay swap, los marcadores visuales se invierten para coincidir con el orden de los equipos.
+      const aaDisp=swap?ab:aa;
+      const abDisp=swap?aa:ab;
+      const maDisp=swap?mb:ma;
+      const mbDisp=swap?ma:mb;
+      playedMatches.push({g,mi,team1,team2,aa:aaDisp,ab:abDisp,ma:maDisp,mb:mbDisp,myHasPick,pts,type,ico,dt:dtCheck.getTime()});
     }
   }
   // Ordenar por fecha (ascendente)
