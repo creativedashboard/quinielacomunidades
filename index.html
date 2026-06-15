@@ -4178,7 +4178,8 @@ function rMyPicksContent(uid,u){
   const p=userPicks(uid);
   const comm=S.communities&&S.communities[u.communityId];
   const now=Date.now();
-  // Recopilar partidos FUTUROS (fecha aún no pasa) con info de mi predicción
+  const MATCH_DURATION=120*60*1000; // 2 horas: ventana para considerar "en vivo"
+  // Recopilar partidos EN VIVO o FUTUROS (no incluir los que ya terminaron)
   const upcomingMatches=[];
   for(const g of GKEYS){
     const myMs=(p.grupos&&p.grupos[g]&&p.grupos[g].matches)||[];
@@ -4187,8 +4188,10 @@ function rMyPicksContent(uid,u){
       if(!gd||!gd.d||!gd.t)continue;
       const dt=_liveMatchDateUTC(g,mi);
       if(!dt)continue;
-      // Solo partidos futuros (no han empezado)
-      if(now>=dt.getTime())continue;
+      const elapsed=now-dt.getTime();
+      // Descartar solo los partidos que YA terminaron (más de 2 horas desde inicio)
+      if(elapsed>=MATCH_DURATION)continue;
+      const isLive=elapsed>=0; // partido empezó pero aún no termina
       const teams=GRP[g]||[];
       const pair=GROUP_MATCH_PAIRS[mi]||[0,1];
       const swap=gd.sw;
@@ -4203,12 +4206,11 @@ function rMyPicksContent(uid,u){
       const maDisp=swap?mb:ma;
       const mbDisp=swap?ma:mb;
       const mx=_toMexicoDateTime(g,mi);
-      upcomingMatches.push({g,mi,team1,team2,ma:maDisp,mb:mbDisp,myHasPick,mxDate:mx.date,mxTime:mx.time,sede:gd.c||'',dt:dt.getTime()});
+      upcomingMatches.push({g,mi,team1,team2,ma:maDisp,mb:mbDisp,myHasPick,isLive,mxDate:mx.date,mxTime:mx.time,sede:gd.c||'',dt:dt.getTime()});
     }
   }
   upcomingMatches.sort((a,b)=>a.dt-b.dt);
   const totalPicks=upcomingMatches.filter(m=>m.myHasPick).length;
-  const pendientes=upcomingMatches.length-totalPicks;
   // Header
   const initial=u.name?u.name[0].toUpperCase():'?';
   const picHtml=u.photo
@@ -4222,7 +4224,6 @@ function rMyPicksContent(uid,u){
       <div class="mrm-hero-stats">
         <div class="mrm-stat"><div class="mrm-stat-num">${upcomingMatches.length}</div><div class="mrm-stat-lbl">Próximos</div></div>
         <div class="mrm-stat"><div class="mrm-stat-num">${totalPicks}</div><div class="mrm-stat-lbl">Con pick ✅</div></div>
-        <div class="mrm-stat"><div class="mrm-stat-num">${pendientes}</div><div class="mrm-stat-lbl">Faltan ⚠️</div></div>
       </div>
     </div>
     <div class="mrm-list">
@@ -4235,14 +4236,20 @@ function rMyPicksContent(uid,u){
       const pickHtml=m.myHasPick
         ?`<span class="mrm-pick-status done">${m.ma}-${m.mb}</span>`
         :`<span class="mrm-pick-status empty">sin pick</span>`;
-      h+=`<div class="mrm-match">
+      const liveBadge=m.isLive
+        ?`<span style="display:inline-block;background:#dc2626;color:#fff;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.5px;margin-left:6px;vertical-align:middle">🔴 EN VIVO</span>`
+        :'';
+      const dateLine=m.isLive
+        ?`<div class="mrm-match-scores" style="color:#dc2626;font-weight:700">🔴 ${esc(m.mxDate)} · ${esc(m.mxTime)} MX${m.sede?' · 📍 '+esc(m.sede):''}</div>`
+        :`<div class="mrm-match-scores">📅 ${esc(m.mxDate)} · ${esc(m.mxTime)} MX${m.sede?' · 📍 '+esc(m.sede):''}</div>`;
+      h+=`<div class="mrm-match"${m.isLive?' style="background:#fef2f2;border-color:#fecaca"':''}>
         <div class="mrm-match-info">
           <div class="mrm-match-teams">
             <span style="font-size:14px">${fTeam(m.team1)}</span>${esc(m.team1)}
             <span style="color:#94a3b8;font-weight:600">vs</span>
-            <span style="font-size:14px">${fTeam(m.team2)}</span>${esc(m.team2)}
+            <span style="font-size:14px">${fTeam(m.team2)}</span>${esc(m.team2)}${liveBadge}
           </div>
-          <div class="mrm-match-scores">📅 ${esc(m.mxDate)} · ${esc(m.mxTime)} MX${m.sede?' · 📍 '+esc(m.sede):''}</div>
+          ${dateLine}
         </div>
         ${pickHtml}
       </div>`;
