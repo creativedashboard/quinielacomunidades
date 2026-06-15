@@ -204,13 +204,17 @@ html[data-ucolor] .pstrip-step.active .pstrip-dot{background:var(--uc)}
 #match-detail-modal{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:850;display:none;align-items:center;justify-content:center;padding:18px;transition:background .22s var(--ease-out)}
 #match-detail-modal.on{display:flex;background:rgba(0,0,0,.55)}
 /* Modal "Mis resultados" — layout shareable optimizado para screenshot */
-#my-results-modal{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:851;display:none;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto;transition:background .22s var(--ease-out)}
-#my-results-modal.on{display:flex;background:rgba(0,0,0,.65)}
+#my-results-modal,#my-picks-modal{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:851;display:none;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto;transition:background .22s var(--ease-out)}
+#my-results-modal.on,#my-picks-modal.on{display:flex;background:rgba(0,0,0,.65)}
 .mrm-box{background:#fff;border-radius:16px;max-width:440px;width:100%;margin:auto;box-shadow:0 24px 60px rgba(0,0,0,.4);opacity:0;transform:scale(0.96);transition:opacity .18s var(--ease-out),transform .18s var(--ease-out);overflow:hidden;position:relative}
-#my-results-modal.on .mrm-box{opacity:1;transform:scale(1)}
+#my-results-modal.on .mrm-box,#my-picks-modal.on .mrm-box{opacity:1;transform:scale(1)}
 .mrm-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);color:#fff;border:0;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;z-index:5;font-weight:700}
 .mrm-card{padding:0;font-family:'DM Sans',sans-serif}
 .mrm-hero{background:linear-gradient(135deg,#16a34a,#0f766e);color:#fff;padding:24px 22px 22px;text-align:center}
+.mrm-hero.picks{background:linear-gradient(135deg,#2563eb,#1e40af)}
+.mrm-pick-status{padding:5px 10px;border-radius:8px;font-weight:700;font-size:11px;white-space:nowrap;letter-spacing:.2px}
+.mrm-pick-status.done{background:#dbeafe;color:#1e40af}
+.mrm-pick-status.empty{background:#fee2e2;color:#991b1b}
 .mrm-hero-pic{width:64px;height:64px;border-radius:50%;border:3px solid rgba(255,255,255,.4);overflow:hidden;margin:0 auto 10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800}
 .mrm-hero-pic img{width:100%;height:100%;object-fit:cover;display:block}
 .mrm-hero-name{font-size:22px;font-weight:800;letter-spacing:-.3px;line-height:1.1;margin-bottom:4px}
@@ -851,6 +855,7 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
 <div id="modal-overlay"><div id="modal-box"></div></div>
 <div id="match-detail-modal" onclick="closeMatchDetail(event)"><div class="mdm-box" onclick="event.stopPropagation()"><div class="mdm-header" id="mdm-header"></div><div class="mdm-body" id="mdm-body"></div></div></div>
 <div id="my-results-modal" onclick="closeMyResults(event)"><div style="width:100%;max-width:440px;margin:auto"><button class="mrm-close" onclick="closeMyResults()" title="Cerrar">✕</button><div class="mrm-box" id="mrm-card" onclick="event.stopPropagation()"></div><div class="mrm-tip">📸 Toma screenshot para compartir</div></div></div>
+<div id="my-picks-modal" onclick="closeMyPicks(event)"><div style="width:100%;max-width:440px;margin:auto"><button class="mrm-close" onclick="closeMyPicks()" title="Cerrar">✕</button><div class="mrm-box" id="mpk-card" onclick="event.stopPropagation()"></div><div class="mrm-tip">📸 Toma screenshot para compartir</div></div></div>
 
 <!-- ── FLOAT NEXT ──────────────────────────────────── -->
 <div id="float-next">
@@ -3985,6 +3990,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     const m=document.getElementById('match-detail-modal');if(m&&m.classList.contains('on'))m.classList.remove('on');
     const mr=document.getElementById('my-results-modal');if(mr&&mr.classList.contains('on'))mr.classList.remove('on');
+    const mp=document.getElementById('my-picks-modal');if(mp&&mp.classList.contains('on'))mp.classList.remove('on');
   }
 });
 
@@ -4149,6 +4155,108 @@ function rMyResultsContent(uid,u){
   return h;
 }
 
+// ─────────────────────────────────────────────────────────────
+// "MIS PICKS" — card shareable con predicciones de partidos próximos
+// Solo lee datos (myPicks) — cero impacto en JSON/picks/cálculos
+// ─────────────────────────────────────────────────────────────
+function closeMyPicks(e){
+  if(e&&e.currentTarget!==e.target)return;
+  document.getElementById('my-picks-modal').classList.remove('on');
+}
+function openMyPicks(uid){
+  uid=uid||ME.uid;
+  const u=S.users&&S.users[uid];
+  if(!u){alert('Usuario no encontrado');return;}
+  const html=rMyPicksContent(uid,u);
+  document.getElementById('mpk-card').innerHTML=html;
+  document.getElementById('my-picks-modal').classList.add('on');
+  if(typeof twemoji!=='undefined'&&twemoji.parse){
+    try{twemoji.parse(document.getElementById('mpk-card'));}catch(_e){}
+  }
+}
+function rMyPicksContent(uid,u){
+  const p=userPicks(uid);
+  const comm=S.communities&&S.communities[u.communityId];
+  const now=Date.now();
+  // Recopilar partidos FUTUROS (fecha aún no pasa) con info de mi predicción
+  const upcomingMatches=[];
+  for(const g of GKEYS){
+    const myMs=(p.grupos&&p.grupos[g]&&p.grupos[g].matches)||[];
+    for(let mi=0;mi<6;mi++){
+      const gd=GROUP_DATES[g]&&GROUP_DATES[g][mi];
+      if(!gd||!gd.d||!gd.t)continue;
+      const dt=_liveMatchDateUTC(g,mi);
+      if(!dt)continue;
+      // Solo partidos futuros (no han empezado)
+      if(now>=dt.getTime())continue;
+      const teams=GRP[g]||[];
+      const pair=GROUP_MATCH_PAIRS[mi]||[0,1];
+      const swap=gd.sw;
+      const team1=swap?teams[pair[1]]:teams[pair[0]];
+      const team2=swap?teams[pair[0]]:teams[pair[1]];
+      if(!team1||!team2)continue;
+      const my=myMs[mi];
+      const myHasPick=my&&my.a!=null&&my.b!=null&&my.a!==''&&my.b!=='';
+      const ma=myHasPick?parseInt(my.a):null;
+      const mb=myHasPick?parseInt(my.b):null;
+      // Invertir orden visual del pick si hay swap (storage en orden original)
+      const maDisp=swap?mb:ma;
+      const mbDisp=swap?ma:mb;
+      const mx=_toMexicoDateTime(g,mi);
+      upcomingMatches.push({g,mi,team1,team2,ma:maDisp,mb:mbDisp,myHasPick,mxDate:mx.date,mxTime:mx.time,sede:gd.c||'',dt:dt.getTime()});
+    }
+  }
+  upcomingMatches.sort((a,b)=>a.dt-b.dt);
+  const totalPicks=upcomingMatches.filter(m=>m.myHasPick).length;
+  const pendientes=upcomingMatches.length-totalPicks;
+  // Header
+  const initial=u.name?u.name[0].toUpperCase():'?';
+  const picHtml=u.photo
+    ?`<img src="${esc(u.photo)}" alt="${esc(initial)}" referrerpolicy="no-referrer" onerror="this.style.display='none';this.parentElement.textContent='${esc(initial)}'">`
+    :esc(initial);
+  let h=`<div class="mrm-card">
+    <div class="mrm-hero picks">
+      <div class="mrm-hero-pic">${picHtml}</div>
+      <div class="mrm-hero-name">${esc(u.name||'Sin nombre')}</div>
+      <div class="mrm-hero-comm">🔮 ${esc(comm?comm.name:'Quiniela')}</div>
+      <div class="mrm-hero-stats">
+        <div class="mrm-stat"><div class="mrm-stat-num">${upcomingMatches.length}</div><div class="mrm-stat-lbl">Próximos</div></div>
+        <div class="mrm-stat"><div class="mrm-stat-num">${totalPicks}</div><div class="mrm-stat-lbl">Con pick ✅</div></div>
+        <div class="mrm-stat"><div class="mrm-stat-num">${pendientes}</div><div class="mrm-stat-lbl">Faltan ⚠️</div></div>
+      </div>
+    </div>
+    <div class="mrm-list">
+      <div class="mrm-list-title">🔮 Mis picks de próximos partidos</div>`;
+  if(upcomingMatches.length===0){
+    h+=`<div style="padding:24px 12px;text-align:center;color:#94a3b8;font-size:13px">No hay partidos próximos en el calendario.</div>`;
+  }else{
+    for(const m of upcomingMatches){
+      const fTeam=(typeof flag==='function')?flag:(()=>'');
+      const pickHtml=m.myHasPick
+        ?`<span class="mrm-pick-status done">${m.ma}-${m.mb}</span>`
+        :`<span class="mrm-pick-status empty">sin pick</span>`;
+      h+=`<div class="mrm-match">
+        <div class="mrm-match-info">
+          <div class="mrm-match-teams">
+            <span style="font-size:14px">${fTeam(m.team1)}</span>${esc(m.team1)}
+            <span style="color:#94a3b8;font-weight:600">vs</span>
+            <span style="font-size:14px">${fTeam(m.team2)}</span>${esc(m.team2)}
+          </div>
+          <div class="mrm-match-scores">📅 ${esc(m.mxDate)} · ${esc(m.mxTime)} MX${m.sede?' · 📍 '+esc(m.sede):''}</div>
+        </div>
+        ${pickHtml}
+      </div>`;
+    }
+  }
+  h+=`</div>
+    <div class="mrm-foot">
+      <div class="mrm-foot-brand">⚽ Quiniela Chida · Mundial 2026</div>
+      <div class="mrm-foot-url">app.quinielachida.com</div>
+    </div>
+  </div>`;
+  return h;
+}
+
 // Render the live/upcoming matches widget (async, from openfootball)
 async function renderMatchesWidget(){
   const el=document.getElementById('matches-widget');
@@ -4245,16 +4353,31 @@ function rDashboard(){
     return 0;
   });
 
-  // Botón "Mis resultados" — abre modal shareable con historial del usuario
-  if(ME.uid&&hasR){
-    h+=`<div onclick="openMyResults()" style="background:linear-gradient(135deg,#16a34a,#0f766e);color:#fff;border-radius:12px;padding:14px 18px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(22,163,74,.25);transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(22,163,74,.35)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(22,163,74,.25)'">
-      <div style="font-size:22px">📊</div>
+  // Botones "Mis resultados" + "Mis picks" — cards shareable del usuario
+  // - "Mis resultados" (verde): solo si hay marcadores oficiales (hasR)
+  // - "Mis picks" (azul): siempre visible si el user tiene UID
+  if(ME.uid){
+    const cardResults=`<div onclick="openMyResults()" style="background:linear-gradient(135deg,#16a34a,#0f766e);color:#fff;border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 4px 14px rgba(22,163,74,.25);transition:transform .15s,box-shadow .15s;flex:1" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(22,163,74,.35)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(22,163,74,.25)'">
+      <div style="font-size:20px">📊</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:800;letter-spacing:-.2px">Mis resultados</div>
-        <div style="font-size:11px;opacity:.9;font-weight:600;margin-top:1px">Card lista para compartir en redes</div>
+        <div style="font-size:13px;font-weight:800;letter-spacing:-.2px">Mis resultados</div>
+        <div style="font-size:10px;opacity:.9;font-weight:600;margin-top:1px">Partidos jugados</div>
       </div>
-      <div style="font-size:18px;font-weight:700">→</div>
+      <div style="font-size:16px;font-weight:700">→</div>
     </div>`;
+    const cardPicks=`<div onclick="openMyPicks()" style="background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 4px 14px rgba(37,99,235,.25);transition:transform .15s,box-shadow .15s;flex:1" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(37,99,235,.35)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(37,99,235,.25)'">
+      <div style="font-size:20px">🔮</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:800;letter-spacing:-.2px">Mis picks</div>
+        <div style="font-size:10px;opacity:.9;font-weight:600;margin-top:1px">Próximos partidos</div>
+      </div>
+      <div style="font-size:16px;font-weight:700">→</div>
+    </div>`;
+    if(hasR){
+      h+=`<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">${cardResults}${cardPicks}</div>`;
+    }else{
+      h+=`<div style="margin-bottom:14px">${cardPicks}</div>`;
+    }
   }
   h+=`<div class="lb"><div class="lbhdr"><span class="lbhtitle">🏆 ${esc(comm?comm.name:'Mi comunidad')}</span><span class="lbhsub">${members.length} participante${members.length!==1?'s':''}</span></div>`;
   if(members.length===0){
