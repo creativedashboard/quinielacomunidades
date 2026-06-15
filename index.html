@@ -4024,7 +4024,11 @@ function rMyResultsContent(uid,u){
     const idx=members.findIndex(m=>m.uid===uid);
     if(idx>=0)pos='#'+(idx+1);
   }
-  // Recopilar partidos jugados (los que tienen marcador oficial en S.adminR)
+  // Recopilar partidos jugados (los que tienen marcador oficial en S.adminR Y ya empezaron)
+  // FILTRO CRÍTICO: solo incluir partidos cuya fecha real ya pasó. Esto evita mostrar
+  // marcadores fantasma (datos de prueba viejos o capturas erróneas) para partidos futuros.
+  const now=Date.now();
+  const MATCH_STARTED_BUFFER=0; // 0 = partido ya empezó. Usar 120*60*1000 para "ya terminó".
   const playedMatches=[];
   for(const g of GKEYS){
     const myMs=(p.grupos&&p.grupos[g]&&p.grupos[g].matches)||[];
@@ -4036,6 +4040,9 @@ function rMyResultsContent(uid,u){
       if(!adm||adm.a==null||adm.b==null||adm.a===''||adm.b==='')continue;
       const aa=parseInt(adm.a),ab=parseInt(adm.b);
       if(isNaN(aa)||isNaN(ab))continue;
+      // ★ FILTRO POR FECHA: el partido debe haber comenzado (su hora real ya pasó)
+      const dtCheck=_liveMatchDateUTC(g,mi);
+      if(!dtCheck||(now-dtCheck.getTime())<MATCH_STARTED_BUFFER)continue;
       const my=myMs[mi];
       const myHasPick=my&&my.a!=null&&my.b!=null&&my.a!==''&&my.b!=='';
       const ma=myHasPick?parseInt(my.a):null;
