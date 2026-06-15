@@ -3580,6 +3580,65 @@ function _liveCountdown(match) {
   if (hrs > 0) return `En ${hrs}h ${mins}m`;
   return `En ${mins} min`;
 }
+// ─────────────────────────────────────────────────────────────
+// MARCADORES PENDIENTES (solo admins)
+// Detecta partidos que ya terminaron (hace +2 hrs) pero NO tienen
+// marcador capturado en S.adminR — útil para detectar fallas del autosync.
+// ─────────────────────────────────────────────────────────────
+function _getPendingResults() {
+  const now = Date.now();
+  const MATCH_DURATION = 120 * 60 * 1000; // 2 horas
+  const pending = [];
+  const r = S.adminR || {};
+  for (const g of GKEYS) {
+    const pairs = (typeof GROUP_MATCH_PAIRS !== 'undefined' && GROUP_MATCH_PAIRS[g]) || null;
+    for (let mi = 0; mi < 6; mi++) {
+      const dt = _liveMatchDateUTC(g, mi);
+      if (!dt) continue;
+      const elapsed = now - dt.getTime();
+      // Solo partidos que ya terminaron (pasaron al menos 2 horas desde inicio)
+      if (elapsed < MATCH_DURATION) continue;
+      // Verificar si ya tiene marcador capturado
+      const match = r.grupos && r.grupos[g] && r.grupos[g].matches && r.grupos[g].matches[mi];
+      const hasScore = match && match.a != null && match.b != null && match.a !== '' && match.b !== '';
+      if (hasScore) continue;
+      pending.push({ g, mi, dt: dt.getTime(), pair: pairs && pairs[mi] });
+    }
+  }
+  pending.sort((a, b) => a.dt - b.dt);
+  return pending;
+}
+function rPendingResults() {
+  // Solo visible para admins (super-admin o community-admin)
+  if (!ME.isAdmin && !ME.isSuperAdmin) return '';
+  const pending = _getPendingResults();
+  if (pending.length === 0) return '';
+  let h = `<div class="rm-section-header" style="margin-top:18px">
+    <div class="rm-section-title" style="color:#92400e">⚠️ Marcadores pendientes <span style="font-size:11px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;margin-left:6px">${pending.length}</span></div>
+    <div style="font-size:11px;color:var(--mt);margin-top:3px">Partidos jugados sin marcador capturado. Clic para ir a capturar.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:10px">`;
+  for (const p of pending) {
+    const gd = GROUP_DATES[p.g] && GROUP_DATES[p.g][p.mi];
+    const mx = _toMexicoDateTime(p.g, p.mi);
+    const t1 = p.pair && p.pair[0] || '?';
+    const t2 = p.pair && p.pair[1] || '?';
+    const fTeam = (typeof flag === 'function') ? flag : (() => '');
+    h += `<div onclick="goTab('admin')" style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #fde68a;border-radius:8px;padding:9px 12px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#fffbeb'" onmouseout="this.style.background='#fff'">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:14px">${fTeam(t1)}</span>${esc(t1)}
+          <span style="color:var(--mt);font-weight:500">vs</span>
+          <span style="font-size:14px">${fTeam(t2)}</span>${esc(t2)}
+        </div>
+        <div style="font-size:11px;color:var(--mt);margin-top:2px">${mx.date} · ${mx.time} MX${gd && gd.c ? ' · ' + esc(gd.c) : ''} · Grupo ${p.g}</div>
+      </div>
+      <span style="font-size:11px;font-weight:700;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:5px;white-space:nowrap">Capturar →</span>
+    </div>`;
+  }
+  h += `</div>`;
+  return h;
+}
 // Render de la sección "En vivo / próximos"
 function rLiveUpcoming(members) {
   const { live, upcoming } = _getLiveAndUpcoming();
@@ -3961,6 +4020,8 @@ function rDashboard(){
   setTimeout(startCountdown,100);
 
   const members=myCommunityMembers();
+  // Sección admin: marcadores pendientes (solo visible para admins)
+  h+=rPendingResults();
   // Sección: en vivo / próximos partidos (con predicciones de la comunidad)
   h+=rLiveUpcoming(members);
   // Sección: últimos resultados (solo si hay marcadores oficiales)
