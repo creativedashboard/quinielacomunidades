@@ -2269,7 +2269,9 @@ function calcPts(uid){
   // bd: breakdown de puntos por fase + stats para desempate (NO suman a tot)
   // Tiebreakers: exact = marcadores exactos acertados, group1 = 1° de grupo correctos,
   //              gdDiff = suma de |diferencia de goles predicha − oficial| (menor = mejor)
-  const bd={grp:0,t8:0,r32:0,r16:0,qf:0,sf:0,fin:0,thr:0,exact:0,group1:0,gdDiff:0};
+  // Sub-desglose visual: marcadores (exact 3pts + winner 1pt) vs lugares (1°/2° de grupo + mejores 3eros)
+  //   bd.marcadores + bd.lugares = bd.grp + bd.t8 (siempre iguales — solo redistribuyen para visual)
+  const bd={grp:0,t8:0,r32:0,r16:0,qf:0,sf:0,fin:0,thr:0,exact:0,group1:0,gdDiff:0,marcadores:0,lugares:0};
   // Group standings comparison: must have ALL 6 matches played by both sides
   function groupComplete(p,g){
     const m=p.grupos&&p.grupos[g]&&p.grupos[g].matches;
@@ -2279,8 +2281,8 @@ function calcPts(uid){
     if(!groupComplete(p,g)||!groupComplete(r,g))continue;
     const myTable=calcGroupTable(g,p.grupos[g]);
     const adminTable=calcGroupTable(g,r.grupos[g]);
-    if(myTable[0]&&adminTable[0]&&myTable[0].name===adminTable[0].name){tot+=PTS.p1;bd.grp+=PTS.p1;bd.group1++;}
-    if(myTable[1]&&adminTable[1]&&myTable[1].name===adminTable[1].name){tot+=PTS.p2;bd.grp+=PTS.p2;}
+    if(myTable[0]&&adminTable[0]&&myTable[0].name===adminTable[0].name){tot+=PTS.p1;bd.grp+=PTS.p1;bd.group1++;bd.lugares+=PTS.p1;}
+    if(myTable[1]&&adminTable[1]&&myTable[1].name===adminTable[1].name){tot+=PTS.p2;bd.grp+=PTS.p2;bd.lugares+=PTS.p2;}
   }
   // Match prediction bonus: 3 pts exact score, 1 pt just-correct-winner
   // Both my pick AND admin result must be PRESENT (not null/empty) for any points
@@ -2297,10 +2299,10 @@ function calcPts(uid){
       if(isNaN(ma)||isNaN(mb)||isNaN(aa)||isNaN(ab))continue;
       // Tiebreaker: distancia entre diferencia de goles predicha vs oficial
       bd.gdDiff+=Math.abs((ma-mb)-(aa-ab));
-      if(ma===aa&&mb===ab){tot+=3;bd.grp+=3;bd.exact++;} // exact score
+      if(ma===aa&&mb===ab){tot+=3;bd.grp+=3;bd.exact++;bd.marcadores+=3;} // exact score
       else{
         const myDiff=Math.sign(ma-mb),admDiff=Math.sign(aa-ab);
-        if(myDiff===admDiff){tot+=1;bd.grp+=1;}
+        if(myDiff===admDiff){tot+=1;bd.grp+=1;bd.marcadores+=1;}
       }
     }
   }
@@ -2310,7 +2312,7 @@ function calcPts(uid){
   // a partial r.t8 that changes as admin enters more results.
   if(r.t8&&r.t8.length===8){
     const realSet=new Set(r.t8);
-    for(const t of(p.t8||[])){if(realSet.has(t)){tot+=PTS.t8;bd.t8+=PTS.t8;}}
+    for(const t of(p.t8||[])){if(realSet.has(t)){tot+=PTS.t8;bd.t8+=PTS.t8;bd.lugares+=PTS.t8;}}
   }
   for(let i=0;i<16;i++)if(p.r32[i]&&p.r32[i]===r.r32[i]){tot+=PTS.r32;bd.r32+=PTS.r32;}
   for(let i=0;i<8;i++) if(p.r16[i]&&p.r16[i]===r.r16[i]){tot+=PTS.r16;bd.r16+=PTS.r16;}
@@ -2575,22 +2577,30 @@ function adminRandomFillGroups(){
 // Shows a preview of new/changed scores, admin confirms before saving
 // ═══════════════════════════════════════════════════════════════
 async function syncOfficialResults(){
+  console.log('[SYNC] iniciando, ME.isAdmin=',ME.isAdmin,'ME.uid=',ME.uid);
   if(!ME.isAdmin){alert('Solo el admin puede importar resultados.');return;}
-  // Loading toast
+  // Loading toast — movido a top:80px (antes bottom:24px) para evitar el safe area / URL bar de iOS Safari en mobile
   let loadingEl=document.getElementById('sync-loading');
-  if(!loadingEl){
-    loadingEl=document.createElement('div');
-    loadingEl.id='sync-loading';
-    loadingEl.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9000;background:#0f172a;color:#fff;padding:13px 22px;border-radius:11px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3)';
-    loadingEl.textContent='⏳ Conectando con resultados oficiales...';
-    document.body.appendChild(loadingEl);
+  if(loadingEl)loadingEl.remove();
+  loadingEl=document.createElement('div');
+  loadingEl.id='sync-loading';
+  loadingEl.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:9999;background:#0f172a;color:#fff;padding:14px 22px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 8px 28px rgba(0,0,0,.4);max-width:90vw;text-align:center;animation:syncPulse 1.2s ease-in-out infinite';
+  loadingEl.textContent='⏳ Conectando con resultados oficiales...';
+  // Inyectar keyframes inline si no existen
+  if(!document.getElementById('syncPulseKF')){
+    const st=document.createElement('style');st.id='syncPulseKF';
+    st.textContent='@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.7}}';
+    document.head.appendChild(st);
   }
+  document.body.appendChild(loadingEl);
   let data;
   try{
     data=await fetchOpenFootball(true);
+    console.log('[SYNC] fetchOpenFootball OK',data?'datos recibidos':'sin datos');
   }catch(e){
+    console.error('[SYNC] fetch error:',e);
     if(loadingEl)loadingEl.remove();
-    alert('⚠️ No se pudieron obtener los resultados oficiales en este momento.\n\nIntenta de nuevo en unos minutos. Si el problema persiste, puedes meter los marcadores manualmente.');
+    alert('⚠️ No se pudieron obtener los resultados oficiales en este momento.\n\nDetalle: '+(e&&e.message?e.message:'error desconocido')+'\n\nIntenta de nuevo en unos minutos. Si el problema persiste, puedes meter los marcadores manualmente.');
     return;
   }
   if(loadingEl)loadingEl.remove();
@@ -2824,10 +2834,9 @@ function rGrupos(adm){
     </div>
     <div style="font-size:12px;color:var(--mt);margin-bottom:14px;padding:10px 14px;background:var(--acl);border-radius:8px;line-height:1.5">💡 Predice los goles de cada partido. La tabla y los terceros se calculan automáticamente.</div>`;
   }else{
-    // Admin view — add sync + test-fill buttons
+    // Admin view — sync button (test-fill removed por petición de Cris 2026-06-15)
     h+=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <button onclick="syncOfficialResults()" style="padding:10px 14px;background:var(--gn);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif" title="Importar marcadores oficiales del Mundial">🔄 Importar resultados oficiales</button>
-      <button onclick="adminRandomFillGroups()" style="padding:10px 14px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif" title="Solo para pruebas">🎲 Rellenar para prueba (admin)</button>
     </div>`;
   }
   h+='<div id="groups-capturable" class="ggrid">';
@@ -4426,14 +4435,20 @@ function rDashboard(){
       }
       let chips='Esperando resultados...';
       if(hasR){
+        // Sub-desglose visual: marcadores (3pts exacto + 1pt ganador) vs lugares (1°/2° de grupo + 3eros)
+        // bd.marcadores + bd.lugares = bd.grp + bd.t8 (siempre coherente, solo redistribuye)
+        const breakdown=(m.bd.marcadores||m.bd.lugares)
+          ?`<span style="opacity:.78;font-weight:600;font-size:.88em;margin-left:5px;white-space:nowrap">🎯${m.bd.marcadores} · 📍${m.bd.lugares}</span>`
+          :'';
         if(isTournament){
           // Tournament Mode: show Stage 1 + Stage 2 separated
           const stage1=m.bd.grp+m.bd.t8;
           const stage2=m.bd.r32+m.bd.r16+m.bd.qf+m.bd.sf+m.bd.fin+m.bd.thr;
-          chips=`<span style="display:inline-flex;gap:4px;align-items:center;background:#fef3c7;color:#78350f;padding:2px 7px;border-radius:5px;font-weight:700;margin-right:5px">🥇 Etapa 1: ${stage1}</span><span style="display:inline-flex;gap:4px;align-items:center;background:#dbeafe;color:#1e3a8a;padding:2px 7px;border-radius:5px;font-weight:700">🏆 Etapa 2: ${stage2}</span>`;
+          chips=`<span style="display:inline-flex;gap:4px;align-items:center;background:#fef3c7;color:#78350f;padding:2px 7px;border-radius:5px;font-weight:700;margin-right:5px">🥇 Etapa 1: ${stage1}${breakdown}</span><span style="display:inline-flex;gap:4px;align-items:center;background:#dbeafe;color:#1e3a8a;padding:2px 7px;border-radius:5px;font-weight:700">🏆 Etapa 2: ${stage2}</span>`;
         }else{
-          // Normal Mode: show detailed chips per phase
-          chips=[m.bd.grp?`Grupos:${m.bd.grp}`:null,m.bd.t8?`3eros:${m.bd.t8}`:null,m.bd.r32?`16avos:${m.bd.r32}`:null,m.bd.r16?`Oct:${m.bd.r16}`:null,m.bd.qf?`1/4:${m.bd.qf}`:null,m.bd.sf?`SF:${m.bd.sf}`:null,m.bd.fin?`Final:${m.bd.fin}`:null].filter(Boolean).join(' · ')||'Sin puntos aún';
+          // Normal Mode: marcadores + lugares + chips por fase del bracket
+          const grpChip=(m.bd.marcadores||m.bd.lugares)?`🎯${m.bd.marcadores} · 📍${m.bd.lugares}`:null;
+          chips=[grpChip,m.bd.r32?`16avos:${m.bd.r32}`:null,m.bd.r16?`Oct:${m.bd.r16}`:null,m.bd.qf?`1/4:${m.bd.qf}`:null,m.bd.sf?`SF:${m.bd.sf}`:null,m.bd.fin?`Final:${m.bd.fin}`:null].filter(Boolean).join(' · ')||'Sin puntos aún';
         }
       }
       // Indicador de completado (depende del modo)
