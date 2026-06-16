@@ -238,6 +238,61 @@ html[data-ucolor] .pstrip-step.active .pstrip-dot{background:var(--uc)}
 .mrm-foot-brand{font-size:13px;font-weight:800;color:#0f172a;letter-spacing:-.2px}
 .mrm-foot-url{font-size:11px;color:#64748b;margin-top:2px;font-weight:600}
 .mrm-tip{padding:10px 16px;text-align:center;font-size:11px;color:rgba(255,255,255,.8);font-weight:600}
+/* Modal "Match Share" — share card por partido */
+#match-share-modal{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:852;display:none;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto;transition:background .22s var(--ease-out)}
+#match-share-modal.on{display:flex;background:rgba(0,0,0,.72)}
+.msc-box{width:100%;max-width:380px;margin:auto;opacity:0;transform:scale(.96);transition:opacity .18s var(--ease-out),transform .18s var(--ease-out);position:relative}
+#match-share-modal.on .msc-box{opacity:1;transform:scale(1)}
+.msc-close{position:absolute;top:-12px;right:-12px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;border:2px solid rgba(255,255,255,.2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;z-index:10;font-weight:700}
+.msc-card{border-radius:24px;position:relative;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08);font-family:'DM Sans',sans-serif;color:#fff;isolation:isolate;width:100%;aspect-ratio:360/500}
+.msc-card .bg{position:absolute;inset:0;z-index:1}
+.msc-card .bg::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 15% 12%,rgba(255,255,255,.6) 0,transparent 1px),radial-gradient(circle at 78% 8%,rgba(255,255,255,.5) 0,transparent 1px),radial-gradient(circle at 45% 18%,rgba(255,255,255,.4) 0,transparent 1px),radial-gradient(circle at 88% 22%,rgba(255,255,255,.7) 0,transparent 1px),radial-gradient(circle at 25% 26%,rgba(255,255,255,.3) 0,transparent 1px)}
+.msc-card.exact .bg{background:radial-gradient(ellipse at 50% 35%,rgba(34,197,94,.45) 0,transparent 60%),linear-gradient(180deg,#0a1f0d 0%,#14532d 35%,#166534 70%,#22c55e 100%)}
+.msc-card.winner .bg{background:radial-gradient(ellipse at 50% 35%,rgba(59,130,246,.35) 0,transparent 60%),linear-gradient(180deg,#0c1027 0%,#1e3a8a 35%,#1d4ed8 70%,#3b82f6 100%)}
+.msc-card.fail .bg{background:radial-gradient(ellipse at 50% 35%,rgba(100,116,139,.3) 0,transparent 60%),linear-gradient(180deg,#0a0a14 0%,#1e293b 50%,#475569 100%)}
+.msc-card .result-badge{position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;z-index:2;display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:900;font-size:60px;opacity:.12}
+.msc-card.exact .result-badge{background:#22c55e;color:#fff}
+.msc-card.winner .result-badge{background:#3b82f6;color:#fff}
+.msc-card.fail .result-badge{background:#64748b;color:#fff}
+.msc-card .content{position:relative;z-index:3;height:100%;padding:22px 22px 20px;display:flex;flex-direction:column}
+.msc-banner{position:relative;z-index:4;aspect-ratio:3/1;margin:-22px -22px 0;background-size:cover;background-position:center;background-repeat:no-repeat;border-bottom:2px solid rgba(251,191,36,.4);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.msc-banner::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 60%,rgba(0,0,0,.45) 100%)}
+.msc-banner-ovr{position:relative;z-index:2;height:100%;display:flex;align-items:flex-end;padding:0 14px 6px;font-family:'Outfit';font-weight:800;font-size:11px;letter-spacing:1.5px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.85);text-transform:uppercase}
+.msc-banner-ovr::before{content:'🏆';margin-right:5px;font-size:13px}
+.msc-card.with-banner .content{padding-top:14px}
+.msc-card.with-banner .msc-brand{display:none}
+.msc-brand{display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.65)}
+.msc-brand .dot{width:5px;height:5px;border-radius:50%;background:#fbbf24;display:inline-block;margin-right:6px}
+.msc-brand .group{color:rgba(255,255,255,.5);font-size:9px}
+.msc-teams{display:flex;align-items:center;justify-content:space-between;margin-top:18px;gap:12px}
+.msc-team{flex:1;text-align:center}
+.msc-flag{font-size:42px;line-height:1;margin-bottom:6px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3))}
+.msc-flag .emoji{height:38px;width:auto;vertical-align:middle}
+.msc-tname{font-family:'Outfit';font-weight:800;font-size:14px;letter-spacing:-.2px;line-height:1.1;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+.msc-vs{font-family:'Outfit';font-weight:800;font-size:11px;letter-spacing:1.5px;color:rgba(255,255,255,.4)}
+.msc-real{margin-top:18px;text-align:center;padding:12px 16px;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15)}
+.msc-real-lbl{font-size:9px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:4px}
+.msc-real-score{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:56px;line-height:1;letter-spacing:-2px;color:#fff;text-shadow:0 4px 16px rgba(0,0,0,.4)}
+.msc-pred{margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.msc-pred-block{flex:1;text-align:center;padding:8px 10px;background:rgba(0,0,0,.25);border-radius:10px;border:1px solid rgba(255,255,255,.1)}
+.msc-pred-lbl{font-size:9px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:2px}
+.msc-pred-score{font-family:'Outfit';font-weight:800;font-size:24px;line-height:1;color:#fff}
+.msc-status{flex:1.4;text-align:center;padding:10px 12px;border-radius:10px;font-family:'Outfit';font-weight:900}
+.msc-card.exact .msc-status{background:linear-gradient(135deg,#22c55e,#15803d);box-shadow:0 6px 20px rgba(34,197,94,.5),inset 0 -2px 0 rgba(0,0,0,.2)}
+.msc-card.winner .msc-status{background:linear-gradient(135deg,#3b82f6,#1d4ed8);box-shadow:0 6px 20px rgba(59,130,246,.5),inset 0 -2px 0 rgba(0,0,0,.2)}
+.msc-card.fail .msc-status{background:linear-gradient(135deg,#64748b,#334155);box-shadow:0 6px 20px rgba(100,116,139,.3),inset 0 -2px 0 rgba(0,0,0,.2)}
+.msc-status-pts{font-size:28px;line-height:1;letter-spacing:-.5px}
+.msc-status-lbl{font-size:10px;font-weight:700;letter-spacing:1px;margin-top:4px;text-transform:uppercase;opacity:.95}
+.msc-user{margin-top:auto;padding-top:14px;border-top:1px dashed rgba(255,255,255,.15);display:flex;align-items:center;gap:10px}
+.msc-pic{width:36px;height:36px;border-radius:50%;border:2px solid rgba(251,191,36,.6);background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:16px;overflow:hidden;flex-shrink:0}
+.msc-pic img{width:100%;height:100%;object-fit:cover}
+.msc-uinfo{flex:1;min-width:0}
+.msc-uname{font-family:'Outfit';font-weight:800;font-size:13px;line-height:1.1}
+.msc-umeta{font-size:10px;font-weight:700;color:rgba(255,255,255,.55);margin-top:1px}
+.msc-app{font-size:9px;font-weight:800;letter-spacing:1px;color:rgba(255,255,255,.5);text-transform:uppercase;text-align:right}
+/* Botón compartir en cada row */
+.mrm-share-btn{background:rgba(255,255,255,.85);border:1px solid #cbd5e1;color:#475569;cursor:pointer;padding:5px 8px;border-radius:7px;font-size:13px;font-weight:700;margin-left:5px;transition:all .15s}
+.mrm-share-btn:hover{background:#3b82f6;border-color:#3b82f6;color:#fff;transform:translateY(-1px)}
 .mdm-box{background:var(--card);border-radius:16px;max-width:500px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);opacity:0;transform:scale(0.96);transition:opacity .18s var(--ease-out),transform .18s var(--ease-out);overflow:hidden}
 #match-detail-modal.on .mdm-box{opacity:1;transform:scale(1)}
 .mdm-header{padding:16px 18px;background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff}
@@ -856,6 +911,7 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
 <div id="match-detail-modal" onclick="closeMatchDetail(event)"><div class="mdm-box" onclick="event.stopPropagation()"><div class="mdm-header" id="mdm-header"></div><div class="mdm-body" id="mdm-body"></div></div></div>
 <div id="my-results-modal" onclick="closeMyResults(event)"><div style="width:100%;max-width:440px;margin:auto"><button class="mrm-close" onclick="closeMyResults()" title="Cerrar">✕</button><div class="mrm-box" id="mrm-card" onclick="event.stopPropagation()"></div><div class="mrm-tip">📸 Toma screenshot para compartir</div></div></div>
 <div id="my-picks-modal" onclick="closeMyPicks(event)"><div style="width:100%;max-width:440px;margin:auto"><button class="mrm-close" onclick="closeMyPicks()" title="Cerrar">✕</button><div class="mrm-box" id="mpk-card" onclick="event.stopPropagation()"></div><div class="mrm-tip">📸 Toma screenshot para compartir</div></div></div>
+<div id="match-share-modal" onclick="closeMatchShare(event)"><div class="msc-box"><button class="msc-close" onclick="closeMatchShare()" title="Cerrar">✕</button><div id="msc-card-host" onclick="event.stopPropagation()"></div><div class="mrm-tip" style="margin-top:10px">📸 Toma screenshot para compartir</div></div></div>
 
 <!-- ── FLOAT NEXT ──────────────────────────────────── -->
 <div id="float-next">
@@ -4000,8 +4056,131 @@ document.addEventListener('keydown',e=>{
     const m=document.getElementById('match-detail-modal');if(m&&m.classList.contains('on'))m.classList.remove('on');
     const mr=document.getElementById('my-results-modal');if(mr&&mr.classList.contains('on'))mr.classList.remove('on');
     const mp=document.getElementById('my-picks-modal');if(mp&&mp.classList.contains('on'))mp.classList.remove('on');
+    const ms=document.getElementById('match-share-modal');if(ms&&ms.classList.contains('on'))ms.classList.remove('on');
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+// "MATCH SHARE" — card shareable por partido individual
+// Solo lee datos — cero impacto en JSON/picks/cálculos
+// ─────────────────────────────────────────────────────────────
+function closeMatchShare(e){
+  if(e&&e.currentTarget!==e.target)return;
+  document.getElementById('match-share-modal').classList.remove('on');
+}
+function openMatchShare(g,mi,uid){
+  uid=uid||ME.uid;
+  const u=S.users&&S.users[uid];
+  if(!u){alert('Usuario no encontrado');return;}
+  const html=rMatchShareContent(g,mi,uid,u);
+  if(!html){alert('No se pudo cargar este partido');return;}
+  document.getElementById('msc-card-host').innerHTML=html;
+  document.getElementById('match-share-modal').classList.add('on');
+  if(typeof twemoji!=='undefined'&&twemoji.parse){
+    try{twemoji.parse(document.getElementById('msc-card-host'));}catch(_e){}
+  }
+}
+function rMatchShareContent(g,mi,uid,u){
+  const p=userPicks(uid);
+  const r=S.adminR||eAdm();
+  const comm=S.communities&&S.communities[u.communityId];
+  const gd=GROUP_DATES[g]&&GROUP_DATES[g][mi];
+  if(!gd)return null;
+  // Marcador oficial
+  const adm=r.grupos&&r.grupos[g]&&r.grupos[g].matches&&r.grupos[g].matches[mi];
+  if(!adm||adm.a==null||adm.b==null||adm.a===''||adm.b==='')return null;
+  const aa=parseInt(adm.a),ab=parseInt(adm.b);
+  if(isNaN(aa)||isNaN(ab))return null;
+  // Pick del user
+  const myMs=(p.grupos&&p.grupos[g]&&p.grupos[g].matches)||[];
+  const my=myMs[mi];
+  const myHasPick=my&&my.a!=null&&my.b!=null&&my.a!==''&&my.b!=='';
+  const ma=myHasPick?parseInt(my.a):null;
+  const mb=myHasPick?parseInt(my.b):null;
+  // Determinar tipo de resultado y puntos
+  let type='fail',pts=0,statusLbl='😬 No fue esta vez';
+  if(myHasPick&&!isNaN(ma)&&!isNaN(mb)){
+    if(ma===aa&&mb===ab){type='exact';pts=3;statusLbl='🎯 ¡Exacto!';}
+    else if(Math.sign(ma-mb)===Math.sign(aa-ab)){type='winner';pts=1;statusLbl='✅ Acertaste el ganador';}
+  }
+  // Equipos con swap visual
+  const teams=GRP[g]||[];
+  const pair=GROUP_MATCH_PAIRS[mi]||[0,1];
+  const swap=gd.sw;
+  const team1=swap?teams[pair[1]]:teams[pair[0]];
+  const team2=swap?teams[pair[0]]:teams[pair[1]];
+  if(!team1||!team2)return null;
+  // Marcadores en orden visual (storage es por pair original)
+  const aaDisp=swap?ab:aa;
+  const abDisp=swap?aa:ab;
+  const maDisp=swap?mb:ma;
+  const mbDisp=swap?ma:mb;
+  // Fecha CDMX
+  const mx=_toMexicoDateTime(g,mi);
+  // Banner de comunidad
+  const bannerUrl=comm&&comm.bannerUrl?comm.bannerUrl:'';
+  const bannerStyle=bannerUrl?` style="--banner-url:url('${esc(bannerUrl)}')"`:'';
+  const bannerHtml=bannerUrl
+    ?`<div class="msc-banner"><div class="msc-banner-ovr">${esc(comm?comm.name:'Quiniela')}</div></div>`
+    :'';
+  const cardClass='msc-card '+type+(bannerUrl?' with-banner':'');
+  // Foto user
+  const initial=u.name?u.name[0].toUpperCase():'?';
+  const picHtml=u.photo
+    ?`<img src="${esc(u.photo)}" alt="${esc(initial)}" referrerpolicy="no-referrer" onerror="this.style.display='none';this.parentElement.textContent='${esc(initial)}'">`
+    :esc(initial);
+  // Badge icon arriba derecha
+  const badgeIco=type==='exact'?'🎯':(type==='winner'?'✅':'❌');
+  // Pts display
+  const ptsTxt=type==='exact'?'+3 pts':(type==='winner'?'+1 pt':'0 pts');
+  const fTeam=(typeof flag==='function')?flag:(()=>'');
+  // Pick display
+  const myPickTxt=myHasPick?`${maDisp} - ${mbDisp}`:'—';
+  return `<div class="${cardClass}"${bannerStyle}>
+    <div class="bg"></div>
+    <div class="result-badge">${badgeIco}</div>
+    <div class="content">
+      ${bannerHtml}
+      <div class="msc-brand">
+        <span><span class="dot"></span>Quiniela Chida</span>
+        <span class="group">GRUPO ${esc(g)} · ${esc(mx.date.toUpperCase())}</span>
+      </div>
+      <div class="msc-teams">
+        <div class="msc-team">
+          <div class="msc-flag">${fTeam(team1)}</div>
+          <div class="msc-tname">${esc(team1)}</div>
+        </div>
+        <div class="msc-vs">VS</div>
+        <div class="msc-team">
+          <div class="msc-flag">${fTeam(team2)}</div>
+          <div class="msc-tname">${esc(team2)}</div>
+        </div>
+      </div>
+      <div class="msc-real">
+        <div class="msc-real-lbl">Resultado oficial</div>
+        <div class="msc-real-score">${aaDisp} - ${abDisp}</div>
+      </div>
+      <div class="msc-pred">
+        <div class="msc-pred-block">
+          <div class="msc-pred-lbl">Tu pick</div>
+          <div class="msc-pred-score">${myPickTxt}</div>
+        </div>
+        <div class="msc-status">
+          <div class="msc-status-pts">${ptsTxt}</div>
+          <div class="msc-status-lbl">${statusLbl}</div>
+        </div>
+      </div>
+      <div class="msc-user">
+        <div class="msc-pic">${picHtml}</div>
+        <div class="msc-uinfo">
+          <div class="msc-uname">${esc(u.name||'Sin nombre')}</div>
+          <div class="msc-umeta">${esc(comm?comm.name:'Quiniela')}</div>
+        </div>
+        <div class="msc-app">app.quinielachida.com</div>
+      </div>
+    </div>
+  </div>`;
+}
 
 // ─────────────────────────────────────────────────────────────
 // "MIS RESULTADOS" — card shareable con historial de partidos
@@ -4152,6 +4331,7 @@ function rMyResultsContent(uid,u){
           <div class="mrm-match-scores">Real <b>${m.aa}-${m.ab}</b> · Tu pick ${myPickTxt}</div>
         </div>
         <div class="mrm-pts ${m.type}">${m.ico} ${m.pts}</div>
+        <button class="mrm-share-btn" onclick="event.stopPropagation();openMatchShare('${esc(m.g)}',${m.mi},'${js(uid)}')" title="Compartir este partido">📤</button>
       </div>`;
     }
   }
