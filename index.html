@@ -4034,7 +4034,7 @@ function rMyResultsContent(uid,u){
     const members=Object.entries(S.users).filter(([uid2,u2])=>u2.communityId===u.communityId)
       .map(([uid2,u2])=>{const{tot,bd}=calcPts(uid2);return{uid:uid2,tot,bd};})
       .sort((a,b)=>{
-        if(b.tot!==a.tot)return b.tot-a.tot;
+        if(b.bd.marcadores!==a.bd.marcadores)return b.bd.marcadores-a.bd.marcadores;
         if(b.bd.exact!==a.bd.exact)return b.bd.exact-a.bd.exact;
         if(b.bd.group1!==a.bd.group1)return b.bd.group1-a.bd.group1;
         return a.bd.gdDiff-b.bd.gdDiff;
@@ -4357,10 +4357,12 @@ function rDashboard(){
   })||(S.adminR&&((S.adminR.r32||[]).some(Boolean)||(S.adminR.r16||[]).some(Boolean)||(S.adminR.qf||[]).some(Boolean)||(S.adminR.sf||[]).some(Boolean)||S.adminR.fin||S.adminR.thr));
 
   // Community leaderboard
-  // Desempates (en orden): 1) más puntos, 2) más marcadores exactos,
+  // Por decisión del grupo (encuesta 2026-06-16): se ordena por PUNTOS EN PARTIDOS (bd.marcadores).
+  // Los puntos de clasificación (1°/2°/3eros) se muestran como badge "+ X pts en clasificación".
+  // Desempates (en orden): 1) más pts en partidos, 2) más marcadores exactos,
   // 3) más 1° de grupo correctos, 4) menor distancia en diferencia de goles
   const ranked=members.map(m=>{const{tot,bd}=calcPts(m.uid);return{...m,tot,bd};}).sort((a,b)=>{
-    if(b.tot!==a.tot)return b.tot-a.tot;
+    if(b.bd.marcadores!==a.bd.marcadores)return b.bd.marcadores-a.bd.marcadores;
     if(b.bd.exact!==a.bd.exact)return b.bd.exact-a.bd.exact;
     if(b.bd.group1!==a.bd.group1)return b.bd.group1-a.bd.group1;
     if(a.bd.gdDiff!==b.bd.gdDiff)return a.bd.gdDiff-b.bd.gdDiff;
@@ -4435,20 +4437,17 @@ function rDashboard(){
       }
       let chips='Esperando resultados...';
       if(hasR){
-        // Sub-desglose visual: puntos en partidos (3pts exacto + 1pt ganador) vs puntos en lugares (1°/2° de grupo + 3eros)
-        // bd.marcadores + bd.lugares = bd.grp + bd.t8 (siempre coherente, solo redistribuye)
-        const breakdown=(m.bd.marcadores||m.bd.lugares)
-          ?`<span style="opacity:.78;font-weight:600;font-size:.82em;margin-left:6px;white-space:nowrap">· ${m.bd.marcadores} pts en partidos · ${m.bd.lugares} pts en lugares</span>`
-          :'';
+        // Decisión del grupo: el puntaje grande es bd.marcadores. El chip de Etapa 1 muestra
+        // el total (grp+t8) limpio, sin desglose textual — porque el desglose ya va arriba
+        // junto al puntaje principal con el badge "+ X pts en clasificación".
         if(isTournament){
-          // Tournament Mode: show Stage 1 + Stage 2 separated
           const stage1=m.bd.grp+m.bd.t8;
           const stage2=m.bd.r32+m.bd.r16+m.bd.qf+m.bd.sf+m.bd.fin+m.bd.thr;
-          chips=`<span style="display:inline-flex;gap:4px;align-items:center;background:#fef3c7;color:#78350f;padding:2px 7px;border-radius:5px;font-weight:700;margin-right:5px">🥇 Etapa 1: ${stage1}${breakdown}</span><span style="display:inline-flex;gap:4px;align-items:center;background:#dbeafe;color:#1e3a8a;padding:2px 7px;border-radius:5px;font-weight:700">🏆 Etapa 2: ${stage2}</span>`;
+          chips=`<span style="display:inline-flex;gap:4px;align-items:center;background:#fef3c7;color:#78350f;padding:2px 7px;border-radius:5px;font-weight:700;margin-right:5px">🥇 Etapa 1: ${stage1}</span><span style="display:inline-flex;gap:4px;align-items:center;background:#dbeafe;color:#1e3a8a;padding:2px 7px;border-radius:5px;font-weight:700">🏆 Etapa 2: ${stage2}</span>`;
         }else{
-          // Normal Mode: puntos en partidos + puntos en lugares + chips por fase del bracket
-          const grpChip=(m.bd.marcadores||m.bd.lugares)?`${m.bd.marcadores} pts en partidos · ${m.bd.lugares} pts en lugares`:null;
-          chips=[grpChip,m.bd.r32?`16avos:${m.bd.r32}`:null,m.bd.r16?`Oct:${m.bd.r16}`:null,m.bd.qf?`1/4:${m.bd.qf}`:null,m.bd.sf?`SF:${m.bd.sf}`:null,m.bd.fin?`Final:${m.bd.fin}`:null].filter(Boolean).join(' · ')||'Sin puntos aún';
+          // Normal Mode: chips por fase del bracket (sin grpChip — esa info ya va arriba)
+          chips=[m.bd.r32?`16avos:${m.bd.r32}`:null,m.bd.r16?`Oct:${m.bd.r16}`:null,m.bd.qf?`1/4:${m.bd.qf}`:null,m.bd.sf?`SF:${m.bd.sf}`:null,m.bd.fin?`Final:${m.bd.fin}`:null].filter(Boolean).join(' · ')||'';
+          if(!chips&&!m.bd.marcadores&&!m.bd.lugares)chips='Sin puntos aún';
         }
       }
       // Indicador de completado (depende del modo)
@@ -4491,7 +4490,11 @@ function rDashboard(){
           <div class="lbnm">${esc(m.name)}${isMe?' <span style="font-size:10px;opacity:.6">(tú)</span>':''}${completionBadge}${tieChip}</div>
           <div class="lbdet">${chips}</div>
         </div>
-        <div class="lbpts" style="${hasR?'':'color:var(--mt);font-size:16px'}">${hasR?m.tot:'—'}${hasR?'<span style="font-size:11px;color:var(--mt);font-weight:500;margin-left:3px">pts</span>':''}</div>
+        <div class="lbpts" style="${hasR?'':'color:var(--mt);font-size:16px'};display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+          ${hasR
+            ?`<div style="display:flex;align-items:baseline;gap:3px">${m.bd.marcadores}<span style="font-size:11px;color:var(--mt);font-weight:500">pts en partidos</span></div>${m.bd.lugares>0?`<span style="font-size:10px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;white-space:nowrap;border:1px solid #fde68a">+ ${m.bd.lugares} pts en clasificación</span>`:''}`
+            :'—'}
+        </div>
       </div>`;
     });
   }
@@ -4866,7 +4869,7 @@ function rAdmCommunities(){
   }else{
     for(const[cid,c]of comms){
       const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>{
-        if(b.tot!==a.tot)return b.tot-a.tot;
+        if(b.bd.marcadores!==a.bd.marcadores)return b.bd.marcadores-a.bd.marcadores;
         if(b.bd.exact!==a.bd.exact)return b.bd.exact-a.bd.exact;
         if(b.bd.group1!==a.bd.group1)return b.bd.group1-a.bd.group1;
         return a.bd.gdDiff-b.bd.gdDiff;
@@ -5030,7 +5033,7 @@ function rAdmLeaderboard(){
   if(hasR){
     for(const c of comms){
       const members=Object.entries(S.users).filter(([uid,u])=>u.communityId===c.cid).map(([uid,u])=>({uid,...u,...calcPts(uid)})).sort((a,b)=>{
-        if(b.tot!==a.tot)return b.tot-a.tot;
+        if(b.bd.marcadores!==a.bd.marcadores)return b.bd.marcadores-a.bd.marcadores;
         if(b.bd.exact!==a.bd.exact)return b.bd.exact-a.bd.exact;
         if(b.bd.group1!==a.bd.group1)return b.bd.group1-a.bd.group1;
         return a.bd.gdDiff-b.bd.gdDiff;
