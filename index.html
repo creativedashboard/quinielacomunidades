@@ -255,8 +255,9 @@ html[data-ucolor] .pstrip-step.active .pstrip-dot{background:var(--uc)}
 .msc-card.winner .result-badge{background:#3b82f6;color:#fff}
 .msc-card.fail .result-badge{background:#64748b;color:#fff}
 .msc-card .content{position:relative;z-index:3;height:100%;padding:22px 22px 20px;display:flex;flex-direction:column}
-.msc-banner{position:relative;z-index:4;aspect-ratio:3/1;margin:-22px -22px 0;background-size:cover;background-position:center;background-repeat:no-repeat;border-bottom:2px solid rgba(251,191,36,.4);box-shadow:0 4px 14px rgba(0,0,0,.4)}
-.msc-banner::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 60%,rgba(0,0,0,.45) 100%)}
+.msc-banner{position:relative;z-index:4;aspect-ratio:3/1;margin:-22px -22px 0;overflow:hidden;border-bottom:2px solid rgba(251,191,36,.4);box-shadow:0 4px 14px rgba(0,0,0,.4);background:#0f172a}
+.msc-banner-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.msc-banner::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 60%,rgba(0,0,0,.45) 100%);z-index:1;pointer-events:none}
 .msc-banner-ovr{position:relative;z-index:2;height:100%;display:flex;align-items:flex-end;padding:0 14px 6px;font-family:'Outfit';font-weight:800;font-size:11px;letter-spacing:1.5px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.85);text-transform:uppercase}
 .msc-banner-ovr::before{content:'🏆';margin-right:5px;font-size:13px}
 .msc-card.with-banner .content{padding-top:14px}
@@ -4158,17 +4159,19 @@ function rMatchShareContent(g,mi,uid,u){
   const mbDisp=swap?ma:mb;
   // Fecha CDMX
   const mx=_toMexicoDateTime(g,mi);
-  // Banner de comunidad — con parser que normaliza URLs de página de Imgur
-  // Si el admin pegó https://imgur.com/XXX (URL de página, NO carga como imagen),
-  // lo convertimos a https://i.imgur.com/XXX.jpeg (URL directa de la imagen).
+  // Banner de comunidad — usa la MISMA URL que el dashboard (comm.bannerUrl) con <img> tag.
+  // Con parser que normaliza URLs de página de Imgur a URL directa de imagen (por si el admin
+  // pegó https://imgur.com/XXX en vez de https://i.imgur.com/XXX.jpeg).
   let bannerUrl=comm&&comm.bannerUrl?comm.bannerUrl.trim():'';
+  const bannerOriginal=bannerUrl;
   if(bannerUrl){
     const imgurMatch=bannerUrl.match(/^https?:\/\/(?:www\.)?imgur\.com\/([a-zA-Z0-9]+)(?:\.[a-z]+)?(?:\?.*)?$/i);
     if(imgurMatch)bannerUrl=`https://i.imgur.com/${imgurMatch[1]}.jpeg`;
   }
-  const bannerStyle=bannerUrl?` style="--banner-url:url('${esc(bannerUrl)}')"`:'';
+  // Log para diagnóstico (mira en consola al abrir el modal)
+  console.log('[match-share] bannerUrl original:',bannerOriginal,'| usado:',bannerUrl);
   const bannerHtml=bannerUrl
-    ?`<div class="msc-banner"><div class="msc-banner-ovr">${esc(comm?comm.name:'Quiniela')}</div></div>`
+    ?`<div class="msc-banner"><img class="msc-banner-img" src="${esc(bannerUrl)}" crossorigin="anonymous" referrerpolicy="no-referrer" alt="" onerror="console.warn('[match-share] banner falló al cargar:',this.src);this.parentElement.style.display='none'"><div class="msc-banner-ovr">${esc(comm?comm.name:'Quiniela')}</div></div>`
     :'';
   const cardClass='msc-card '+type+(bannerUrl?' with-banner':'');
   // Foto user
@@ -4183,7 +4186,7 @@ function rMatchShareContent(g,mi,uid,u){
   const fTeam=(typeof flag==='function')?flag:(()=>'');
   // Pick display
   const myPickTxt=myHasPick?`${maDisp} - ${mbDisp}`:'—';
-  return `<div class="${cardClass}"${bannerStyle}>
+  return `<div class="${cardClass}">
     <div class="bg"></div>
     <div class="result-badge">${badgeIco}</div>
     <div class="content">
