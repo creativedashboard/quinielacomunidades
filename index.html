@@ -911,7 +911,7 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
 <div id="match-detail-modal" onclick="closeMatchDetail(event)"><div class="mdm-box" onclick="event.stopPropagation()"><div class="mdm-header" id="mdm-header"></div><div class="mdm-body" id="mdm-body"></div></div></div>
 <div id="my-results-modal" onclick="closeMyResults(event)"><div style="width:100%;max-width:440px;margin:auto"><button class="mrm-close" onclick="closeMyResults()" title="Cerrar">✕</button><div class="mrm-box" id="mrm-card" onclick="event.stopPropagation()"></div><div class="mrm-tip">📸 Toma screenshot para compartir</div></div></div>
 <div id="my-picks-modal" onclick="closeMyPicks(event)"><div style="width:100%;max-width:440px;margin:auto"><button class="mrm-close" onclick="closeMyPicks()" title="Cerrar">✕</button><div class="mrm-box" id="mpk-card" onclick="event.stopPropagation()"></div><div class="mrm-tip">📸 Toma screenshot para compartir</div></div></div>
-<div id="match-share-modal" onclick="closeMatchShare(event)"><div class="msc-box"><button class="msc-close" onclick="closeMatchShare()" title="Cerrar">✕</button><div id="msc-card-host" onclick="event.stopPropagation()"></div><div class="mrm-tip" style="margin-top:10px">📸 Toma screenshot para compartir</div></div></div>
+<div id="match-share-modal" onclick="closeMatchShare(event)"><div class="msc-box"><button class="msc-close" onclick="closeMatchShare()" title="Cerrar">✕</button><div id="msc-card-host" onclick="event.stopPropagation()"></div><div style="margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap" onclick="event.stopPropagation()"><button id="msc-download-btn" onclick="downloadMatchShare()" style="background:#fff;color:#0f172a;border:0;padding:11px 18px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3);display:inline-flex;align-items:center;gap:7px">📥 Descargar imagen</button></div><div class="mrm-tip" style="margin-top:8px">o toma screenshot manual</div></div></div>
 
 <!-- ── FLOAT NEXT ──────────────────────────────────── -->
 <div id="float-next">
@@ -4075,9 +4075,50 @@ function openMatchShare(g,mi,uid){
   const html=rMatchShareContent(g,mi,uid,u);
   if(!html){alert('No se pudo cargar este partido');return;}
   document.getElementById('msc-card-host').innerHTML=html;
+  // Guardar contexto para el nombre del archivo al descargar
+  window._mscCtx={g,mi,uid,userName:u.name||'usuario'};
   document.getElementById('match-share-modal').classList.add('on');
   if(typeof twemoji!=='undefined'&&twemoji.parse){
     try{twemoji.parse(document.getElementById('msc-card-host'));}catch(_e){}
+  }
+}
+// Descarga la match share card como PNG usando html2canvas (ya cargada en la app)
+async function downloadMatchShare(){
+  const card=document.querySelector('#msc-card-host .msc-card');
+  if(!card){alert('No hay tarjeta para descargar');return;}
+  if(typeof html2canvas==='undefined'){
+    alert('No se pudo cargar la librería de descarga. Usa screenshot manual por ahora.');
+    return;
+  }
+  const btn=document.getElementById('msc-download-btn');
+  const originalTxt=btn?btn.innerHTML:'';
+  if(btn){btn.innerHTML='⏳ Generando...';btn.disabled=true;}
+  try{
+    const canvas=await html2canvas(card,{
+      useCORS:true,
+      allowTaint:false,
+      backgroundColor:null,
+      scale:2.5,
+      logging:false,
+      imageTimeout:15000
+    });
+    // Construir nombre del archivo
+    const ctx=window._mscCtx||{};
+    const slug=(s)=>(s||'').toString().toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+    const fname=`quinielachida-${slug(ctx.userName)}-grupo${ctx.g||'X'}-${ctx.mi||0}.png`;
+    canvas.toBlob((blob)=>{
+      if(!blob){alert('Error generando la imagen');if(btn){btn.innerHTML=originalTxt;btn.disabled=false;}return;}
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=fname;
+      document.body.appendChild(a);a.click();
+      setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},150);
+      if(btn){btn.innerHTML='✅ Descargada';setTimeout(()=>{btn.innerHTML=originalTxt;btn.disabled=false;},1800);}
+    },'image/png',0.95);
+  }catch(e){
+    console.error('[match-share] download error:',e);
+    alert('No se pudo generar la imagen. Detalle: '+(e&&e.message?e.message:'error desconocido')+'\n\nPuedes tomar screenshot manual de la tarjeta.');
+    if(btn){btn.innerHTML=originalTxt;btn.disabled=false;}
   }
 }
 function rMatchShareContent(g,mi,uid,u){
@@ -4098,7 +4139,7 @@ function rMatchShareContent(g,mi,uid,u){
   const ma=myHasPick?parseInt(my.a):null;
   const mb=myHasPick?parseInt(my.b):null;
   // Determinar tipo de resultado y puntos
-  let type='fail',pts=0,statusLbl='😬 No fue esta vez';
+  let type='fail',pts=0,statusLbl='❌ No acertaste';
   if(myHasPick&&!isNaN(ma)&&!isNaN(mb)){
     if(ma===aa&&mb===ab){type='exact';pts=3;statusLbl='🎯 ¡Exacto!';}
     else if(Math.sign(ma-mb)===Math.sign(aa-ab)){type='winner';pts=1;statusLbl='✅ Acertaste el ganador';}
@@ -4117,8 +4158,14 @@ function rMatchShareContent(g,mi,uid,u){
   const mbDisp=swap?ma:mb;
   // Fecha CDMX
   const mx=_toMexicoDateTime(g,mi);
-  // Banner de comunidad
-  const bannerUrl=comm&&comm.bannerUrl?comm.bannerUrl:'';
+  // Banner de comunidad — con parser que normaliza URLs de página de Imgur
+  // Si el admin pegó https://imgur.com/XXX (URL de página, NO carga como imagen),
+  // lo convertimos a https://i.imgur.com/XXX.jpeg (URL directa de la imagen).
+  let bannerUrl=comm&&comm.bannerUrl?comm.bannerUrl.trim():'';
+  if(bannerUrl){
+    const imgurMatch=bannerUrl.match(/^https?:\/\/(?:www\.)?imgur\.com\/([a-zA-Z0-9]+)(?:\.[a-z]+)?(?:\?.*)?$/i);
+    if(imgurMatch)bannerUrl=`https://i.imgur.com/${imgurMatch[1]}.jpeg`;
+  }
   const bannerStyle=bannerUrl?` style="--banner-url:url('${esc(bannerUrl)}')"`:'';
   const bannerHtml=bannerUrl
     ?`<div class="msc-banner"><div class="msc-banner-ovr">${esc(comm?comm.name:'Quiniela')}</div></div>`
