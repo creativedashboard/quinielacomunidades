@@ -4435,10 +4435,10 @@ function rDashboard(){
       }
       let chips='Esperando resultados...';
       if(hasR){
-        // Sub-desglose visual: marcadores (3pts exacto + 1pt ganador) vs lugares (1°/2° de grupo + 3eros)
+        // Sub-desglose visual: puntos en partidos (3pts exacto + 1pt ganador) vs puntos en lugares (1°/2° de grupo + 3eros)
         // bd.marcadores + bd.lugares = bd.grp + bd.t8 (siempre coherente, solo redistribuye)
         const breakdown=(m.bd.marcadores||m.bd.lugares)
-          ?`<span style="opacity:.78;font-weight:600;font-size:.88em;margin-left:5px;white-space:nowrap">🎯${m.bd.marcadores} · 📍${m.bd.lugares}</span>`
+          ?`<span style="opacity:.78;font-weight:600;font-size:.82em;margin-left:6px;white-space:nowrap">· ${m.bd.marcadores} pts en partidos · ${m.bd.lugares} pts en lugares</span>`
           :'';
         if(isTournament){
           // Tournament Mode: show Stage 1 + Stage 2 separated
@@ -4446,8 +4446,8 @@ function rDashboard(){
           const stage2=m.bd.r32+m.bd.r16+m.bd.qf+m.bd.sf+m.bd.fin+m.bd.thr;
           chips=`<span style="display:inline-flex;gap:4px;align-items:center;background:#fef3c7;color:#78350f;padding:2px 7px;border-radius:5px;font-weight:700;margin-right:5px">🥇 Etapa 1: ${stage1}${breakdown}</span><span style="display:inline-flex;gap:4px;align-items:center;background:#dbeafe;color:#1e3a8a;padding:2px 7px;border-radius:5px;font-weight:700">🏆 Etapa 2: ${stage2}</span>`;
         }else{
-          // Normal Mode: marcadores + lugares + chips por fase del bracket
-          const grpChip=(m.bd.marcadores||m.bd.lugares)?`🎯${m.bd.marcadores} · 📍${m.bd.lugares}`:null;
+          // Normal Mode: puntos en partidos + puntos en lugares + chips por fase del bracket
+          const grpChip=(m.bd.marcadores||m.bd.lugares)?`${m.bd.marcadores} pts en partidos · ${m.bd.lugares} pts en lugares`:null;
           chips=[grpChip,m.bd.r32?`16avos:${m.bd.r32}`:null,m.bd.r16?`Oct:${m.bd.r16}`:null,m.bd.qf?`1/4:${m.bd.qf}`:null,m.bd.sf?`SF:${m.bd.sf}`:null,m.bd.fin?`Final:${m.bd.fin}`:null].filter(Boolean).join(' · ')||'Sin puntos aún';
         }
       }
