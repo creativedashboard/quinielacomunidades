@@ -3647,7 +3647,8 @@ function _getLiveAndUpcoming() {
       upcoming.push(m);
     }
   }
-  return { live, upcoming: upcoming.slice(0, live ? 4 : 5) };
+  // Mostrar TODOS los próximos partidos (sin slice). El scroll horizontal natural se encarga.
+  return { live, upcoming };
 }
 // Helper: calcula el minuto del partido (aprox)
 // Helper: convierte un partido a fecha/hora en CDMX (México, UTC-6)
@@ -3926,7 +3927,8 @@ function openMatchPredictions(g, mi) {
 }
 // Render de la sección de "Últimos resultados"
 function rRecentMatches(members){
-  const recent=rmLastMatches(5);
+  // Mostrar TODOS los partidos jugados (sin límite). El scroll horizontal natural se encarga.
+  const recent=rmLastMatches(999);
   if(recent.length===0)return''; // sin resultados todavía, no mostramos nada
   let h=`<div class="rm-section-header">
     <div class="rm-section-title">🔥 Últimos resultados</div>
