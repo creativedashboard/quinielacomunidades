@@ -397,6 +397,32 @@ html[data-ucolor] .mbtn.on{background:var(--uc);border-color:var(--uc)}
 .mbtn .flag{font-size:14px;flex-shrink:0}
 .vsbdg{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--mt);padding:0 2px;flex-shrink:0}
 
+/* ══ BRACKET V2 (Forma C: marcadores + penales) — sólo activo con window.BRACKET_V2=true ══ */
+.score-input-v2{width:36px;height:42px;border:1.5px solid var(--bd);border-radius:7px;background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;font-weight:800;font-size:17px;text-align:center;-moz-appearance:textfield;transition:all .12s var(--ease-out)}
+.score-input-v2::-webkit-outer-spin-button,.score-input-v2::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.score-input-v2:focus{outline:none;border-color:var(--ac);background:#fff}
+.score-input-v2:disabled{opacity:.4}
+.score-dash-v2{color:var(--mt);font-weight:700;align-self:center;padding:0 1px;font-size:13px}
+.pens-block-v2{margin-top:9px;padding-top:9px;border-top:1px dashed var(--bd);transition:opacity .15s}
+.pens-block-v2.dimmed{opacity:.4}
+.pens-lbl-v2{font-size:9.5px;color:var(--mt);font-weight:600;margin-bottom:5px;text-align:center;letter-spacing:.2px}
+.pens-row-v2{display:flex;gap:4px}
+.pens-btn-v2{flex:1;padding:5px 6px;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:600;color:var(--mt);transition:all .12s;display:flex;align-items:center;justify-content:center;gap:3px}
+.pens-btn-v2:hover:not(:disabled){border-color:#7c3aed;color:#6d28d9;background:#ede9fe}
+.pens-btn-v2.on{background:#7c3aed;color:#fff;border-color:#7c3aed;font-weight:700}
+.pens-btn-v2 .flag{font-size:12px}
+.pens-btn-v2:disabled{opacity:.4;cursor:default}
+#sandbox-banner{position:fixed;top:0;left:0;right:0;background:linear-gradient(90deg,#7c3aed,#dc2626,#7c3aed);background-size:200% 100%;animation:sandboxShimmer 4s linear infinite;color:#fff;padding:6px 16px;font-size:12px;font-weight:800;text-align:center;z-index:99999;font-family:'DM Sans',sans-serif;letter-spacing:.5px;box-shadow:0 2px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;gap:10px}
+#sandbox-banner.off{background:linear-gradient(90deg,#dc2626,#991b1b);animation:none}
+#sandbox-banner button{background:rgba(255,255,255,.25);border:none;color:#fff;font-weight:800;padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-family:inherit}
+#sandbox-banner button:hover{background:rgba(255,255,255,.35)}
+@keyframes sandboxShimmer{0%{background-position:0% 0}100%{background-position:200% 0}}
+body.has-sandbox-banner{padding-top:32px}
+#bracket-v2-banner{position:fixed;bottom:14px;right:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:700;box-shadow:0 8px 24px rgba(124,58,237,.4);z-index:9000;font-family:'DM Sans',sans-serif;display:none;align-items:center;gap:8px}
+#bracket-v2-banner.on{display:flex}
+#bracket-v2-banner .fake-tag{font-size:10px;background:rgba(255,255,255,.25);padding:2px 6px;border-radius:4px;font-weight:800;letter-spacing:.5px}
+#bracket-v2-banner button{background:rgba(255,255,255,.2);border:none;color:#fff;font-weight:700;padding:4px 8px;border-radius:5px;cursor:pointer;font-size:11px;font-family:inherit}
+
 /* ── FINAL ──────────────────────────────────────────── */
 .fw{max-width:480px;margin:0 auto}
 .fc{background:var(--card);border:2px solid var(--g1d);border-radius:14px;padding:22px;margin-bottom:14px;text-align:center}
@@ -940,6 +966,40 @@ firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth();
 const db=firebase.database();
 
+// ═══════════════════════════════════════════════════════════════
+// 🛡️ SANDBOX_MODE — bloquea TODAS las escrituras a Firebase
+// ═══════════════════════════════════════════════════════════════
+// Cuando window.SANDBOX_MODE = true (default en test.html):
+//   • Lecturas: funcionan normal (ves tus datos reales)
+//   • Escrituras (set/update/push/remove): SE BLOQUEAN con log en consola
+//   • Resultado: lo que hagas en test.html NO afecta a index.html ni a Firebase
+//
+// Para desactivar el sandbox (solo si quieres escritura real):
+//   window.SANDBOX_MODE = false;
+window.SANDBOX_MODE = true;
+
+(function patchFirebaseForSandbox(){
+  const origRef = db.ref.bind(db);
+  db.ref = function(...args){
+    const ref = origRef(...args);
+    const path = args[0] || '<root>';
+    const wrap = (method) => {
+      const orig = ref[method].bind(ref);
+      ref[method] = function(...wargs){
+        if (window.SANDBOX_MODE) {
+          console.warn(`%c[SANDBOX] 🛡️ BLOQUEADO: db.ref('${path}').${method}()`, 'color:#7c3aed;font-weight:bold', wargs);
+          // Devolver promesa exitosa fake para no romper el flujo
+          return Promise.resolve();
+        }
+        return orig(...wargs);
+      };
+    };
+    ['set','update','push','remove','setPriority','setWithPriority','transaction'].forEach(wrap);
+    return ref;
+  };
+  console.log('%c🛡️ SANDBOX_MODE ACTIVO — ninguna escritura a Firebase pasará','color:#7c3aed;font-weight:bold;font-size:14px;background:#ede9fe;padding:4px 10px;border-radius:6px');
+})();
+
 // Super-admin: hardcoded UID (only this Google account can be super-admin)
 // Access via secret URL: ?super=<password> (validated server-side via Firebase rules)
 const SUPER_ADMIN_UID='ZDQcOkt2woOs5owq1jxAnsZ0dYu2';
@@ -1156,6 +1216,29 @@ const QFB=[[0,1],[2,3],[4,5],[6,7]];
 const R32_TO_R16={0:1,1:0,2:1,3:4,4:0,5:4,6:5,7:5,8:3,9:3,10:2,11:2,12:7,13:6,14:7,15:6};
 const SFB=[[0,1],[2,3]];
 const PTS={p1:3,p2:2,t8:2,r32:2,r16:3,qf:4,sf:5,fin:8,thr:4};
+
+// ═══════════════════════════════════════════════════════════════
+// 🧪 FEATURE FLAG: BRACKET V2 (con marcadores + penales, Forma C)
+// ═══════════════════════════════════════════════════════════════
+// BRACKET_V2 = false → bracket se comporta IDÉNTICO al original (default)
+// BRACKET_V2 = true  → activa nueva UI con inputs de marcador + toggle penales
+//
+// BRACKET_V2_FAKE = true → modo SANDBOX en producción: las acciones NO escriben a Firebase
+//                          (perfecto para probar sin afectar datos reales)
+// BRACKET_V2_FAKE = false → escrituras reales a Firebase (después de aprobar)
+//
+// Para probar desde consola del navegador (sin tocar este archivo):
+//   BRACKET_V2 = true; render();
+// Para volver:
+//   BRACKET_V2 = false; render();
+window.BRACKET_V2 = false;
+window.BRACKET_V2_FAKE = true;
+// Sistema de puntos Forma C en bracket:
+//   marcador exacto = 3 pts
+//   solo ganador    = 1 pt
+//   penales acertados (con marcador exacto empate) = +2 extra
+//   penales acertados (sin marcador exacto)        = 2 pts (excluyente)
+const PTS_V2 = {exact: 3, winner: 1, pens: 2};
 // FIFA 2026 official match dates and host cities
 const MATCH_INFO={"r32":[{"m":73,"d":"28 Jun","t":"13:00","c":"Los Angeles"},{"m":74,"d":"29 Jun","t":"14:30","c":"Boston"},{"m":75,"d":"29 Jun","t":"19:00","c":"Monterrey"},{"m":76,"d":"29 Jun","t":"11:00","c":"Houston"},{"m":77,"d":"30 Jun","t":"15:00","c":"Nueva York"},{"m":78,"d":"30 Jun","t":"11:00","c":"Dallas"},{"m":79,"d":"30 Jun","t":"19:00","c":"CDMX"},{"m":80,"d":"1 Jul","t":"10:00","c":"Atlanta"},{"m":81,"d":"1 Jul","t":"18:00","c":"SF Bay"},{"m":82,"d":"1 Jul","t":"14:00","c":"Seattle"},{"m":83,"d":"2 Jul","t":"17:00","c":"Toronto"},{"m":84,"d":"2 Jul","t":"13:00","c":"Los Angeles"},{"m":85,"d":"2 Jul","t":"21:00","c":"Vancouver"},{"m":86,"d":"3 Jul","t":"16:00","c":"Miami"},{"m":87,"d":"3 Jul","t":"19:30","c":"Kansas City"},{"m":88,"d":"3 Jul","t":"12:00","c":"Dallas"}],"r16":[{"m":89,"d":"4 Jul","t":"15:00","c":"Philadelphia"},{"m":90,"d":"4 Jul","t":"11:00","c":"Houston"},{"m":93,"d":"6 Jul","t":"13:00","c":"Dallas"},{"m":94,"d":"6 Jul","t":"18:00","c":"Seattle"},{"m":91,"d":"5 Jul","t":"14:00","c":"Nueva York"},{"m":92,"d":"5 Jul","t":"18:00","c":"CDMX"},{"m":95,"d":"7 Jul","t":"10:00","c":"Atlanta"},{"m":96,"d":"7 Jul","t":"14:00","c":"Vancouver"}],"qf":[{"m":97,"d":"9 Jul","t":"14:00","c":"Boston"},{"m":98,"d":"10 Jul","t":"13:00","c":"Los Angeles"},{"m":99,"d":"11 Jul","t":"15:00","c":"Miami"},{"m":100,"d":"11 Jul","t":"19:00","c":"Kansas City"}],"sf":[{"m":101,"d":"14 Jul","t":"13:00","c":"Dallas"},{"m":102,"d":"15 Jul","t":"13:00","c":"Atlanta"}],"fin":{"m":104,"d":"19 Jul","t":"13:00","c":"Nueva York (MetLife)"},"thr":{"m":103,"d":"18 Jul","t":"15:00","c":"Miami"}};
 // Per-group match dates (6 matches per group, order matches GROUP_MATCH_PAIRS)
@@ -2422,6 +2505,98 @@ function mc({lbl,t1,t2,w,dis,f1,f2,info}){
     <button class="mbtn${w&&w===t2&&!dis?' on':''}" ${dis||!f2?'disabled':''} onclick="${f2||''}">${t2?`<span class="flag">${flag(t2)}</span>`:''}<span>${esc(t2)||'?'}</span></button>
   </div></div>`;
 }
+// ═══════════════════════════════════════════════════════════════
+// mcV2: nueva versión con inputs de marcador + toggle de penales (Forma C)
+// rndKey + mi: identifican el partido (r32/r16/qf/sf/fin/thr + índice)
+// pickObj: {w, a, b, pen} con el pick actual (formato V2)
+// ═══════════════════════════════════════════════════════════════
+function mcV2({lbl,t1,t2,pickObj,dis,info,rndKey,mi}){
+  const infoHtml=info?`<div class="minfo">📅 ${info.d} · 📍 ${info.c}</div>`:'';
+  const a=pickObj&&pickObj.a!=null?pickObj.a:'';
+  const b=pickObj&&pickObj.b!=null?pickObj.b:'';
+  const w=pickObj&&pickObj.w?pickObj.w:'';
+  const pen=pickObj&&pickObj.pen?pickObj.pen:'';
+  const dataKey=`${rndKey}-${mi}`;
+  const isTie=a!==''&&b!==''&&Number(a)===Number(b);
+  const onA=t1?`setMcV2Score('${js(rndKey)}',${mi},'a',this.value)`:'';
+  const onB=t2?`setMcV2Score('${js(rndKey)}',${mi},'b',this.value)`:'';
+  const penAClick=t1?`setMcV2Pen('${js(rndKey)}',${mi},'${js(t1)}')`:'';
+  const penBClick=t2?`setMcV2Pen('${js(rndKey)}',${mi},'${js(t2)}')`:'';
+  return`<div class="mcard mc-v2" data-key="${dataKey}">
+    <div class="mlbl">${lbl}</div>${infoHtml}
+    <div class="mrow">
+      <button class="mbtn${w===t1&&!dis?' on':''}" ${dis||!t1?'disabled':''}>${t1?`<span class="flag">${flag(t1)}</span>`:''}<span>${esc(t1)||'?'}</span></button>
+      <input type="number" class="score-input-v2" value="${a}" min="0" max="20" ${dis?'disabled':''} oninput="${onA}" placeholder="–">
+      <span class="score-dash-v2">–</span>
+      <input type="number" class="score-input-v2" value="${b}" min="0" max="20" ${dis?'disabled':''} oninput="${onB}" placeholder="–">
+      <button class="mbtn${w===t2&&!dis?' on':''}" ${dis||!t2?'disabled':''}>${t2?`<span class="flag">${flag(t2)}</span>`:''}<span>${esc(t2)||'?'}</span></button>
+    </div>
+    <div class="pens-block-v2 ${isTie?'':'dimmed'}">
+      <div class="pens-lbl-v2">Si empatan, ¿quién gana en penales?</div>
+      <div class="pens-row-v2">
+        <button class="pens-btn-v2${pen===t1?' on':''}" ${dis||!t1?'disabled':''} onclick="${penAClick}">${t1?`<span class="flag">${flag(t1)}</span>`:''}<span>${esc(t1)||'?'}</span></button>
+        <button class="pens-btn-v2${pen===t2?' on':''}" ${dis||!t2?'disabled':''} onclick="${penBClick}">${t2?`<span class="flag">${flag(t2)}</span>`:''}<span>${esc(t2)||'?'}</span></button>
+      </div>
+    </div>
+  </div>`;
+}
+// === Setters de V2 (modo fake: NO escribe a Firebase) ===
+function _v2GetOrInitPick(p,rndKey,mi){
+  if(rndKey==='fin')return p.finV2||(p.finV2={w:'',a:null,b:null,pen:''});
+  if(rndKey==='thr')return p.thrV2||(p.thrV2={w:'',a:null,b:null,pen:''});
+  const arr=p[rndKey+'V2']||(p[rndKey+'V2']=[]);
+  if(!arr[mi])arr[mi]={w:'',a:null,b:null,pen:''};
+  return arr[mi];
+}
+function setMcV2Score(rndKey,mi,side,val){
+  const p=myPicks();
+  const pk=_v2GetOrInitPick(p,rndKey,mi);
+  pk[side]=val===''?null:parseInt(val);
+  // Auto-set winner según marcador
+  if(pk.a!=null&&pk.b!=null){
+    if(pk.a>pk.b)pk.w=_v2GetTeam(p,rndKey,mi,0);
+    else if(pk.b>pk.a)pk.w=_v2GetTeam(p,rndKey,mi,1);
+    else pk.w=''; // empate → se decide por penales
+  }
+  // Persistir SOLO si NO está en modo fake
+  if(!window.BRACKET_V2_FAKE){scheduleSavePicks(p);}
+  S.picks[ME.uid]=p;
+  render();
+}
+function setMcV2Pen(rndKey,mi,team){
+  const p=myPicks();
+  const pk=_v2GetOrInitPick(p,rndKey,mi);
+  pk.pen=team;
+  // Si marcador es empate, el ganador es el de penales
+  if(pk.a!=null&&pk.b!=null&&pk.a===pk.b){pk.w=team;}
+  if(!window.BRACKET_V2_FAKE){scheduleSavePicks(p);}
+  S.picks[ME.uid]=p;
+  render();
+}
+function _v2GetTeam(p,rndKey,mi,sideIdx){
+  // Helper para obtener nombre del equipo (sideIdx: 0=A, 1=B) según el round
+  if(rndKey==='r32'){
+    const fx=R32_FIXED.find(x=>x.i===mi);
+    const th=R32_THIRDS.findIndex(x=>x.i===mi);
+    const pSource=(useOfficialForBracket()&&S.adminR)?S.adminR:p;
+    if(fx){const c=sideIdx===0?fx.c1:fx.c2;return rc(c,pSource)||'';}
+    if(th>=0){if(sideIdx===0)return rc(R32_THIRDS[th].c1,pSource)||'';else return (pSource.t8||[])[th]||'';}
+    return '';
+  }
+  if(rndKey==='r16'){const[s1,s2]=R16B[mi];return sideIdx===0?(_v2WinnerOfRound(p,'r32',s1)||''):(_v2WinnerOfRound(p,'r32',s2)||'');}
+  if(rndKey==='qf'){const[s1,s2]=QFB[mi];return sideIdx===0?(_v2WinnerOfRound(p,'r16',s1)||''):(_v2WinnerOfRound(p,'r16',s2)||'');}
+  if(rndKey==='sf'){const[s1,s2]=SFB[mi];return sideIdx===0?(_v2WinnerOfRound(p,'qf',s1)||''):(_v2WinnerOfRound(p,'qf',s2)||'');}
+  if(rndKey==='fin'){return sideIdx===0?(_v2WinnerOfRound(p,'sf',0)||''):(_v2WinnerOfRound(p,'sf',1)||'');}
+  return '';
+}
+function _v2WinnerOfRound(p,rnd,mi){
+  // Si BRACKET_V2 activo y hay pick V2, usar su winner; si no, fallback al pick viejo
+  if(window.BRACKET_V2){
+    const arr=p[rnd+'V2'];
+    if(arr&&arr[mi]&&arr[mi].w)return arr[mi].w;
+  }
+  return (p[rnd]||[])[mi]||'';
+}
 
 // ══════════════════════════════════════════════════════
 // SIDEBAR
@@ -3366,13 +3541,19 @@ function rR32(adm){
   let h=rParticipants();
   if(!adm)h+=rViewToggle();
   if(!adm&&S.bracketView==='bracket'){return rParticipants()+rViewToggle()+rEditableBracket();}
-  h+=`<div class="phase"><div class="phdr">Partidos de grupos <span class="ptag">${PTS.r32} pts c/u</span></div><div class="mgrid">`;
+  const ptsTagR32=window.BRACKET_V2?`hasta 5 pts c/u`:`${PTS.r32} pts c/u`;
+  h+=`<div class="phase"><div class="phdr">Partidos de grupos <span class="ptag">${ptsTagR32}</span></div><div class="mgrid">`;
   for(const{i,c1,c2}of R32_FIXED){
     const t1=rc(c1,p)||'',t2=rc(c2,p)||'';
-    h+=mc({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,w:p.r32[i],dis:!t1||!t2,
-      f1:t1?`setR32(${i},'${js(t1)}',${a})`:'',
-      f2:t2?`setR32(${i},'${js(t2)}',${a})`:'',
-      info:MATCH_INFO.r32[i]});
+    if(window.BRACKET_V2&&!adm){
+      const pickObj=(p.r32V2||[])[i]||null;
+      h+=mcV2({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,pickObj:pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rndKey:'r32',mi:i});
+    }else{
+      h+=mc({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,w:p.r32[i],dis:!t1||!t2,
+        f1:t1?`setR32(${i},'${js(t1)}',${a})`:'',
+        f2:t2?`setR32(${i},'${js(t2)}',${a})`:'',
+        info:MATCH_INFO.r32[i]});
+    }
   }
   h+=`</div></div><div class="phase"><div class="phdr">Mejores Terceros <span class="ptag">${PTS.r32} pts c/u</span></div>`;
   if(!adm){
@@ -3409,10 +3590,15 @@ function rR32(adm){
         // Build label with Annex C info
         const t3code=annexMatchups?annexMatchups[c1]:null;
         const lbl=t3code?`${c1} vs ${t3code}`:`${c1} vs 3ro #${ti+1}`;
-        h+=mc({lbl:lbl,t1:t1||c1,t2:t2||'Por definir',w:p.r32[i],dis:!t1||!t2,
-          f1:t1&&t2?`setR32(${i},'${js(t1)}',false)`:'',
-          f2:t1&&t2?`setR32(${i},'${js(t2)}',false)`:'',
-          info:MATCH_INFO.r32[i]});
+        if(window.BRACKET_V2){
+          const pickObj=(p.r32V2||[])[i]||null;
+          h+=mcV2({lbl:lbl,t1:t1||c1,t2:t2||'Por definir',pickObj:pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rndKey:'r32',mi:i});
+        }else{
+          h+=mc({lbl:lbl,t1:t1||c1,t2:t2||'Por definir',w:p.r32[i],dis:!t1||!t2,
+            f1:t1&&t2?`setR32(${i},'${js(t1)}',false)`:'',
+            f2:t1&&t2?`setR32(${i},'${js(t2)}',false)`:'',
+            info:MATCH_INFO.r32[i]});
+        }
       }
       h+='</div>';
     }
@@ -3467,14 +3653,24 @@ function rKO(round,adm){
   const cfg={r16:{lbl:'Octavos',br:R16B,src:p.r32,self:p.r16,fn:'setR16',pts:PTS.r16,n:8},qf:{lbl:'Cuartos',br:QFB,src:p.r16,self:p.qf,fn:'setQF',pts:PTS.qf,n:4},sf:{lbl:'Semis',br:SFB,src:p.qf,self:p.sf,fn:'setSF',pts:PTS.sf,n:2}}[round];
   let h=rParticipants();
   if(!adm)h+=rViewToggle();
-  h+=`<div class="phase"><div class="phdr">${cfg.lbl} <span class="ptag">${cfg.pts} pts c/u</span></div><div class="mgrid">`;
+  const ptsTagKO=window.BRACKET_V2?`hasta 5 pts c/u`:`${cfg.pts} pts c/u`;
+  h+=`<div class="phase"><div class="phdr">${cfg.lbl} <span class="ptag">${ptsTagKO}</span></div><div class="mgrid">`;
+  // En V2 los equipos del round vienen del winner del round anterior V2 si está activo
+  function v2Src(idx){return _v2WinnerOfRound(p,{r16:'r32',qf:'r16',sf:'qf'}[round],idx);}
   for(let i=0;i<cfg.n;i++){
     const[s1,s2]=cfg.br[i];
-    const t1=cfg.src[s1]||'',t2=cfg.src[s2]||'';
-    h+=mc({lbl:`Partido ${i+1}`,t1:t1||'Por definir',t2:t2||'Por definir',w:cfg.self[i]||'',dis:!t1||!t2,
-      info:MATCH_INFO[round]&&MATCH_INFO[round][i],
-      f1:t1?`${cfg.fn}(${i},'${js(t1)}',${a})`:'',
-      f2:t2?`${cfg.fn}(${i},'${js(t2)}',${a})`:''});
+    let t1,t2;
+    if(window.BRACKET_V2&&!adm){
+      t1=v2Src(s1)||'';t2=v2Src(s2)||'';
+      const pickObj=(p[round+'V2']||[])[i]||null;
+      h+=mcV2({lbl:`Partido ${i+1}`,t1:t1||'Por definir',t2:t2||'Por definir',pickObj:pickObj,dis:!t1||!t2,info:MATCH_INFO[round]&&MATCH_INFO[round][i],rndKey:round,mi:i});
+    }else{
+      t1=cfg.src[s1]||'';t2=cfg.src[s2]||'';
+      h+=mc({lbl:`Partido ${i+1}`,t1:t1||'Por definir',t2:t2||'Por definir',w:cfg.self[i]||'',dis:!t1||!t2,
+        info:MATCH_INFO[round]&&MATCH_INFO[round][i],
+        f1:t1?`${cfg.fn}(${i},'${js(t1)}',${a})`:'',
+        f2:t2?`${cfg.fn}(${i},'${js(t2)}',${a})`:''});
+    }
   }
   return h+'</div></div>';
 }
@@ -3490,10 +3686,38 @@ function rFinal(adm){
     </div>`;
   }
   if(!adm&&S.bracketView==='bracket'){return rParticipants()+rViewToggle()+rEditableBracket();}
-  const sf1=p.sf[0]||'',sf2=p.sf[1]||'',fw=p.fin;
-  const l0=[p.qf[0]||'',p.qf[1]||''].find(t=>t&&t!==p.sf[0])||'';
-  const l1=[p.qf[2]||'',p.qf[3]||''].find(t=>t&&t!==p.sf[1])||'';
-  return rParticipants()+(adm?'':rViewToggle())+`<div class="fw"><div class="fc">
+  // En V2: equipos finalistas vienen de winners de semis V2
+  let sf1,sf2;
+  if(window.BRACKET_V2&&!adm){
+    sf1=_v2WinnerOfRound(p,'sf',0)||'';
+    sf2=_v2WinnerOfRound(p,'sf',1)||'';
+  }else{
+    sf1=p.sf[0]||'';sf2=p.sf[1]||'';
+  }
+  const fw=window.BRACKET_V2&&p.finV2?p.finV2.w:p.fin;
+  // Perdedores de semis (para 3er lugar)
+  let l0,l1;
+  if(window.BRACKET_V2&&!adm){
+    const qf0=_v2WinnerOfRound(p,'qf',0),qf1=_v2WinnerOfRound(p,'qf',1);
+    const qf2=_v2WinnerOfRound(p,'qf',2),qf3=_v2WinnerOfRound(p,'qf',3);
+    l0=[qf0,qf1].find(t=>t&&t!==sf1)||'';
+    l1=[qf2,qf3].find(t=>t&&t!==sf2)||'';
+  }else{
+    l0=[p.qf[0]||'',p.qf[1]||''].find(t=>t&&t!==p.sf[0])||'';
+    l1=[p.qf[2]||'',p.qf[3]||''].find(t=>t&&t!==p.sf[1])||'';
+  }
+  let h=rParticipants()+(adm?'':rViewToggle());
+  if(window.BRACKET_V2&&!adm){
+    // V2: Final y 3er como mcV2 cards en grid
+    h+=`<div class="phase"><div class="phdr">🏆 Gran Final y 3er Lugar <span class="ptag">hasta 5 pts c/u</span></div><div class="mgrid">`;
+    const finPick=p.finV2||null;
+    h+=mcV2({lbl:`🏆 Gran Final · M${MATCH_INFO.fin.m}`,t1:sf1||'Por definir',t2:sf2||'Por definir',pickObj:finPick,dis:!sf1||!sf2,info:MATCH_INFO.fin,rndKey:'fin',mi:0});
+    const thrPick=p.thrV2||null;
+    h+=mcV2({lbl:`🥉 3er Lugar · M${MATCH_INFO.thr.m}`,t1:l0||'Por definir',t2:l1||'Por definir',pickObj:thrPick,dis:!l0||!l1,info:MATCH_INFO.thr,rndKey:'thr',mi:0});
+    h+=`</div></div>`;
+    return h;
+  }
+  return h+`<div class="fw"><div class="fc">
     <div class="fttl">🏆 Gran Final · ${PTS.fin} pts</div>
     <div class="minfo" style="text-align:center;margin-bottom:10px">📅 ${MATCH_INFO.fin.d} · 📍 ${MATCH_INFO.fin.c}</div>
     <div class="mrow">
@@ -6913,6 +7137,50 @@ function renderFloatNext(){
   if(action){btn.style.display='inline-flex';btn.textContent=btnLbl;_floatNextAction=action;btn.onclick=action;}
   else{btn.style.display='none';_floatNextAction=null;}
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 🧪 BRACKET V2 — banner visual + toggle desde consola
+// ═══════════════════════════════════════════════════════════════
+function updateBracketV2Banner(){
+  const b=document.getElementById('bracket-v2-banner');if(!b)return;
+  if(window.BRACKET_V2){
+    const fakeTag=window.BRACKET_V2_FAKE?'<span class="fake-tag">MODO FAKE</span>':'<span class="fake-tag" style="background:#dc2626;color:#fff">LIVE</span>';
+    b.innerHTML=`🧪 Bracket V2 activo ${fakeTag} <button onclick="window.BRACKET_V2=false;updateBracketV2Banner();render()">Desactivar</button>`;
+    b.classList.add('on');
+  }else{
+    b.classList.remove('on');
+  }
+}
+// Función helper de consola para activar fácilmente
+window.toggleBracketV2=function(fake){
+  window.BRACKET_V2=!window.BRACKET_V2;
+  if(typeof fake==='boolean')window.BRACKET_V2_FAKE=fake;
+  updateBracketV2Banner();
+  if(typeof render==='function')render();
+  console.log('[BRACKET V2]',window.BRACKET_V2?'ACTIVADO':'DESACTIVADO','| fake mode:',window.BRACKET_V2_FAKE);
+  console.log('  → Cambia con: toggleBracketV2()  o  toggleBracketV2(false) para LIVE');
+};
+// Inicializar banner al cargar
+setTimeout(updateBracketV2Banner,500);
+console.log('%c🧪 BRACKET V2 disponible. Activa con: BRACKET_V2=true; render()','color:#7c3aed;font-weight:bold;font-size:13px');
+console.log('%c   O usa: toggleBracketV2()  | Estado actual:',`BRACKET_V2=${window.BRACKET_V2}`,`FAKE=${window.BRACKET_V2_FAKE}`,'color:#6d28d9');
+
+// === Banner SANDBOX permanente arriba ===
+function updateSandboxBanner(){
+  const b=document.getElementById('sandbox-banner');if(!b)return;
+  if(window.SANDBOX_MODE){
+    b.innerHTML=`🛡️ <strong>MODO SANDBOX ACTIVO</strong> · Ninguna escritura llega a Firebase. Lo que hagas aquí NO afecta tu index original. <button onclick="if(confirm('¿Seguro? Esto activará escrituras reales a Firebase desde este archivo. Solo úsalo si vas a aplicar cambios reales.')){window.SANDBOX_MODE=false;updateSandboxBanner();}">Desactivar (peligroso)</button>`;
+    b.classList.remove('off');
+    document.body.classList.add('has-sandbox-banner');
+  }else{
+    b.innerHTML=`⚠️ <strong>SANDBOX DESACTIVADO</strong> · Las escrituras a Firebase están ACTIVAS. ¡Cuidado! <button onclick="window.SANDBOX_MODE=true;updateSandboxBanner();">Reactivar sandbox</button>`;
+    b.classList.add('off');
+    document.body.classList.add('has-sandbox-banner');
+  }
+}
+setTimeout(updateSandboxBanner,100);
 </script>
+<div id="sandbox-banner"></div>
+<div id="bracket-v2-banner"></div>
 </body>
 </html>
