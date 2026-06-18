@@ -412,6 +412,18 @@ html[data-ucolor] .mbtn.on{background:var(--uc);border-color:var(--uc)}
 .pens-btn-v2.on{background:#7c3aed;color:#fff;border-color:#7c3aed;font-weight:700}
 .pens-btn-v2 .flag{font-size:12px}
 .pens-btn-v2:disabled{opacity:.4;cursor:default}
+/* BRACKET V2 — inputs y penales para vista bracket (árbol) */
+.br-score-input{width:24px;height:18px;border:1px solid var(--bd);border-radius:3px;background:#fff;text-align:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:11px;color:var(--tx);-moz-appearance:textfield;padding:0;margin-left:auto;flex-shrink:0}
+.br-score-input::-webkit-outer-spin-button,.br-score-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.br-score-input:focus{outline:none;border-color:var(--ac);color:var(--ac)}
+.br-team.winner .br-score-input{border-color:var(--ac);color:var(--ac);font-weight:800}
+.br-pens-mini-row{display:flex;align-items:center;justify-content:center;gap:3px;margin-top:3px;padding:2px 0 0;border-top:1px dashed var(--bd2)}
+.br-pens-mini-row.dimmed{opacity:.35}
+.br-pens-mini-lbl{font-size:7.5px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.4px}
+.br-pens-mini-btn{font-size:9px;padding:2px 5px;border-radius:3px;border:1px solid var(--bd);background:var(--bg);cursor:pointer;color:var(--mt);font-weight:700;font-family:'DM Sans',sans-serif}
+.br-pens-mini-btn:hover:not(:disabled){border-color:#7c3aed;color:#6d28d9}
+.br-pens-mini-btn.on{background:#7c3aed;color:#fff;border-color:#7c3aed}
+.br-pens-mini-btn:disabled{opacity:.4;cursor:default}
 #sandbox-banner{position:fixed;top:0;left:0;right:0;background:linear-gradient(90deg,#7c3aed,#dc2626,#7c3aed);background-size:200% 100%;animation:sandboxShimmer 4s linear infinite;color:#fff;padding:6px 16px;font-size:12px;font-weight:800;text-align:center;z-index:99999;font-family:'DM Sans',sans-serif;letter-spacing:.5px;box-shadow:0 2px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;gap:10px}
 #sandbox-banner.off{background:linear-gradient(90deg,#dc2626,#991b1b);animation:none}
 #sandbox-banner button{background:rgba(255,255,255,.25);border:none;color:#fff;font-weight:800;padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-family:inherit}
@@ -3324,30 +3336,61 @@ function buildEditableBracket(p){
     if(rndKey==='fin')return `setFin('${js(team)}',false)`;
     return '';
   }
-  function tc(name,winner,clickFn,disabled){
-    if(!name)return `<div class="br-team empty clickable${disabled?' locked':''}"><span class="br-flag">—</span><span class="br-tname">—</span></div>`;
-    if(disabled)return `<div class="br-team locked${winner?' winner':''}" title="${esc(name)}"><span class="br-flag">${flag(name)}</span><span class="br-tname">${esc(abbr(name))}</span></div>`;
-    return `<div class="br-team clickable${winner?' winner':''}" onclick="${clickFn}" title="${esc(name)}"><span class="br-flag">${flag(name)}</span><span class="br-tname">${esc(abbr(name))}</span></div>`;
+  // V2 helper: obtener pick V2 (objeto {w,a,b,pen})
+  function getV2Pick(rndKey,mi){
+    if(rndKey==='fin'||rndKey==='thr')return p[rndKey+'V2']||{};
+    return (p[rndKey+'V2']||[])[mi]||{};
   }
-  
+  function tc(name,winner,clickFn,disabled,v2opts){
+    if(!name)return `<div class="br-team empty clickable${disabled?' locked':''}"><span class="br-flag">—</span><span class="br-tname">—</span></div>`;
+    // En BRACKET_V2: agregar input de score al lado del equipo
+    let scoreHtml='';
+    if(window.BRACKET_V2&&v2opts&&!disabled){
+      const v=v2opts.scoreVal!=null?v2opts.scoreVal:'';
+      const handler=`setMcV2Score('${v2opts.rndKey}',${v2opts.mi},'${v2opts.side}',this.value);event.stopPropagation();`;
+      scoreHtml=`<input type="number" class="br-score-input" value="${v}" min="0" max="20" oninput="${handler}" onclick="event.stopPropagation()" placeholder="–">`;
+    }
+    if(disabled)return `<div class="br-team locked${winner?' winner':''}" title="${esc(name)}"><span class="br-flag">${flag(name)}</span><span class="br-tname">${esc(abbr(name))}</span>${scoreHtml}</div>`;
+    return `<div class="br-team clickable${winner?' winner':''}" onclick="${clickFn}" title="${esc(name)}"><span class="br-flag">${flag(name)}</span><span class="br-tname">${esc(abbr(name))}</span>${scoreHtml}</div>`;
+  }
+  // Render selector de penales en V2 (solo si el partido tiene ambos equipos)
+  function renderV2Pens(rndKey,matchIdx,team1,team2){
+    if(!window.BRACKET_V2||isRoundLocked(rndKey))return '';
+    if(!team1||!team2)return '';
+    const pick=getV2Pick(rndKey,matchIdx);
+    const isTie=pick.a!=null&&pick.b!=null&&Number(pick.a)===Number(pick.b);
+    return `<div class="br-pens-mini-row${isTie?'':' dimmed'}">
+      <span class="br-pens-mini-lbl">Pen:</span>
+      <button class="br-pens-mini-btn${pick.pen===team1?' on':''}" onclick="setMcV2Pen('${rndKey}',${matchIdx},'${js(team1)}')">${esc(abbr(team1))}</button>
+      <button class="br-pens-mini-btn${pick.pen===team2?' on':''}" onclick="setMcV2Pen('${rndKey}',${matchIdx},'${js(team2)}')">${esc(abbr(team2))}</button>
+    </div>`;
+  }
   // Helper: render a match card with its label (match number on outside)
   function renderMatchLeft(mi_info,team1,team2,winner,rndKey,matchIdx){
+    const pick=window.BRACKET_V2?getV2Pick(rndKey,matchIdx):{};
+    const v2A=window.BRACKET_V2?{rndKey,mi:matchIdx,side:'a',scoreVal:pick.a}:null;
+    const v2B=window.BRACKET_V2?{rndKey,mi:matchIdx,side:'b',scoreVal:pick.b}:null;
     return `<div class="br-match-wrap">
       <div class="br-match">
         <span class="br-match-num">M${mi_info.m}</span>
         <div class="br-match-info">${mi_info.d} · ${mi_info.t} · ${mi_info.c}</div>
-        ${tc(team1,winner===team1&&!!winner,cellClick(rndKey,matchIdx,team1),isRoundLocked(rndKey))}
-        ${tc(team2,winner===team2&&!!winner,cellClick(rndKey,matchIdx,team2),isRoundLocked(rndKey))}
+        ${tc(team1,winner===team1&&!!winner,cellClick(rndKey,matchIdx,team1),isRoundLocked(rndKey),v2A)}
+        ${tc(team2,winner===team2&&!!winner,cellClick(rndKey,matchIdx,team2),isRoundLocked(rndKey),v2B)}
+        ${renderV2Pens(rndKey,matchIdx,team1,team2)}
       </div>
     </div>`;
   }
   function renderMatchRight(mi_info,team1,team2,winner,rndKey,matchIdx){
+    const pick=window.BRACKET_V2?getV2Pick(rndKey,matchIdx):{};
+    const v2A=window.BRACKET_V2?{rndKey,mi:matchIdx,side:'a',scoreVal:pick.a}:null;
+    const v2B=window.BRACKET_V2?{rndKey,mi:matchIdx,side:'b',scoreVal:pick.b}:null;
     return `<div class="br-match-wrap">
       <div class="br-match">
         <span class="br-match-num" style="left:auto;right:6px">M${mi_info.m}</span>
         <div class="br-match-info">${mi_info.d} · ${mi_info.t} · ${mi_info.c}</div>
-        ${tc(team1,winner===team1&&!!winner,cellClick(rndKey,matchIdx,team1),isRoundLocked(rndKey))}
-        ${tc(team2,winner===team2&&!!winner,cellClick(rndKey,matchIdx,team2),isRoundLocked(rndKey))}
+        ${tc(team1,winner===team1&&!!winner,cellClick(rndKey,matchIdx,team1),isRoundLocked(rndKey),v2A)}
+        ${tc(team2,winner===team2&&!!winner,cellClick(rndKey,matchIdx,team2),isRoundLocked(rndKey),v2B)}
+        ${renderV2Pens(rndKey,matchIdx,team1,team2)}
       </div>
     </div>`;
   }
