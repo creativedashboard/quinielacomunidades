@@ -2466,13 +2466,55 @@ function calcPts(uid){
     const realSet=new Set(r.t8);
     for(const t of(p.t8||[])){if(realSet.has(t)){tot+=PTS.t8;bd.t8+=PTS.t8;bd.lugares+=PTS.t8;}}
   }
-  for(let i=0;i<16;i++)if(p.r32[i]&&p.r32[i]===r.r32[i]){tot+=PTS.r32;bd.r32+=PTS.r32;}
-  for(let i=0;i<8;i++) if(p.r16[i]&&p.r16[i]===r.r16[i]){tot+=PTS.r16;bd.r16+=PTS.r16;}
-  for(let i=0;i<4;i++) if(p.qf[i] &&p.qf[i] ===r.qf[i] ){tot+=PTS.qf;bd.qf+=PTS.qf;}
-  for(let i=0;i<2;i++) if(p.sf[i] &&p.sf[i] ===r.sf[i] ){tot+=PTS.sf;bd.sf+=PTS.sf;}
-  if(p.fin&&p.fin===r.fin){tot+=PTS.fin;bd.fin+=PTS.fin;}
-  if(p.thr&&p.thr===r.thr){tot+=PTS.thr;bd.thr+=PTS.thr;}
+  // ═══════════════════════════════════════════════════════════════
+  // BRACKET: usa Forma C cuando window.BRACKET_V2 = true
+  // (1 pt ganador · 3 pts marcador exacto · 2 pts penales acertados · +2 si exacto+pens)
+  // ═══════════════════════════════════════════════════════════════
+  if(window.BRACKET_V2){
+    function _v2RoundPts(pickArr,realArr,n){
+      let acc=0;
+      for(let i=0;i<n;i++){
+        const pk=pickArr?pickArr[i]:null;
+        const re=realArr?realArr[i]:null;
+        if(!pk||!re)continue;
+        acc+=_calcBracketV2Pts(pk,re);
+      }
+      return acc;
+    }
+    const r32V2=_v2RoundPts(p.r32V2,r.r32V2,16);
+    const r16V2=_v2RoundPts(p.r16V2,r.r16V2,8);
+    const qfV2 =_v2RoundPts(p.qfV2, r.qfV2, 4);
+    const sfV2 =_v2RoundPts(p.sfV2, r.sfV2, 2);
+    const finV2=p.finV2&&r.finV2?_calcBracketV2Pts(p.finV2,r.finV2):0;
+    const thrV2=p.thrV2&&r.thrV2?_calcBracketV2Pts(p.thrV2,r.thrV2):0;
+    tot+=r32V2+r16V2+qfV2+sfV2+finV2+thrV2;
+    bd.r32+=r32V2;bd.r16+=r16V2;bd.qf+=qfV2;bd.sf+=sfV2;bd.fin+=finV2;bd.thr+=thrV2;
+  }else{
+    for(let i=0;i<16;i++)if(p.r32[i]&&p.r32[i]===r.r32[i]){tot+=PTS.r32;bd.r32+=PTS.r32;}
+    for(let i=0;i<8;i++) if(p.r16[i]&&p.r16[i]===r.r16[i]){tot+=PTS.r16;bd.r16+=PTS.r16;}
+    for(let i=0;i<4;i++) if(p.qf[i] &&p.qf[i] ===r.qf[i] ){tot+=PTS.qf;bd.qf+=PTS.qf;}
+    for(let i=0;i<2;i++) if(p.sf[i] &&p.sf[i] ===r.sf[i] ){tot+=PTS.sf;bd.sf+=PTS.sf;}
+    if(p.fin&&p.fin===r.fin){tot+=PTS.fin;bd.fin+=PTS.fin;}
+    if(p.thr&&p.thr===r.thr){tot+=PTS.thr;bd.thr+=PTS.thr;}
+  }
   return{tot,bd};
+}
+// Helper Forma C: calcula puntos de un partido del bracket
+// pick/real: objetos {w, a, b, pen}
+function _calcBracketV2Pts(pick,real){
+  if(!pick||!real)return 0;
+  const ma=pick.a,mb=pick.b,mw=pick.w,mp=pick.pen;
+  const ra=real.a,rb=real.b,rw=real.w,rp=real.pen;
+  if(!rw)return 0;
+  const exactScore=ma!=null&&mb!=null&&Number(ma)===Number(ra)&&Number(mb)===Number(rb);
+  const realPens=ra!=null&&rb!=null&&Number(ra)===Number(rb)&&rp;
+  if(exactScore){
+    if(realPens&&Number(ma)===Number(mb)&&mp===rp)return 5; // exacto + penales
+    return 3;                                                 // marcador exacto
+  }
+  if(realPens&&mp===rp&&mp)return 2;                          // penales sin exacto
+  if(mw&&mw===rw)return 1;                                    // solo ganador
+  return 0;
 }
 
 function calcProgress(p){
