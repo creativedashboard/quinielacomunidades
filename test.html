@@ -398,15 +398,17 @@ html[data-ucolor] .mbtn.on{background:var(--uc);border-color:var(--uc)}
 .vsbdg{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--mt);padding:0 2px;flex-shrink:0}
 
 /* ══ BRACKET V2 (Forma C: marcadores + penales) — sólo activo con window.BRACKET_V2=true ══ */
-/* Layout horizontal con equipos como ETIQUETAS (no botones) + inputs centrados */
-.mrow-v2{display:flex;gap:6px;align-items:stretch}
-.mteam-v2{flex:1.6;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 8px;background:var(--bg);border:1.5px solid var(--bd);border-radius:7px;font-size:12.5px;font-weight:600;text-align:center;line-height:1.25;min-height:44px;color:var(--tx);transition:all .15s var(--ease-out)}
-.mteam-v2 .flag{font-size:15px;flex-shrink:0}
-.mteam-v2 .mteam-name-v2{font-weight:600;word-break:break-word;overflow-wrap:break-word;hyphens:auto;text-align:left;flex:1;min-width:0}
+/* Layout: flag + nombre VERTICAL, inputs al centro. Cards V2 son más anchas. */
+.mc-v2{padding:11px 10px}
+.mc-v2 + .mc-v2,.mgrid .mc-v2{min-width:0}
+.mrow-v2{display:flex;gap:5px;align-items:stretch}
+.mteam-v2{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:7px 4px;background:var(--bg);border:1.5px solid var(--bd);border-radius:7px;text-align:center;min-height:54px;color:var(--tx);transition:all .15s var(--ease-out)}
+.mteam-v2 .flag{font-size:18px;line-height:1;flex-shrink:0}
+.mteam-v2 .mteam-name-v2{font-family:'DM Sans',sans-serif;font-weight:600;font-size:11px;line-height:1.15;text-align:center;word-break:normal;overflow-wrap:normal;hyphens:none;white-space:normal;max-width:100%}
 .mteam-v2.winner{background:var(--acl);border-color:var(--ac);color:var(--ac);font-weight:800}
-.mteam-v2.winner .mteam-name-v2{font-weight:800}
+.mteam-v2.winner .mteam-name-v2{font-weight:800;color:var(--ac)}
 .mteam-v2.empty{opacity:.5}
-.score-input-v2{width:42px;height:44px;flex-shrink:0;border:1.5px solid var(--bd);border-radius:7px;background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;font-weight:800;font-size:18px;text-align:center;-moz-appearance:textfield;transition:all .12s var(--ease-out)}
+.score-input-v2{width:38px;height:54px;flex-shrink:0;border:1.5px solid var(--bd);border-radius:7px;background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;font-weight:800;font-size:18px;text-align:center;-moz-appearance:textfield;transition:all .12s var(--ease-out);align-self:stretch}
 .score-input-v2::-webkit-outer-spin-button,.score-input-v2::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .score-input-v2:focus{outline:none;border-color:var(--ac);background:#fff}
 .score-input-v2:disabled{opacity:.4}
@@ -2164,6 +2166,10 @@ function mergeP(v){
     if(v[k])_iterIndexed(v[k],b[k].length,(i,x)=>{b[k][i]=x||'';});
   }
   if(v.fin)b.fin=v.fin;if(v.thr)b.thr=v.thr;
+  // V2: preservar picks V2 (bracket con marcadores + penales)
+  for(const k of['r32V2','r16V2','qfV2','sfV2']){if(v[k])b[k]=v[k];}
+  if(v.finV2)b.finV2=v.finV2;
+  if(v.thrV2)b.thrV2=v.thrV2;
   return b;
 }
 function mergeAdm(v){
@@ -2182,6 +2188,10 @@ function mergeAdm(v){
     if(v[k])_iterIndexed(v[k],b[k].length,(i,x)=>{b[k][i]=x||'';});
   }
   if(v.fin)b.fin=v.fin;if(v.thr)b.thr=v.thr;
+  // V2: preservar marcadores oficiales V2 del admin
+  for(const k of['r32V2','r16V2','qfV2','sfV2']){if(v[k])b[k]=v[k];}
+  if(v.finV2)b.finV2=v.finV2;
+  if(v.thrV2)b.thrV2=v.thrV2;
   return b;
 }
 
