@@ -2549,11 +2549,22 @@ function calcProgress(p){
     if(m&&m.length===6&&m.every(x=>x&&x.a!=null&&x.b!=null&&x.a!==''&&x.b!=='')){grpFilled++;}
   }
   const t8cnt=(p.t8||[]).length;
-  const r32done=R32_FIXED.filter(({i})=>p.r32[i]).length+R32_THIRDS.filter(({i})=>p.r32[i]).length;
-  const r16done=p.r16.filter(Boolean).length;
-  const qfDone=p.qf.filter(Boolean).length;
-  const sfDone=p.sf.filter(Boolean).length;
-  const finDone=p.fin?1:0;
+  // En BRACKET_V2: un partido cuenta como "hecho" si tiene marcador llenado en V2 (a y b no null)
+  let r32done,r16done,qfDone,sfDone,finDone;
+  if(window.BRACKET_V2){
+    const v2Done=(arr,n)=>{if(!arr)return 0;let c=0;for(let i=0;i<n;i++){const x=arr[i];if(x&&x.a!=null&&x.b!=null)c++;}return c;};
+    r32done=v2Done(p.r32V2,16);
+    r16done=v2Done(p.r16V2,8);
+    qfDone=v2Done(p.qfV2,4);
+    sfDone=v2Done(p.sfV2,2);
+    finDone=(p.finV2&&p.finV2.a!=null&&p.finV2.b!=null)?1:0;
+  }else{
+    r32done=R32_FIXED.filter(({i})=>p.r32[i]).length+R32_THIRDS.filter(({i})=>p.r32[i]).length;
+    r16done=p.r16.filter(Boolean).length;
+    qfDone=p.qf.filter(Boolean).length;
+    sfDone=p.sf.filter(Boolean).length;
+    finDone=p.fin?1:0;
+  }
   return{grpFilled,t8cnt,r32done,r16done,qfDone,sfDone,finDone};
 }
 
