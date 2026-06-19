@@ -398,7 +398,15 @@ html[data-ucolor] .mbtn.on{background:var(--uc);border-color:var(--uc)}
 .vsbdg{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--mt);padding:0 2px;flex-shrink:0}
 
 /* ══ BRACKET V2 (Forma C: marcadores + penales) — sólo activo con window.BRACKET_V2=true ══ */
-.score-input-v2{width:36px;height:42px;border:1.5px solid var(--bd);border-radius:7px;background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;font-weight:800;font-size:17px;text-align:center;-moz-appearance:textfield;transition:all .12s var(--ease-out)}
+/* Layout horizontal con equipos como ETIQUETAS (no botones) + inputs centrados */
+.mrow-v2{display:flex;gap:6px;align-items:stretch}
+.mteam-v2{flex:1.6;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 8px;background:var(--bg);border:1.5px solid var(--bd);border-radius:7px;font-size:12.5px;font-weight:600;text-align:center;line-height:1.25;min-height:44px;color:var(--tx);transition:all .15s var(--ease-out)}
+.mteam-v2 .flag{font-size:15px;flex-shrink:0}
+.mteam-v2 .mteam-name-v2{font-weight:600;word-break:break-word;overflow-wrap:break-word;hyphens:auto;text-align:left;flex:1;min-width:0}
+.mteam-v2.winner{background:var(--acl);border-color:var(--ac);color:var(--ac);font-weight:800}
+.mteam-v2.winner .mteam-name-v2{font-weight:800}
+.mteam-v2.empty{opacity:.5}
+.score-input-v2{width:42px;height:44px;flex-shrink:0;border:1.5px solid var(--bd);border-radius:7px;background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;font-weight:800;font-size:18px;text-align:center;-moz-appearance:textfield;transition:all .12s var(--ease-out)}
 .score-input-v2::-webkit-outer-spin-button,.score-input-v2::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .score-input-v2:focus{outline:none;border-color:var(--ac);background:#fff}
 .score-input-v2:disabled{opacity:.4}
@@ -2057,9 +2065,11 @@ function loadApp(forceAdmin){
       }
       safeRender();
     }},
-    {path:'picks',                handler:snap=>{S.picks=snap.val()||{};safeRender();}},
-    {path:'communities',          handler:snap=>{S.communities=snap.val()||{};safeRender();}},
-    {path:'community_admins',     handler:snap=>{S.community_admins=snap.val()||{};safeRender();}},
+    // SANDBOX FIX: en modo sandbox NO sobreescribimos S.picks/communities/etc. con datos de Firebase,
+    // porque eso borra los cambios locales del user (picks V2, comunidad de prueba, etc.)
+    {path:'picks',                handler:snap=>{if(window.SANDBOX_MODE)return;S.picks=snap.val()||{};safeRender();}},
+    {path:'communities',          handler:snap=>{if(window.SANDBOX_MODE)return;S.communities=snap.val()||{};safeRender();}},
+    {path:'community_admins',     handler:snap=>{if(window.SANDBOX_MODE)return;S.community_admins=snap.val()||{};safeRender();}},
     // Licenses listener — only super-admin needs this data; other users get blocked by Firebase rules
     ...(ME.isSuperAdmin?[{path:'licenses',handler:snap=>{S.licenses=snap.val()||{};safeRender();}}]:[]),
     // NEW: per-community results (each community has its own official results)
@@ -2577,18 +2587,19 @@ function mcV2({lbl,t1,t2,pickObj,dis,info,rndKey,mi}){
   const pen=pickObj&&pickObj.pen?pickObj.pen:'';
   const dataKey=`${rndKey}-${mi}`;
   const isTie=a!==''&&b!==''&&Number(a)===Number(b);
+  // FIX: usar onchange (no oninput) para no perder el foco mientras se teclea
   const onA=t1?`setMcV2Score('${js(rndKey)}',${mi},'a',this.value)`:'';
   const onB=t2?`setMcV2Score('${js(rndKey)}',${mi},'b',this.value)`:'';
   const penAClick=t1?`setMcV2Pen('${js(rndKey)}',${mi},'${js(t1)}')`:'';
   const penBClick=t2?`setMcV2Pen('${js(rndKey)}',${mi},'${js(t2)}')`:'';
   return`<div class="mcard mc-v2" data-key="${dataKey}">
     <div class="mlbl">${lbl}</div>${infoHtml}
-    <div class="mrow">
-      <button class="mbtn${w===t1&&!dis?' on':''}" ${dis||!t1?'disabled':''}>${t1?`<span class="flag">${flag(t1)}</span>`:''}<span>${esc(t1)||'?'}</span></button>
-      <input type="number" class="score-input-v2" value="${a}" min="0" max="20" ${dis?'disabled':''} oninput="${onA}" placeholder="–">
+    <div class="mrow-v2">
+      <div class="mteam-v2${w===t1?' winner':''}${!t1?' empty':''}">${t1?`<span class="flag">${flag(t1)}</span><span class="mteam-name-v2">${esc(t1)}</span>`:'<span class="mteam-name-v2">?</span>'}</div>
+      <input type="number" class="score-input-v2" value="${a}" min="0" max="20" ${dis?'disabled':''} onchange="${onA}" onkeydown="if(event.key==='Enter'||event.key==='Tab'){this.blur();}" placeholder="–">
       <span class="score-dash-v2">–</span>
-      <input type="number" class="score-input-v2" value="${b}" min="0" max="20" ${dis?'disabled':''} oninput="${onB}" placeholder="–">
-      <button class="mbtn${w===t2&&!dis?' on':''}" ${dis||!t2?'disabled':''}>${t2?`<span class="flag">${flag(t2)}</span>`:''}<span>${esc(t2)||'?'}</span></button>
+      <input type="number" class="score-input-v2" value="${b}" min="0" max="20" ${dis?'disabled':''} onchange="${onB}" onkeydown="if(event.key==='Enter'||event.key==='Tab'){this.blur();}" placeholder="–">
+      <div class="mteam-v2${w===t2?' winner':''}${!t2?' empty':''}">${t2?`<span class="flag">${flag(t2)}</span><span class="mteam-name-v2">${esc(t2)}</span>`:'<span class="mteam-name-v2">?</span>'}</div>
     </div>
     <div class="pens-block-v2 ${isTie?'':'dimmed'}">
       <div class="pens-lbl-v2">Si empatan, ¿quién gana en penales?</div>
