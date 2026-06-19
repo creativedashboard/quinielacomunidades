@@ -1073,11 +1073,14 @@ const TOURNAMENT_START=new Date('2026-06-11T16:00:00Z'); // 11 Jun 2026 — lock
 const R32_START=new Date('2026-06-28T20:00:00Z');
 
 function isLocked(){
+  // TEST OVERRIDE: si TEST_UNLOCK_ALL está activo, todo se desbloquea
+  if(window.TEST_UNLOCK_ALL)return false;
   // Once tournament starts, GROUP picks are frozen (admin can still edit results)
   return new Date()>=TOURNAMENT_START;
 }
 
 function isBracketLockedByDate(){
+  if(window.TEST_UNLOCK_ALL)return false;
   // Once R32 (16avos) starts, ALL bracket picks lock (Tournament Mode + Normal Mode)
   return new Date()>=R32_START;
 }
@@ -2373,6 +2376,8 @@ function toggleAdmT8(team){
 
 // Tournament Mode helper: returns true if user's bracket should be locked because Stage 2 is not unlocked yet
 function isTournamentBracketLocked(){
+  // TEST OVERRIDE
+  if(window.TEST_UNLOCK_ALL)return false;
   if(!ME.communityId)return false;
   const c=S.communities&&S.communities[ME.communityId];
   if(!c)return false;
@@ -3626,10 +3631,13 @@ function rR32(adm){
   let h=rParticipants();
   if(!adm)h+=rViewToggle();
   if(!adm&&S.bracketView==='bracket'){return rParticipants()+rViewToggle()+rEditableBracket();}
+  // FIX: en Modo Torneo Etapa 2 abierta, los equipos del bracket vienen de S.adminR (oficiales),
+  // no de los picks del user. Esto aplica también en sandbox cuando se llenó adminR.
+  const teamSrc=(!adm&&useOfficialForBracket()&&S.adminR)?S.adminR:p;
   const ptsTagR32=window.BRACKET_V2?`hasta 5 pts c/u`:`${PTS.r32} pts c/u`;
   h+=`<div class="phase"><div class="phdr">Partidos de grupos <span class="ptag">${ptsTagR32}</span></div><div class="mgrid">`;
   for(const{i,c1,c2}of R32_FIXED){
-    const t1=rc(c1,p)||'',t2=rc(c2,p)||'';
+    const t1=rc(c1,teamSrc)||'',t2=rc(c2,teamSrc)||'';
     if(window.BRACKET_V2&&!adm){
       const pickObj=(p.r32V2||[])[i]||null;
       h+=mcV2({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,pickObj:pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rndKey:'r32',mi:i});
@@ -3647,11 +3655,11 @@ function rR32(adm){
       <div style="font-weight:800;margin-bottom:6px;font-family:'Outfit',sans-serif;font-size:12.5px">⚠️ Importante: Mejores Terceros</div>
       <div>Calculamos los 8 mejores terceros usando la <strong>tabla oficial Annex C de FIFA</strong> (publicada 2024). Sin embargo, <strong>FIFA es la autoridad final</strong>. Si el día del torneo hay alguna discrepancia entre nuestros cálculos y los emparejamientos oficiales de FIFA, <strong>prevalecen SIEMPRE los de FIFA</strong>.</div>
     </div>`;
-    const t8=p.t8||[];
+    const t8=teamSrc.t8||[];
     if(t8.length<8){h+=`<div class="t8-hint">Termina de predecir los 72 partidos de grupos. Tus 8 mejores terceros se calculan automáticamente y aparecerán aquí.</div>`;}
     else{
       // Calculate which Annex C scenario applies
-      const ranking=calcAllThirds(p.grupos);
+      const ranking=calcAllThirds(teamSrc.grupos);
       const top8Groups=ranking.slice(0,8).map(t=>t.group).sort();
       const annexKey=top8Groups.map(g=>'3'+g).join('-');
       const annexMatchups=ANNEX_C_TABLE[annexKey];
@@ -3671,7 +3679,7 @@ function rR32(adm){
       h+='<div class="mgrid">';
       for(let ti=0;ti<8;ti++){
         const{i,c1}=R32_THIRDS[ti];
-        const t1=rc(c1,p)||'',t2=t8[ti]||'';
+        const t1=rc(c1,teamSrc)||'',t2=t8[ti]||'';
         // Build label with Annex C info
         const t3code=annexMatchups?annexMatchups[c1]:null;
         const lbl=t3code?`${c1} vs ${t3code}`:`${c1} vs 3ro #${ti+1}`;
@@ -5131,13 +5139,20 @@ async function openStage2(cid,commName){
   if(c.stage2Unlocked===true){alert('La Etapa 2 ya estaba abierta.');return;}
   // Validate: ALL group matches must be filled in the official results
   try{
-    const resultsSnap=await db.ref('community_results/'+cid).once('value');
-    let officialResults=resultsSnap.val();
-    if(!officialResults){
-      // Maybe legacy global results — only super-admin would have those
-      if(ME.isSuperAdmin){
-        const legacySnap=await db.ref('admin').once('value');
-        officialResults=legacySnap.val();
+    let officialResults;
+    // SANDBOX/TEST: usar S.adminR local (Firebase no tiene datos para la comunidad fake)
+    if(window.SANDBOX_MODE){
+      officialResults=S.adminR;
+      console.log('[SANDBOX] openStage2 usando S.adminR local en vez de Firebase');
+    }else{
+      const resultsSnap=await db.ref('community_results/'+cid).once('value');
+      officialResults=resultsSnap.val();
+      if(!officialResults){
+        // Maybe legacy global results — only super-admin would have those
+        if(ME.isSuperAdmin){
+          const legacySnap=await db.ref('admin').once('value');
+          officialResults=legacySnap.val();
+        }
       }
     }
     if(!officialResults||!officialResults.grupos){
@@ -7264,8 +7279,172 @@ function updateSandboxBanner(){
   }
 }
 setTimeout(updateSandboxBanner,100);
+
+// ═══════════════════════════════════════════════════════════════
+// 🧪 TEST TOOLS — panel flotante con botones para forzar estados
+// (solo visible cuando SANDBOX_MODE=true, no afecta a Firebase)
+// ═══════════════════════════════════════════════════════════════
+window.TEST_UNLOCK_ALL = false; // ← cambia con el toggle del panel
+
+function ttForceUnlock(){
+  window.TEST_UNLOCK_ALL = !window.TEST_UNLOCK_ALL;
+  updateTestTools();
+  if(typeof render==='function')render();
+  console.log('[TEST]','TEST_UNLOCK_ALL =', window.TEST_UNLOCK_ALL);
+}
+function ttForceStage2(){
+  if(!ME.communityId){alert('Únete a una comunidad primero');return;}
+  const c=S.communities[ME.communityId];
+  if(!c){alert('Comunidad no encontrada');return;}
+  c.stage2Unlocked=!c.stage2Unlocked;
+  console.log('[TEST]','Stage2 unlocked =',c.stage2Unlocked,'(solo en memoria)');
+  if(typeof render==='function')render();
+}
+function ttRandomFillGroups(){
+  if(typeof randomFillGroups==='function'){randomFillGroups();}
+  else{alert('Función randomFillGroups no encontrada');}
+}
+function ttRandomFillAdmin(){
+  if(typeof adminRandomFillGroups==='function'){adminRandomFillGroups();}
+  else{alert('Función adminRandomFillGroups no encontrada');}
+}
+function ttClearAll(){
+  if(!confirm('¿Limpiar TODOS los picks de bracket V2 en memoria?\n\nSolo afecta el state local, Firebase no se toca.'))return;
+  if(S.picks&&S.picks[ME.uid]){
+    const p=S.picks[ME.uid];
+    delete p.r32V2;delete p.r16V2;delete p.qfV2;delete p.sfV2;delete p.finV2;delete p.thrV2;
+  }
+  if(S.adminR){
+    delete S.adminR.r32V2;delete S.adminR.r16V2;delete S.adminR.qfV2;delete S.adminR.sfV2;delete S.adminR.finV2;delete S.adminR.thrV2;
+  }
+  if(typeof render==='function')render();
+  console.log('[TEST]','Picks V2 limpiados');
+}
+function ttSetupTestProfile(){
+  // Si no hay UID (no autenticado), generar fake
+  if(!ME.uid){
+    ME.uid='test-uid-'+Date.now();
+    ME.email='tester@test.local';
+    ME.name='Tester';
+    ME.photo='';
+    ME.color='blue';
+  }
+  // Crear comunidad de prueba fake
+  const testCid='TEST_COMM_LOCAL';
+  if(!S.communities)S.communities={};
+  if(!S.communities[testCid]){
+    S.communities[testCid]={
+      cid:testCid,
+      name:'🧪 Comunidad de Prueba',
+      inviteCode:'TEST123',
+      mode:'tournament',
+      stage2Unlocked:false,
+      createdBy:ME.uid,
+      createdAt:Date.now()
+    };
+  }
+  // Admins de la comunidad
+  if(!S.community_admins)S.community_admins={};
+  if(!S.community_admins[testCid])S.community_admins[testCid]={};
+  S.community_admins[testCid][ME.uid]=true;
+  // Agregar el user a S.users
+  if(!S.users)S.users={};
+  if(!S.users[ME.uid]){
+    S.users[ME.uid]={
+      uid:ME.uid,
+      name:ME.name||'Tester',
+      email:ME.email||'tester@test.local',
+      photo:ME.photo||'',
+      color:ME.color||'blue',
+      communityId:testCid,
+      joinedAt:Date.now()
+    };
+  }else{
+    S.users[ME.uid].communityId=testCid;
+    if(!S.users[ME.uid].name)S.users[ME.uid].name='Tester';
+  }
+  // ME setea su comunidad y admin
+  ME.communityId=testCid;
+  ME.isAdmin=true;
+  ME.isCommunityAdmin=true;
+  if(!ME.communityAdminOf)ME.communityAdminOf=[];
+  if(!ME.communityAdminOf.includes(testCid))ME.communityAdminOf.push(testCid);
+  // Inicializar picks vacíos si no existen
+  if(!S.picks)S.picks={};
+  if(!S.picks[ME.uid]&&typeof eP==='function'){S.picks[ME.uid]=eP();}
+  // Inicializar adminR vacío si no existe
+  if(!S.adminR&&typeof eAdm==='function'){S.adminR=eAdm();}
+  // Opcional: agregar un par de users fake adicionales para tener leaderboard
+  for(let i=1;i<=2;i++){
+    const fakeUid='test-fake-user-'+i;
+    if(!S.users[fakeUid]){
+      S.users[fakeUid]={
+        uid:fakeUid,
+        name:'Tester '+i,
+        email:'fake'+i+'@test.local',
+        photo:'',
+        color:['green','purple','orange'][i%3],
+        communityId:testCid,
+        joinedAt:Date.now()
+      };
+      S.picks[fakeUid]=typeof eP==='function'?eP():{grupos:{},t8:[],r32:[],r16:[],qf:[],sf:[],fin:'',thr:''};
+    }
+  }
+  console.log('[TEST] Perfil de prueba creado:',ME.uid,'→',testCid);
+  if(typeof render==='function')render();
+  alert('✅ Perfil + comunidad de prueba creados.\n\nAhora eres ADMIN de "🧪 Comunidad de Prueba" con 2 testers extra.\n\nFlujo sugerido:\n1. Activa desbloqueo\n2. Rellena tus grupos al azar\n3. Rellena resultados oficiales al azar\n4. Abre Etapa 2 forzado\n5. Ve a Mi Quiniela → 16avos para probar bracket V2');
+}
+function ttToggle(){
+  const panel=document.getElementById('test-tools-panel');
+  const collapsed=panel.classList.toggle('collapsed');
+  document.getElementById('test-tools-toggle-icon').textContent=collapsed?'▶':'▼';
+}
+function updateTestTools(){
+  const btnUnlock=document.getElementById('tt-btn-unlock');
+  if(btnUnlock){
+    btnUnlock.textContent=window.TEST_UNLOCK_ALL?'🔓 Bloqueos DESACTIVADOS':'🔒 Activar desbloqueo';
+    btnUnlock.classList.toggle('tt-active',window.TEST_UNLOCK_ALL);
+  }
+}
+function buildTestTools(){
+  const p=document.getElementById('test-tools-panel');if(!p)return;
+  p.innerHTML=`
+    <div class="tt-header" onclick="ttToggle()">
+      <span>🧪 Test Tools</span>
+      <span id="test-tools-toggle-icon">▼</span>
+    </div>
+    <div class="tt-body">
+      <button class="tt-btn tt-btn-primary" onclick="ttSetupTestProfile()">👤 Crear perfil + comunidad de prueba</button>
+      <button class="tt-btn" id="tt-btn-unlock" onclick="ttForceUnlock()">🔒 Activar desbloqueo</button>
+      <button class="tt-btn" onclick="ttRandomFillGroups()">🎲 Rellenar mis grupos al azar</button>
+      <button class="tt-btn" onclick="ttRandomFillAdmin()">🎲 Rellenar resultados oficiales (admin)</button>
+      <button class="tt-btn" onclick="ttForceStage2()">🏆 Abrir/Cerrar Etapa 2 (forzado)</button>
+      <button class="tt-btn tt-btn-danger" onclick="ttClearAll()">🧹 Limpiar picks V2 en memoria</button>
+      <div class="tt-hint">Todo es en memoria local. Sandbox bloquea Firebase.</div>
+    </div>
+  `;
+  updateTestTools();
+}
+setTimeout(buildTestTools,200);
 </script>
+<style>
+#test-tools-panel{position:fixed;bottom:14px;left:14px;background:#0f172a;color:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:9001;font-family:'DM Sans',sans-serif;width:260px;max-width:calc(100vw - 28px);transition:all .2s var(--ease-out)}
+#test-tools-panel.collapsed .tt-body{display:none}
+#test-tools-panel.collapsed{width:180px}
+.tt-header{padding:10px 14px;font-size:13px;font-weight:800;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:linear-gradient(135deg,#dc2626,#7c3aed);border-radius:12px 12px 0 0;letter-spacing:.3px}
+#test-tools-panel.collapsed .tt-header{border-radius:12px}
+.tt-body{padding:10px;display:flex;flex-direction:column;gap:6px}
+.tt-btn{padding:8px 11px;background:#1e293b;color:#fff;border:1px solid #334155;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:700;text-align:left;transition:all .12s}
+.tt-btn:hover{background:#334155;border-color:#475569}
+.tt-btn.tt-active{background:#16a34a;border-color:#16a34a}
+.tt-btn-danger{background:#7f1d1d;border-color:#991b1b}
+.tt-btn-danger:hover{background:#991b1b}
+.tt-btn-primary{background:linear-gradient(135deg,#16a34a,#15803d);border-color:#15803d;font-weight:800}
+.tt-btn-primary:hover{background:linear-gradient(135deg,#15803d,#166534);border-color:#166534}
+.tt-hint{margin-top:4px;font-size:10px;color:#94a3b8;text-align:center;font-style:italic;line-height:1.3}
+</style>
 <div id="sandbox-banner"></div>
 <div id="bracket-v2-banner"></div>
+<div id="test-tools-panel" class="collapsed"></div>
 </body>
 </html>
