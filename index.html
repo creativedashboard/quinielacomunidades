@@ -1051,29 +1051,55 @@ function calcGroupTable(g, gp){
     else if(a<b){teams[j].pts+=3;teams[j].w++;teams[i].l++;}
     else{teams[i].pts++;teams[j].pts++;teams[i].d++;teams[j].d++;}
   });
-  // Head-to-head helper: given two team indices, who won the direct match?
-  function headToHead(idxA,idxB){
-    for(let mi=0;mi<GROUP_MATCH_PAIRS.length;mi++){
-      const[i,j]=GROUP_MATCH_PAIRS[mi];
-      const m=gp.matches[mi];if(!m||m.a==null||m.b==null)continue;
-      const a=parseInt(m.a),b=parseInt(m.b);if(isNaN(a)||isNaN(b))continue;
-      if((i===idxA&&j===idxB)||(i===idxB&&j===idxA)){
-        const aIsA=(i===idxA);
-        if(a===b)return 0;
-        if((aIsA&&a>b)||(!aIsA&&b>a))return -1; // idxA wins
-        return 1; // idxB wins
-      }
-    }
-    return 0;
+  // ═══════════════════════════════════════════════════════════════
+  // FIFA Mundial 2026 — desempate oficial:
+  //   1. Mayor número de puntos en TODOS los partidos del grupo
+  //   2. ⭐ HEAD-TO-HEAD: sub-tabla solo con partidos entre los equipos empatados:
+  //        a) Puntos entre ellos
+  //        b) Diferencia de goles entre ellos
+  //        c) Goles a favor entre ellos
+  //   3. Diferencia de goles en TODOS los partidos del grupo
+  //   4. Goles a favor en TODOS los partidos del grupo
+  //   5. (Fair play y sorteo FIFA — no aplicables en quiniela)
+  // ═══════════════════════════════════════════════════════════════
+  // Helper: construir mini-tabla con SOLO los partidos entre los equipos empatados
+  function buildMiniTable(tiedIdxs){
+    const tiedSet=new Set(tiedIdxs);
+    const mini={};
+    tiedIdxs.forEach(idx=>{mini[idx]={idx,pts:0,gf:0,ga:0,gd:0};});
+    GROUP_MATCH_PAIRS.forEach(([i,j],mi)=>{
+      if(!tiedSet.has(i)||!tiedSet.has(j))return;
+      const m=gp.matches[mi];if(!m||m.a==null||m.b==null)return;
+      const a=parseInt(m.a),b=parseInt(m.b);if(isNaN(a)||isNaN(b))return;
+      mini[i].gf+=a;mini[i].ga+=b;mini[i].gd=mini[i].gf-mini[i].ga;
+      mini[j].gf+=b;mini[j].ga+=a;mini[j].gd=mini[j].gf-mini[j].ga;
+      if(a>b)mini[i].pts+=3;
+      else if(a<b)mini[j].pts+=3;
+      else{mini[i].pts++;mini[j].pts++;}
+    });
+    return mini;
   }
-  // FIFA tie-breakers: pts → gd → gf → head-to-head → original group order
   teams.sort((x,y)=>{
+    // 1. Puntos totales del grupo
     if(y.pts!==x.pts)return y.pts-x.pts;
+    // 2. Mini-tabla entre los equipos empatados en puntos
+    const tiedIdxs=teams.filter(t=>t.pts===x.pts).map(t=>t.idx);
+    if(tiedIdxs.length>=2){
+      const mini=buildMiniTable(tiedIdxs);
+      const mx=mini[x.idx],my=mini[y.idx];
+      // 2a. Puntos entre empatados
+      if(my.pts!==mx.pts)return my.pts-mx.pts;
+      // 2b. Diferencia de goles entre empatados
+      if(my.gd!==mx.gd)return my.gd-mx.gd;
+      // 2c. Goles a favor entre empatados
+      if(my.gf!==mx.gf)return my.gf-mx.gf;
+    }
+    // 3. Diferencia de goles total del grupo
     if(y.gd!==x.gd)return y.gd-x.gd;
+    // 4. Goles a favor total del grupo
     if(y.gf!==x.gf)return y.gf-x.gf;
-    const h2h=headToHead(x.idx,y.idx);
-    if(h2h!==0)return h2h;
-    return x.idx-y.idx; // fallback: original group order
+    // 5. Fallback: orden original del grupo
+    return x.idx-y.idx;
   });
   return teams;
 }
