@@ -2600,7 +2600,10 @@ function mc({lbl,t1,t2,w,dis,f1,f2,info}){
 // rndKey + mi: identifican el partido (r32/r16/qf/sf/fin/thr + índice)
 // pickObj: {w, a, b, pen} con el pick actual (formato V2)
 // ═══════════════════════════════════════════════════════════════
-function mcV2({lbl,t1,t2,pickObj,dis,info,rndKey,mi}){
+function mcV2({lbl,t1,t2,pickObj,dis,info,rndKey,mi,adm}){
+  // adm=true → setters modifican S.adminR (resultados oficiales)
+  // adm=false → setters modifican picks del user
+  const admArg=adm?',true':'';
   const infoHtml=info?`<div class="minfo">📅 ${info.d} · 📍 ${info.c}</div>`:'';
   const a=pickObj&&pickObj.a!=null?pickObj.a:'';
   const b=pickObj&&pickObj.b!=null?pickObj.b:'';
@@ -2609,10 +2612,10 @@ function mcV2({lbl,t1,t2,pickObj,dis,info,rndKey,mi}){
   const dataKey=`${rndKey}-${mi}`;
   const isTie=a!==''&&b!==''&&Number(a)===Number(b);
   // FIX: usar onchange (no oninput) para no perder el foco mientras se teclea
-  const onA=t1?`setMcV2Score('${js(rndKey)}',${mi},'a',this.value)`:'';
-  const onB=t2?`setMcV2Score('${js(rndKey)}',${mi},'b',this.value)`:'';
-  const penAClick=t1?`setMcV2Pen('${js(rndKey)}',${mi},'${js(t1)}')`:'';
-  const penBClick=t2?`setMcV2Pen('${js(rndKey)}',${mi},'${js(t2)}')`:'';
+  const onA=t1?`setMcV2Score('${js(rndKey)}',${mi},'a',this.value${admArg})`:'';
+  const onB=t2?`setMcV2Score('${js(rndKey)}',${mi},'b',this.value${admArg})`:'';
+  const penAClick=t1?`setMcV2Pen('${js(rndKey)}',${mi},'${js(t1)}'${admArg})`:'';
+  const penBClick=t2?`setMcV2Pen('${js(rndKey)}',${mi},'${js(t2)}'${admArg})`:'';
   return`<div class="mcard mc-v2" data-key="${dataKey}">
     <div class="mlbl">${lbl}</div>${infoHtml}
     <div class="mrow-v2">
@@ -2639,8 +2642,10 @@ function _v2GetOrInitPick(p,rndKey,mi){
   if(!arr[mi])arr[mi]={w:'',a:null,b:null,pen:''};
   return arr[mi];
 }
-function setMcV2Score(rndKey,mi,side,val){
-  const p=myPicks();
+function setMcV2Score(rndKey,mi,side,val,adm){
+  // adm=true → modifica S.adminR (resultados oficiales del admin)
+  // adm=false (default) → modifica picks del user
+  const p=adm?(S.adminR||(S.adminR=eAdm())):myPicks();
   const pk=_v2GetOrInitPick(p,rndKey,mi);
   pk[side]=val===''?null:parseInt(val);
   // Auto-set winner según marcador
@@ -2650,18 +2655,22 @@ function setMcV2Score(rndKey,mi,side,val){
     else pk.w=''; // empate → se decide por penales
   }
   // Persistir SOLO si NO está en modo fake
-  if(!window.BRACKET_V2_FAKE){scheduleSavePicks(p);}
-  S.picks[ME.uid]=p;
+  if(!window.BRACKET_V2_FAKE){
+    if(adm)saveAdminResults();else scheduleSavePicks(p);
+  }
+  if(adm)S.adminR=p;else S.picks[ME.uid]=p;
   render();
 }
-function setMcV2Pen(rndKey,mi,team){
-  const p=myPicks();
+function setMcV2Pen(rndKey,mi,team,adm){
+  const p=adm?(S.adminR||(S.adminR=eAdm())):myPicks();
   const pk=_v2GetOrInitPick(p,rndKey,mi);
   pk.pen=team;
   // Si marcador es empate, el ganador es el de penales
   if(pk.a!=null&&pk.b!=null&&pk.a===pk.b){pk.w=team;}
-  if(!window.BRACKET_V2_FAKE){scheduleSavePicks(p);}
-  S.picks[ME.uid]=p;
+  if(!window.BRACKET_V2_FAKE){
+    if(adm)saveAdminResults();else scheduleSavePicks(p);
+  }
+  if(adm)S.adminR=p;else S.picks[ME.uid]=p;
   render();
 }
 function _v2GetTeam(p,rndKey,mi,sideIdx){
@@ -3368,6 +3377,11 @@ function rAdminT8(){
 
 
 function rViewToggle(){
+  // V2: forzar Vista Tarjetas y ocultar el toggle (Vista Bracket no implementada para V2)
+  if(window.BRACKET_V2){
+    if(S.bracketView!=='cards')S.bracketView='cards';
+    return '';
+  }
   return `<div style="display:flex;justify-content:center;margin-bottom:16px">
     <div class="br-view-toggle" style="box-shadow:0 2px 8px rgba(0,0,0,.06)">
       <button class="${S.bracketView==='cards'?'active':''}" onclick="S.bracketView='cards';render()">📋 Vista Tarjetas</button>
@@ -3670,9 +3684,9 @@ function rR32(adm){
   h+=`<div class="phase"><div class="phdr">Partidos de grupos <span class="ptag">${ptsTagR32}</span></div><div class="mgrid">`;
   for(const{i,c1,c2}of R32_FIXED){
     const t1=rc(c1,teamSrc)||'',t2=rc(c2,teamSrc)||'';
-    if(window.BRACKET_V2&&!adm){
+    if(window.BRACKET_V2){
       const pickObj=(p.r32V2||[])[i]||null;
-      h+=mcV2({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,pickObj:pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rndKey:'r32',mi:i});
+      h+=mcV2({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,pickObj:pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rndKey:'r32',mi:i,adm:adm});
     }else{
       h+=mc({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,w:p.r32[i],dis:!t1||!t2,
         f1:t1?`setR32(${i},'${js(t1)}',${a})`:'',
@@ -3717,7 +3731,7 @@ function rR32(adm){
         const lbl=t3code?`${c1} vs ${t3code}`:`${c1} vs 3ro #${ti+1}`;
         if(window.BRACKET_V2){
           const pickObj=(p.r32V2||[])[i]||null;
-          h+=mcV2({lbl:lbl,t1:t1||c1,t2:t2||'Por definir',pickObj:pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rndKey:'r32',mi:i});
+          h+=mcV2({lbl:lbl,t1:t1||c1,t2:t2||'Por definir',pickObj:pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rndKey:'r32',mi:i,adm:adm});
         }else{
           h+=mc({lbl:lbl,t1:t1||c1,t2:t2||'Por definir',w:p.r32[i],dis:!t1||!t2,
             f1:t1&&t2?`setR32(${i},'${js(t1)}',false)`:'',
@@ -3785,10 +3799,10 @@ function rKO(round,adm){
   for(let i=0;i<cfg.n;i++){
     const[s1,s2]=cfg.br[i];
     let t1,t2;
-    if(window.BRACKET_V2&&!adm){
+    if(window.BRACKET_V2){
       t1=v2Src(s1)||'';t2=v2Src(s2)||'';
       const pickObj=(p[round+'V2']||[])[i]||null;
-      h+=mcV2({lbl:`Partido ${i+1}`,t1:t1||'Por definir',t2:t2||'Por definir',pickObj:pickObj,dis:!t1||!t2,info:MATCH_INFO[round]&&MATCH_INFO[round][i],rndKey:round,mi:i});
+      h+=mcV2({lbl:`Partido ${i+1}`,t1:t1||'Por definir',t2:t2||'Por definir',pickObj:pickObj,dis:!t1||!t2,info:MATCH_INFO[round]&&MATCH_INFO[round][i],rndKey:round,mi:i,adm:adm});
     }else{
       t1=cfg.src[s1]||'';t2=cfg.src[s2]||'';
       h+=mc({lbl:`Partido ${i+1}`,t1:t1||'Por definir',t2:t2||'Por definir',w:cfg.self[i]||'',dis:!t1||!t2,
@@ -3813,7 +3827,7 @@ function rFinal(adm){
   if(!adm&&S.bracketView==='bracket'){return rParticipants()+rViewToggle()+rEditableBracket();}
   // En V2: equipos finalistas vienen de winners de semis V2
   let sf1,sf2;
-  if(window.BRACKET_V2&&!adm){
+  if(window.BRACKET_V2){
     sf1=_v2WinnerOfRound(p,'sf',0)||'';
     sf2=_v2WinnerOfRound(p,'sf',1)||'';
   }else{
@@ -3822,7 +3836,7 @@ function rFinal(adm){
   const fw=window.BRACKET_V2&&p.finV2?p.finV2.w:p.fin;
   // Perdedores de semis (para 3er lugar)
   let l0,l1;
-  if(window.BRACKET_V2&&!adm){
+  if(window.BRACKET_V2){
     const qf0=_v2WinnerOfRound(p,'qf',0),qf1=_v2WinnerOfRound(p,'qf',1);
     const qf2=_v2WinnerOfRound(p,'qf',2),qf3=_v2WinnerOfRound(p,'qf',3);
     l0=[qf0,qf1].find(t=>t&&t!==sf1)||'';
@@ -3832,13 +3846,13 @@ function rFinal(adm){
     l1=[p.qf[2]||'',p.qf[3]||''].find(t=>t&&t!==p.sf[1])||'';
   }
   let h=rParticipants()+(adm?'':rViewToggle());
-  if(window.BRACKET_V2&&!adm){
+  if(window.BRACKET_V2){
     // V2: Final y 3er como mcV2 cards en grid
     h+=`<div class="phase"><div class="phdr">🏆 Gran Final y 3er Lugar <span class="ptag">hasta 5 pts c/u</span></div><div class="mgrid">`;
     const finPick=p.finV2||null;
-    h+=mcV2({lbl:`🏆 Gran Final · M${MATCH_INFO.fin.m}`,t1:sf1||'Por definir',t2:sf2||'Por definir',pickObj:finPick,dis:!sf1||!sf2,info:MATCH_INFO.fin,rndKey:'fin',mi:0});
+    h+=mcV2({lbl:`🏆 Gran Final · M${MATCH_INFO.fin.m}`,t1:sf1||'Por definir',t2:sf2||'Por definir',pickObj:finPick,dis:!sf1||!sf2,info:MATCH_INFO.fin,rndKey:'fin',mi:0,adm:adm});
     const thrPick=p.thrV2||null;
-    h+=mcV2({lbl:`🥉 3er Lugar · M${MATCH_INFO.thr.m}`,t1:l0||'Por definir',t2:l1||'Por definir',pickObj:thrPick,dis:!l0||!l1,info:MATCH_INFO.thr,rndKey:'thr',mi:0});
+    h+=mcV2({lbl:`🥉 3er Lugar · M${MATCH_INFO.thr.m}`,t1:l0||'Por definir',t2:l1||'Por definir',pickObj:thrPick,dis:!l0||!l1,info:MATCH_INFO.thr,rndKey:'thr',mi:0,adm:adm});
     h+=`</div></div>`;
     return h;
   }
