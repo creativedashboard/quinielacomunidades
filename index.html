@@ -942,7 +942,17 @@ const db=firebase.database();
 
 // Super-admin: hardcoded UID (only this Google account can be super-admin)
 // Access via secret URL: ?super=<password> (validated server-side via Firebase rules)
-const SUPER_ADMIN_UID='ZDQcOkt2woOs5owq1jxAnsZ0dYu2';
+// ═══════════════════════════════════════════════════════════════
+// Super-admins: array de UIDs autorizados como super-admin
+// Para agregar un nuevo super-admin, agrega su UID al array.
+// ═══════════════════════════════════════════════════════════════
+const SUPER_ADMIN_UIDS=[
+  'ZDQcOkt2woOs5owq1jxAnsZ0dYu2', // Cris principal (soycrisscheme@gmail.com)
+  'g0Ca2BE4ZeZz9DjRkhCud1aawLM2'  // Cris secundaria (capitaldecosas@gmail.com)
+];
+function isSuperAdminUid(uid){return SUPER_ADMIN_UIDS.includes(uid);}
+// Compatibilidad legacy: SUPER_ADMIN_UID apunta al primero (no usar directamente; usar isSuperAdminUid)
+const SUPER_ADMIN_UID=SUPER_ADMIN_UIDS[0];
 const SUPER_ADMIN_URL_KEY='doggyesdios'; // URL parameter, not visible in normal flow
 // Master license: reusable, never expires, only for SUPER_ADMIN's testing
 const MASTER_LICENSE_CODE='LIC-CRIS-MASTER-5T8LLWOSZMOEJR869NGZ';
@@ -1515,9 +1525,9 @@ auth.onAuthStateChanged(async user=>{
     const adminSnap=await db.ref('admins/'+user.uid).once('value');
     // Super admin = legacy "admins/{uid}=true" AND UID matches hardcoded super-admin
     // This protects against someone who somehow got into admins/ in Firebase
-    ME.isSuperAdmin=(adminSnap.val()===true)&&(user.uid===SUPER_ADMIN_UID);
+    ME.isSuperAdmin=(adminSnap.val()===true)&&isSuperAdminUid(user.uid);
     // Try to activate super-admin from URL (only on correct UID + correct URL key)
-    if(!ME.isSuperAdmin&&user.uid===SUPER_ADMIN_UID){
+    if(!ME.isSuperAdmin&&isSuperAdminUid(user.uid)){
       const params=new URLSearchParams(window.location.search);
       if(params.get('super')===SUPER_ADMIN_URL_KEY){
         await db.ref('admins/'+user.uid).set(true);
@@ -1899,7 +1909,7 @@ function tryActivateSuperAdmin(){
   if(!urlKey)return false;
   if(!ME.uid){console.warn('Not logged in yet');return false;}
   // Validate: hardcoded UID + correct URL key
-  if(ME.uid!==SUPER_ADMIN_UID){
+  if(!isSuperAdminUid(ME.uid)){
     console.warn('Super-admin access denied (UID mismatch)');
     return false;
   }
@@ -1918,7 +1928,7 @@ function tryActivateSuperAdmin(){
 }
 // Legacy unlock kept for emergency use only (NOT called from any visible UI)
 function showAdminUnlock(){
-  if(ME.uid!==SUPER_ADMIN_UID){
+  if(!isSuperAdminUid(ME.uid)){
     alert('Acceso denegado.');
     return;
   }
@@ -3373,6 +3383,12 @@ function buildEditableBracket(p){
 
 function rR32(adm){
   let p,a;if(adm){p=S.adminR;a='true';}else{p=myPicks();a='false';}
+  // FIX (FIFA 2026 / Modo Torneo Etapa 2):
+  // Los equipos del bracket vienen de bracketSourcePicks() = S.adminR cuando Etapa 2 está abierta
+  // en Modo Torneo. Esto asegura que Vista Tarjetas muestre los 32 equipos OFICIALES que pasaron,
+  // no los que el user predijo (que podrían estar vacíos o incorrectos).
+  // p sigue siendo myPicks() para los ganadores que el user elige (p.r32[i]).
+  const teamSrc=(!adm&&useOfficialForBracket()&&S.adminR)?S.adminR:p;
   // Tournament Mode locked: only show informational banner, hide teams entirely
   if(!adm&&isTournamentBracketLocked()){
     return rParticipants()+`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:14px;padding:30px 24px;margin:20px auto;max-width:560px;text-align:center;color:#78350f;line-height:1.6">
@@ -3394,7 +3410,7 @@ function rR32(adm){
   if(!adm&&S.bracketView==='bracket'){return rParticipants()+rViewToggle()+rEditableBracket();}
   h+=`<div class="phase"><div class="phdr">Partidos de grupos <span class="ptag">${PTS.r32} pts c/u</span></div><div class="mgrid">`;
   for(const{i,c1,c2}of R32_FIXED){
-    const t1=rc(c1,p)||'',t2=rc(c2,p)||'';
+    const t1=rc(c1,teamSrc)||'',t2=rc(c2,teamSrc)||'';
     h+=mc({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,w:p.r32[i],dis:!t1||!t2,
       f1:t1?`setR32(${i},'${js(t1)}',${a})`:'',
       f2:t2?`setR32(${i},'${js(t2)}',${a})`:'',
@@ -3407,11 +3423,11 @@ function rR32(adm){
       <div style="font-weight:800;margin-bottom:6px;font-family:'Outfit',sans-serif;font-size:12.5px">⚠️ Importante: Mejores Terceros</div>
       <div>Calculamos los 8 mejores terceros usando la <strong>tabla oficial Annex C de FIFA</strong> (publicada 2024). Sin embargo, <strong>FIFA es la autoridad final</strong>. Si el día del torneo hay alguna discrepancia entre nuestros cálculos y los emparejamientos oficiales de FIFA, <strong>prevalecen SIEMPRE los de FIFA</strong>.</div>
     </div>`;
-    const t8=p.t8||[];
+    const t8=teamSrc.t8||[];
     if(t8.length<8){h+=`<div class="t8-hint">Termina de predecir los 72 partidos de grupos. Tus 8 mejores terceros se calculan automáticamente y aparecerán aquí.</div>`;}
     else{
       // Calculate which Annex C scenario applies
-      const ranking=calcAllThirds(p.grupos);
+      const ranking=calcAllThirds(teamSrc.grupos);
       const top8Groups=ranking.slice(0,8).map(t=>t.group).sort();
       const annexKey=top8Groups.map(g=>'3'+g).join('-');
       const annexMatchups=ANNEX_C_TABLE[annexKey];
@@ -3431,7 +3447,7 @@ function rR32(adm){
       h+='<div class="mgrid">';
       for(let ti=0;ti<8;ti++){
         const{i,c1}=R32_THIRDS[ti];
-        const t1=rc(c1,p)||'',t2=t8[ti]||'';
+        const t1=rc(c1,teamSrc)||'',t2=t8[ti]||'';
         // Build label with Annex C info
         const t3code=annexMatchups?annexMatchups[c1]:null;
         const lbl=t3code?`${c1} vs ${t3code}`:`${c1} vs 3ro #${ti+1}`;
@@ -4921,7 +4937,7 @@ async function resetStage2(cid,commName){
 
 async function adminToggleCommunityAdmin(cid,uid,name,makeAdmin){
   if(!ME.isSuperAdmin){alert('Solo super-admin puede cambiar roles.');return;}
-  if(uid===SUPER_ADMIN_UID){alert('No puedes modificar el rol del super-admin.');return;}
+  if(isSuperAdminUid(uid)){alert('No puedes modificar el rol del super-admin.');return;}
   const c=S.communities[cid];
   if(!c){alert('Comunidad no encontrada.');return;}
   if(makeAdmin){
@@ -4999,7 +5015,7 @@ async function adminEditUserName(uid, currentName) {
 async function adminDeleteUser(uid,name){
   // Either super-admin can delete anyone, OR community-admin can delete from their community
   if(uid===ME.uid){alert('No puedes eliminarte a ti mismo.');return;}
-  if(uid===SUPER_ADMIN_UID){alert('No puedes eliminar al super-admin.');return;}
+  if(isSuperAdminUid(uid)){alert('No puedes eliminar al super-admin.');return;}
   const targetUser=S.users[uid];
   if(!targetUser){alert('Usuario no encontrado.');return;}
   // Check permissions: super-admin always allowed; community-admin only for users in their community
@@ -5191,7 +5207,7 @@ function rAdmCommunities(){
         members.forEach((m,i)=>{
           const medal=['🥇','🥈','🥉'][i]||`<span style="color:var(--mt);font-weight:700;font-size:11px;width:18px;display:inline-block;text-align:center">${i+1}</span>`;
           // Can this user delete the member?
-          const canDelete=(m.uid!==ME.uid)&&(m.uid!==SUPER_ADMIN_UID)&&(ME.isSuperAdmin||(ME.communityAdminOf.indexOf(cid)>=0));
+          const canDelete=(m.uid!==ME.uid)&&!isSuperAdminUid(m.uid)&&(ME.isSuperAdmin||(ME.communityAdminOf.indexOf(cid)>=0));
           // Can edit name? super-admin OR community-admin de esta comunidad
           const canEditName=ME.isSuperAdmin||(ME.communityAdminOf&&ME.communityAdminOf.indexOf(cid)>=0);
           // Is this user a community-admin of this community?
@@ -5202,7 +5218,7 @@ function rAdmCommunities(){
             <div style="flex:1;font-size:12px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}${isThisCommAdmin?' <span title="Admin de esta comunidad" style="margin-left:3px">👑</span>':''}</div>
             <div style="font-size:13px;font-weight:800;color:var(--ac)">${m.tot}<span style="font-size:10px;color:var(--mt);font-weight:500;margin-left:2px">pts</span></div>
             ${canEditName?`<button onclick="event.stopPropagation();adminEditUserName('${js(m.uid)}','${js(m.name)}')" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:2px 4px;font-size:13px" title="Cambiar nombre">✏️</button>`:''}
-            ${ME.isSuperAdmin&&m.uid!==SUPER_ADMIN_UID?(isThisCommAdmin
+            ${ME.isSuperAdmin&&!isSuperAdminUid(m.uid)?(isThisCommAdmin
               ?`<button onclick="event.stopPropagation();adminToggleCommunityAdmin('${js(cid)}','${js(m.uid)}','${js(m.name)}',false)" style="background:none;border:none;color:var(--am);cursor:pointer;padding:2px 4px;font-size:13px" title="Quitar admin de esta comunidad">🔓</button>`
               :`<button onclick="event.stopPropagation();adminToggleCommunityAdmin('${js(cid)}','${js(m.uid)}','${js(m.name)}',true)" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:2px 4px;font-size:13px" title="Hacer admin de esta comunidad">👑</button>`):''}
             ${ME.isSuperAdmin?`<button onclick="event.stopPropagation();moveMember('${js(m.uid)}','${js(m.name)}')" style="background:none;border:none;color:var(--mt);cursor:pointer;padding:2px 4px;font-size:13px" title="Mover de comunidad">⇄</button>`:''}
@@ -5814,7 +5830,7 @@ async function activateLicenseAndCreateCommunity(licenseCode, communityName, use
   // - Anything else = Gumroad code (verify via API)
   const isMaster=(licenseCode===MASTER_LICENSE_CODE);
   const isInternalCode=licenseCode.startsWith('LIC-');
-  if(isMaster&&ME.uid!==SUPER_ADMIN_UID){
+  if(isMaster&&!isSuperAdminUid(ME.uid)){
     throw new Error('Esta licencia es exclusiva del super-admin.');
   }
   // Validate community name first (cheap check)
