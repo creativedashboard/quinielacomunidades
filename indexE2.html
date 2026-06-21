@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#dc2626">
+<title>🏆 Etapa 2 · Quiniela Mundial 2026</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏆%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root {
+  --card:#fff; --card2:#f8fafc;
+  --bd:#e2e8f0; --bd2:#f1f5f9;
+  --bg:#f8fafc; --bg2:#f1f5f9;
+  --ac:#dc2626; --acl:#fee2e2; --acd:#b91c1c;
+  --gn:#16a34a; --gnl:#dcfce7; --gnd:#15803d;
+  --am:#f59e0b; --aml:#fef3c7; --amd:#d97706;
+  --tx:#0f172a; --mt:#64748b; --mt2:#94a3b8;
+  --r:11px;
+  --ease-out:cubic-bezier(.22,.61,.36,1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:var(--bg); color:var(--tx);
+  font-family:'DM Sans',sans-serif; font-size:14px;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ═════ LOADING ═════ */
+#screen-loading {
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg); z-index:1000;
+}
+.loading-content { text-align:center; }
+.loading-spinner {
+  width:48px; height:48px; margin:0 auto 18px;
+  border:4px solid var(--bd);
+  border-top-color:var(--ac);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-text { font-family:'Outfit'; font-weight:700; color:var(--mt); font-size:14px; letter-spacing:.5px; }
+
+/* ═════ LOGIN ═════ */
+#screen-login {
+  display:none;
+  position:fixed; inset:0;
+  background:linear-gradient(135deg,#dc2626,#7c3aed);
+  align-items:center; justify-content:center;
+  padding:24px;
+}
+#screen-login.on { display:flex; }
+.login-box {
+  background:#fff; border-radius:18px;
+  padding:36px 30px; max-width:380px; width:100%;
+  box-shadow:0 24px 60px rgba(0,0,0,.3);
+  text-align:center;
+}
+.login-emoji { font-size:48px; margin-bottom:12px; }
+.login-title {
+  font-family:'Outfit'; font-weight:800; font-size:22px;
+  color:var(--tx); margin-bottom:6px; letter-spacing:-.3px;
+}
+.login-sub {
+  font-size:13px; color:var(--mt); margin-bottom:22px;
+  font-weight:500; line-height:1.5;
+}
+.login-btn {
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  width:100%; padding:13px 20px;
+  background:#fff; color:#0f172a;
+  border:1.5px solid var(--bd);
+  border-radius:11px;
+  font-family:'DM Sans'; font-size:14px; font-weight:700;
+  cursor:pointer;
+  transition:all .15s var(--ease-out);
+}
+.login-btn:hover { border-color:var(--ac); background:#fef2f2; }
+.login-btn img { width:18px; height:18px; }
+.login-beta {
+  margin-top:18px; padding:10px 14px;
+  background:#fef3c7; border:1px solid #fcd34d; border-radius:8px;
+  font-size:11px; color:#78350f; font-weight:600; line-height:1.45;
+}
+
+/* ═════ UNAUTHORIZED ═════ */
+#screen-unauth {
+  display:none;
+  position:fixed; inset:0;
+  background:linear-gradient(135deg,#0f172a,#7c3aed);
+  align-items:center; justify-content:center;
+  padding:24px; color:#fff;
+}
+#screen-unauth.on { display:flex; }
+.unauth-box {
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:18px; padding:36px 30px;
+  max-width:440px; width:100%; text-align:center;
+  backdrop-filter:blur(10px);
+}
+.unauth-emoji { font-size:54px; margin-bottom:12px; }
+.unauth-title {
+  font-family:'Outfit'; font-weight:800; font-size:20px;
+  margin-bottom:10px; letter-spacing:-.3px;
+}
+.unauth-text {
+  font-size:13px; color:rgba(255,255,255,.85);
+  line-height:1.6; margin-bottom:22px;
+}
+.unauth-text strong { color:#fbbf24; }
+.unauth-btn {
+  display:inline-block; padding:12px 24px;
+  background:#fff; color:#0f172a;
+  border:none; border-radius:10px;
+  font-family:'DM Sans'; font-size:14px; font-weight:700;
+  cursor:pointer; text-decoration:none;
+  transition:transform .12s var(--ease-out);
+}
+.unauth-btn:hover { transform:translateY(-1px); }
+
+/* ═════ APP ═════ */
+#screen-app {
+  display:none;
+  min-height:100vh;
+}
+#screen-app.on { display:flex; }
+
+/* SIDEBAR */
+#sidebar {
+  width:240px; background:var(--card);
+  border-right:1.5px solid var(--bd);
+  display:flex; flex-direction:column; flex-shrink:0;
+  position:sticky; top:0; height:100vh;
+}
+.sb-header { padding:18px 18px 14px; border-bottom:1.5px solid var(--bd); }
+.sb-title {
+  display:flex; align-items:center; gap:8px;
+  font-family:'Outfit'; font-size:16px; font-weight:800;
+  letter-spacing:-.3px; margin-bottom:3px;
+}
+.sb-emoji { font-size:22px; }
+.sb-sub { font-size:10px; color:var(--mt); font-weight:600; }
+.sb-stage-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  margin-top:10px; padding:5px 9px;
+  background:linear-gradient(135deg,#dc2626,#7c3aed);
+  color:#fff; border-radius:7px;
+  font-size:10px; font-weight:800; letter-spacing:.5px;
+  text-transform:uppercase;
+}
+.sb-comm {
+  margin-top:8px; padding:7px 9px; background:var(--bg);
+  border-radius:8px; display:flex; align-items:center; gap:7px;
+}
+.sb-comm-dot {
+  width:8px; height:8px; border-radius:50%; background:var(--gn);
+  animation:pulse 1.8s infinite;
+}
+@keyframes pulse { 50% { opacity:.4; } }
+.sb-comm-name {
+  font-size:11px; font-weight:700; color:var(--gnd); flex:1;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.sb-section { padding:10px; display:flex; flex-direction:column; gap:2px; }
+.sb-btn {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 12px; border-radius:9px;
+  border:none; background:none; cursor:pointer;
+  font-size:13px; font-weight:600;
+  font-family:'DM Sans'; color:var(--mt);
+  text-align:left; width:100%;
+  transition:background .12s var(--ease-out), color .12s var(--ease-out);
+}
+.sb-btn:hover:not(.on) { background:var(--bg); color:var(--tx); }
+.sb-btn.on { background:var(--acl); color:var(--ac); font-weight:700; }
+.sb-user {
+  margin-top:auto; padding:12px;
+  border-top:1.5px solid var(--bd);
+  display:flex; align-items:center; gap:8px;
+}
+.sb-user-pic {
+  width:32px; height:32px; border-radius:50%;
+  background-size:cover; background-position:center;
+  background-color:var(--ac); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:13px; flex-shrink:0;
+}
+.sb-user-info { flex:1; overflow:hidden; }
+.sb-user-name {
+  font-size:12px; font-weight:700;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.sb-user-mail {
+  font-size:10px; color:var(--mt);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.sb-user-out {
+  padding:5px 8px; border:none; background:none;
+  color:var(--mt); font-size:11px; cursor:pointer;
+  border-radius:6px; font-weight:600;
+  transition:background .15s var(--ease-out), color .15s var(--ease-out);
+}
+.sb-user-out:hover { background:#fee2e2; color:var(--ac); }
+
+/* MAIN */
+#main { flex:1; display:flex; flex-direction:column; min-width:0; }
+.topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 24px; background:var(--card);
+  border-bottom:1.5px solid var(--bd);
+  flex-shrink:0;
+}
+.topbar h1 {
+  font-family:'Outfit'; font-size:22px; font-weight:800;
+  letter-spacing:-.3px;
+}
+.topbar .sub { font-size:12px; color:var(--mt); margin-top:2px; font-weight:600; }
+.topbar-btn-grupos {
+  padding:9px 14px; border:1.5px solid var(--bd);
+  border-radius:8px; background:#fff;
+  color:var(--mt); font-family:'DM Sans';
+  font-size:12px; font-weight:700;
+  cursor:pointer; display:flex; align-items:center; gap:6px;
+  text-decoration:none;
+  transition:all .15s var(--ease-out);
+}
+.topbar-btn-grupos:hover { border-color:var(--mt); color:var(--tx); }
+
+#content {
+  flex:1; padding:24px;
+  overflow-y:auto;
+}
+
+.placeholder {
+  background:var(--card); border:1.5px solid var(--bd);
+  border-radius:16px; padding:48px 24px;
+  text-align:center; max-width:560px;
+  margin:40px auto;
+}
+.placeholder-emoji { font-size:54px; margin-bottom:14px; }
+.placeholder-title {
+  font-family:'Outfit'; font-size:20px; font-weight:800;
+  margin-bottom:8px; letter-spacing:-.3px;
+}
+.placeholder-text {
+  font-size:13.5px; color:var(--mt);
+  line-height:1.6; margin-bottom:20px;
+}
+.placeholder-progress {
+  background:var(--bg); border-radius:10px; padding:14px 18px;
+  text-align:left; font-size:12px; color:var(--mt); line-height:1.7;
+}
+.placeholder-progress strong { color:var(--tx); }
+
+/* BANNER */
+.banner-beta {
+  background:linear-gradient(135deg,#fef3c7,#fde68a);
+  border:1.5px solid #d97706; border-radius:12px;
+  padding:12px 16px; margin-bottom:18px;
+  font-size:12.5px; color:#78350f; line-height:1.55;
+  display:flex; align-items:center; gap:10px;
+}
+.banner-beta-icon { font-size:24px; flex-shrink:0; }
+.banner-beta strong { color:#92400e; }
+
+@media (max-width:768px){
+  #sidebar { width:100%; height:auto; position:relative; }
+  #screen-app.on { flex-direction:column; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═════ LOADING SCREEN ═════ -->
+<div id="screen-loading">
+  <div class="loading-content">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Cargando Etapa 2…</div>
+  </div>
+</div>
+
+<!-- ═════ LOGIN SCREEN ═════ -->
+<div id="screen-login">
+  <div class="login-box">
+    <div class="login-emoji">🏆</div>
+    <div class="login-title">Etapa 2: Eliminatorias</div>
+    <div class="login-sub">Inicia sesión con tu cuenta de Google para acceder.</div>
+    <button class="login-btn" onclick="doGoogleLogin()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+      Continuar con Google
+    </button>
+    <div class="login-beta">
+      🧪 <strong>BETA:</strong> Esta versión sólo está disponible para usuarios de la <strong>comunidad de prueba</strong>. Si no formas parte, serás redirigido al index principal.
+    </div>
+  </div>
+</div>
+
+<!-- ═════ UNAUTHORIZED SCREEN ═════ -->
+<div id="screen-unauth">
+  <div class="unauth-box">
+    <div class="unauth-emoji">🔒</div>
+    <div class="unauth-title">Etapa 2 en Beta</div>
+    <div class="unauth-text" id="unauth-text">
+      Esta versión está disponible sólo para la <strong>comunidad de prueba</strong>.<br><br>
+      Tu cuenta no forma parte del beta. Vuelve al index principal para usar la app normal.
+    </div>
+    <a href="/index.html" class="unauth-btn">← Volver al index principal</a>
+  </div>
+</div>
+
+<!-- ═════ APP SCREEN ═════ -->
+<div id="screen-app">
+  <div id="sidebar">
+    <div class="sb-header">
+      <div class="sb-title"><span class="sb-emoji">🏆</span>Quiniela 2026</div>
+      <div class="sb-sub">EE.UU · México · Canadá</div>
+      <div class="sb-stage-badge">🏆 ETAPA 2 · ELIMINATORIAS</div>
+      <div class="sb-comm">
+        <span class="sb-comm-dot"></span>
+        <span class="sb-comm-name" id="sb-comm-name">—</span>
+      </div>
+    </div>
+    <div class="sb-section">
+      <button class="sb-btn on" onclick="goTab('dashboard')">📊 Dashboard</button>
+      <button class="sb-btn" onclick="goTab('bracket')">🏆 Mi Bracket</button>
+      <button class="sb-btn" onclick="goTab('grupos-readonly')">🌎 Mis picks de grupos</button>
+      <button class="sb-btn" onclick="goTab('instrucciones')">📖 Instrucciones</button>
+      <button class="sb-btn" id="sb-admin-btn" style="color:var(--am);display:none" onclick="goTab('admin')">⚙️ Admin E2</button>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user-pic" id="sb-user-pic">?</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name" id="sb-user-name">—</div>
+        <div class="sb-user-mail" id="sb-user-mail">—</div>
+      </div>
+      <button class="sb-user-out" onclick="doLogout()" title="Cerrar sesión">⎋</button>
+    </div>
+  </div>
+  <div id="main">
+    <div class="topbar">
+      <div>
+        <h1 id="topbar-title">Dashboard E2</h1>
+        <div class="sub" id="topbar-sub">Etapa 2 · Eliminatorias del Mundial 2026</div>
+      </div>
+      <a href="/index.html" class="topbar-btn-grupos">← Ir a Etapa 1 (Grupos)</a>
+    </div>
+    <div id="content">
+      <div class="banner-beta">
+        <span class="banner-beta-icon">🧪</span>
+        <div><strong>Estás en la versión BETA de Etapa 2.</strong> Tu acceso es porque perteneces a una comunidad de prueba. Cualquier feedback es bienvenido.</div>
+      </div>
+      <div class="placeholder">
+        <div class="placeholder-emoji">🚧</div>
+        <div class="placeholder-title">Etapa 2: En construcción</div>
+        <div class="placeholder-text">Esta página de prueba ya tiene la base funcionando: login compartido con index principal, lectura de tu comunidad, sidebar y navegación.</div>
+        <div class="placeholder-progress">
+          <strong>✅ Fase 1: Estructura base (estamos aquí)</strong><br>
+          ⏳ Fase 2: Mi Bracket V2 (próxima)<br>
+          ⏳ Fase 3: Admin E2<br>
+          ⏳ Fase 4: Dashboard E2 (próximos, últimos, mis resultados, mis picks)<br>
+          ⏳ Fase 5: Picks de grupos read-only<br>
+          ⏳ Fase 6: Pulido final
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// FIREBASE INIT — mismo proyecto que el index principal
+// ═══════════════════════════════════════════════════════════════
+const firebaseConfig={
+  apiKey:"AIzaSyDGJt8rLEXYo4qkk-NxVd98SJjAIaMnHH8",
+  authDomain:"quinielacomunidades2026.firebaseapp.com",
+  databaseURL:"https://quinielacomunidades2026-default-rtdb.firebaseio.com",
+  projectId:"quinielacomunidades2026",
+  storageBucket:"quinielacomunidades2026.firebasestorage.app",
+  messagingSenderId:"427395294863",
+  appId:"1:427395294863:web:0487e4e45e1866d94a32fa"
+};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.database();
+const SUPER_ADMIN_UID='ZDQcOkt2woOs5owq1jxAnsZ0dYu2';
+
+// ═══════════════════════════════════════════════════════════════
+// 🧪 WHITELIST DE COMUNIDADES BETA
+// Para autorizar más comunidades, agrega el CID aquí.
+// Para abrirlo a TODAS las comunidades, déjalo en null.
+// ═══════════════════════════════════════════════════════════════
+const E2_BETA_COMMUNITY_NAMES = ['Beta Test Com'];
+
+// State global
+const S = { users:{}, communities:{}, community_admins:{}, picks:{}, adminR:null };
+const ME = { uid:'', name:'', email:'', photo:'', communityId:'', isSuperAdmin:false, isCommunityAdmin:false };
+let S_tab = 'dashboard';
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH FLOW
+// ═══════════════════════════════════════════════════════════════
+function showScreen(name) {
+  ['loading','login','unauth','app'].forEach(s => {
+    const el = document.getElementById('screen-' + s);
+    if (el) el.classList.toggle('on', s === name);
+  });
+  document.getElementById('screen-loading').style.display = name === 'loading' ? 'flex' : 'none';
+}
+
+async function doGoogleLogin() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await auth.signInWithPopup(provider);
+  } catch(e) {
+    console.error('Login error:', e);
+    alert('Error iniciando sesión: ' + (e.message || e));
+  }
+}
+
+async function doLogout() {
+  if (!confirm('¿Cerrar sesión?')) return;
+  await auth.signOut();
+  showScreen('login');
+}
+
+auth.onAuthStateChanged(async user => {
+  if (!user) {
+    showScreen('login');
+    return;
+  }
+  ME.uid = user.uid;
+  ME.email = user.email || '';
+  ME.name = user.displayName || (user.email || '').split('@')[0];
+  ME.photo = user.photoURL || '';
+  ME.isSuperAdmin = (user.uid === SUPER_ADMIN_UID);
+
+  showScreen('loading');
+
+  try {
+    // Cargar perfil del user
+    const userSnap = await db.ref('users/' + user.uid).once('value');
+    const profile = userSnap.val() || {};
+    if (profile.name) ME.name = profile.name;
+    if (profile.photo) ME.photo = profile.photo;
+    if (profile.communityId) ME.communityId = profile.communityId;
+
+    // Cargar comunidades
+    const commsSnap = await db.ref('communities').once('value');
+    S.communities = commsSnap.val() || {};
+
+    // Verificar whitelist beta
+    if (!isUserInBetaCommunity()) {
+      showUnauthorizedScreen();
+      return;
+    }
+
+    // Cargar community_admins
+    const caSnap = await db.ref('community_admins').once('value');
+    S.community_admins = caSnap.val() || {};
+    ME.isCommunityAdmin = !!(S.community_admins[ME.communityId] && S.community_admins[ME.communityId][ME.uid]);
+
+    // Listeners en tiempo real (lectura solo)
+    db.ref('users').on('value', snap => { S.users = snap.val() || {}; safeRender(); });
+    db.ref('communities').on('value', snap => { S.communities = snap.val() || {}; safeRender(); });
+    db.ref('community_admins').on('value', snap => { S.community_admins = snap.val() || {}; safeRender(); });
+    db.ref('picks').on('value', snap => { S.picks = snap.val() || {}; safeRender(); });
+    if (ME.communityId) {
+      db.ref('community_results/' + ME.communityId).on('value', snap => {
+        S.adminR = snap.val() || null; safeRender();
+      });
+    }
+
+    // Mostrar app
+    renderInitial();
+    showScreen('app');
+  } catch (e) {
+    console.error('Auth flow error:', e);
+    alert('Error cargando datos: ' + (e.message || e));
+    showScreen('login');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// WHITELIST BETA
+// ═══════════════════════════════════════════════════════════════
+function isUserInBetaCommunity() {
+  // Super admin siempre tiene acceso
+  if (ME.isSuperAdmin) return true;
+
+  // Si la whitelist está en null → todas las comunidades pueden
+  if (E2_BETA_COMMUNITY_NAMES === null) return true;
+
+  // El usuario debe estar en una comunidad
+  if (!ME.communityId) return false;
+  const c = S.communities[ME.communityId];
+  if (!c) return false;
+
+  // Verificar por NOMBRE de comunidad (más fácil de manejar que CIDs)
+  return E2_BETA_COMMUNITY_NAMES.some(name =>
+    (c.name || '').toLowerCase().trim() === name.toLowerCase().trim()
+  );
+}
+
+function showUnauthorizedScreen() {
+  const c = S.communities[ME.communityId];
+  const commName = c ? c.name : 'ninguna';
+  document.getElementById('unauth-text').innerHTML =
+    `Esta versión está disponible sólo para la <strong>comunidad de prueba</strong>.<br><br>` +
+    `Tu comunidad actual es: <strong>${escapeHtml(commName)}</strong>.<br><br>` +
+    `Vuelve al index principal para usar la app normal.`;
+  showScreen('unauth');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function escapeHtml(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderInitial() {
+  // Sidebar user
+  const init = (ME.name || '?').charAt(0).toUpperCase();
+  const picEl = document.getElementById('sb-user-pic');
+  if (ME.photo) {
+    picEl.style.backgroundImage = `url('${ME.photo}')`;
+    picEl.textContent = '';
+  } else {
+    picEl.textContent = init;
+  }
+  document.getElementById('sb-user-name').textContent = ME.name || 'Usuario';
+  document.getElementById('sb-user-mail').textContent = ME.email || '';
+
+  // Comunidad
+  const c = S.communities[ME.communityId];
+  document.getElementById('sb-comm-name').textContent = c ? c.name : 'Sin comunidad';
+
+  // Admin button visibility
+  if (ME.isSuperAdmin || ME.isCommunityAdmin) {
+    document.getElementById('sb-admin-btn').style.display = 'flex';
+  }
+}
+
+let _renderTimer;
+function safeRender() {
+  clearTimeout(_renderTimer);
+  _renderTimer = setTimeout(renderInitial, 50);
+}
+
+function goTab(tab) {
+  S_tab = tab;
+  document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('on'));
+  event.target.classList.add('on');
+  // Por ahora todos los tabs muestran el placeholder
+  document.getElementById('topbar-title').textContent = {
+    'dashboard':'Dashboard E2',
+    'bracket':'Mi Bracket',
+    'grupos-readonly':'Mis picks de grupos',
+    'instrucciones':'Instrucciones',
+    'admin':'Admin Etapa 2'
+  }[tab] || 'Etapa 2';
+}
+
+console.log('%c🏆 indexE2.html cargado','color:#dc2626;font-weight:800;font-size:14px');
+console.log('Whitelist beta:', E2_BETA_COMMUNITY_NAMES);
+</script>
+
+</body>
+</html>
