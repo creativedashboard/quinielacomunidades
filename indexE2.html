@@ -7170,10 +7170,17 @@ function _rndScoreE2(){return Math.floor(Math.random()*4);}
 window.genMyTestPicksE2=async function(){
   if(!ME.isSuperAdmin)return;
   if(!confirm('Llenar TUS picks de E1 (72) y E2 (bracket) al azar?'))return;
+  const errors=[];
+  // Intento E1 grupos (puede fallar si Firebase rules bloquean por fecha de bloqueo)
   try{
     const grupos={};
     for(const g of GKEYS){const ms=[];for(let mi=0;mi<6;mi++)ms.push({a:_rndScoreE2(),b:_rndScoreE2()});grupos[g]={matches:ms};}
     await db.ref('picks/'+ME.uid+'/grupos').set(grupos);
+  }catch(e){
+    errors.push('E1 grupos: '+(e.message||e)+' (no problema — sigues sin puntos E1 pero E2 sí funciona)');
+  }
+  // E2 bracket — siempre intentar (path nuevo, sin restricciones)
+  try{
     if(S.adminR&&S.adminR.grupos){
       const e2={r32V2:[],r16V2:[],qfV2:[],sfV2:[]};
       const save=MY_BRACKET;MY_BRACKET=e2;
@@ -7183,9 +7190,14 @@ window.genMyTestPicksE2=async function(){
       const[h1,h2]=getMatchTeamsV2('thr',0,false);if(h1&&h2){const a=_rndScoreE2(),b=_rndScoreE2();const pen=a===b?(Math.random()<0.5?h1:h2):'';e2.thrV2={a,b,w:a>b?h1:(b>a?h2:pen),pen};}
       MY_BRACKET=save;
       await db.ref('picks/'+ME.uid+'/bracketE2').set(e2);
+    }else{
+      errors.push('E2 bracket: aún no hay marcadores oficiales de grupos. Primero usa 🎯 "Generar marcadores oficiales al azar (E1)" para que se conozcan los 32 equipos.');
     }
-    alert('✅ Picks de prueba generados');
-  }catch(e){alert('Error: '+(e.message||e));}
+  }catch(e){
+    errors.push('E2 bracket: '+(e.message||e));
+  }
+  if(errors.length)alert('⚠️ Algunas cosas no se pudieron generar:\n\n'+errors.join('\n\n'));
+  else alert('✅ Picks de prueba generados');
 };
 window.genOfficialResultsRandomE2=async function(){
   if(!ME.isSuperAdmin)return;
