@@ -374,32 +374,57 @@ body {
 .pk-pick{grid-column:2/3;grid-row:1/3;align-self:center;font-family:'Outfit';font-size:14px;font-weight:700;color:var(--ac)}
 .pk-row.future{opacity:.6}
 
-/* Grupos read-only */
-.g-card{background:var(--cd);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:14px}
-.g-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
-.g-letter{font-family:'Outfit';font-size:18px;font-weight:800;color:var(--ac)}
-.g-meta{font-size:11px;color:var(--mt)}
-.g-meta b{color:var(--tx);font-family:'Outfit'}
-.g-matches{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-.g-mrow{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:12px}
-.g-mrow.got{background:linear-gradient(135deg,#d1fae5,#a7f3d0);border-color:#10b981}
-.g-teams{font-family:'Outfit';font-weight:700;color:var(--tx);grid-column:1/2}
-.g-vs{font-size:9px;color:var(--mt);font-weight:600;margin:0 4px}
-.g-cols{font-size:11px;color:var(--mt);display:flex;gap:12px;grid-column:1/2;flex-wrap:wrap}
-.g-cols b{color:var(--tx);font-family:'Outfit'}
-.g-pts{grid-column:2/3;grid-row:1/3;align-self:center;font-family:'Outfit';font-size:16px;font-weight:800;color:var(--ac);text-align:right;line-height:1}
-.g-pts.got{color:#047857}
-.g-pts.muted{color:var(--mt);font-size:13px}
-.g-pts small{font-size:8px;color:var(--mt);font-weight:600;display:block}
-.g-pending{font-style:italic;color:var(--mt);font-weight:400}
-.g-table{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px}
-.g-table-head{font-family:'Outfit';font-size:11px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.g-table table{width:100%;border-collapse:collapse;font-size:11px}
-.g-table th{text-align:left;padding:4px 6px;color:var(--mt);font-weight:600;border-bottom:1px solid var(--bd);font-size:10px;text-transform:uppercase}
-.g-table td{padding:5px 6px;border-bottom:1px solid var(--bd);color:var(--tx)}
-.g-table tr:last-child td{border-bottom:none}
-.g-table tr.top td{font-weight:700;background:rgba(220,38,38,.05)}
-.g-table .flag{margin-right:4px}
+/* Grupos read-only — estilo index 1 */
+.ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:14px}
+.gcard{background:var(--cd);border:1px solid var(--bd);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.ghdr{padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--bg);display:flex;align-items:center;justify-content:space-between}
+.glbl{font-family:'Outfit';font-size:14px;font-weight:800;color:var(--tx)}
+.gtbl-wrap{padding:10px 12px 6px}
+.gtbl{width:100%;border-collapse:collapse;font-size:11px}
+.gtbl th{text-align:left;padding:3px 4px;color:var(--mt);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--bd)}
+.gtbl td{padding:5px 4px;color:var(--tx)}
+.gtbl td.b{font-weight:800}
+.gtbl td.m{color:var(--mt)}
+.gtbl td.ctr,.gtbl th.ctr{text-align:center}
+.gtbl .w-rank{width:24px}
+.gtbl .tm-cell{font-weight:600}
+.gtbl .tm-cell .flag{margin-right:5px}
+.gtbl tr.r1{background:#dbeafe}
+.gtbl tr.r1 td{color:#1e40af}
+.gtbl tr.r2{background:#e0e7ff}
+.gtbl tr.r2 td{color:#3730a3}
+.gtbl tr.r3{background:#fff7ed}
+.gtbl tr.r3 td{color:#9a3412}
+.rk-bdg{display:inline-block;padding:1px 6px;border-radius:5px;font-weight:800;font-size:9px;font-family:'Outfit'}
+.rk-1{background:#1e40af;color:#fff}
+.rk-2{background:#3730a3;color:#fff}
+.rk-3{background:#fed7aa;color:#9a3412}
+.rk-num{color:var(--mt);font-weight:700;padding-left:4px}
+.gmlist{padding:6px 12px 10px;border-top:1px dashed var(--bd);margin-top:4px;display:flex;flex-direction:column;gap:3px}
+.gmlist-hdr{font-size:10px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin:6px 0 4px}
+.gm-row{display:grid;grid-template-columns:1fr auto 1fr;column-gap:8px;align-items:center;padding:5px 4px;font-size:12px;border-radius:6px;position:relative}
+.gm-row.won{background:#d1fae5}
+.gm-tm{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--tx);font-family:'Outfit'}
+.gm-tm-l{justify-content:flex-end;text-align:right}
+.gm-tm-r{justify-content:flex-start;text-align:left}
+.gm-pick{font-family:'Outfit';font-weight:800;font-size:14px;color:var(--ac);padding:2px 8px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;min-width:50px;text-align:center}
+.gm-row.won .gm-pick{background:#fff;border-color:#10b981;color:#047857}
+.gm-real{grid-column:1/4;font-size:10px;color:var(--mt);text-align:center;padding:0 0 3px;letter-spacing:.2px}
+.gm-real i{opacity:.7}
+.gm-pts{position:absolute;right:6px;top:6px;font-family:'Outfit';font-weight:800;font-size:10px;color:var(--mt);background:var(--bg);border:1px solid var(--bd);padding:1px 5px;border-radius:8px}
+.gm-pts.got{background:#10b981;border-color:#047857;color:#fff}
+.gftr{padding:8px 14px;background:var(--bg);border-top:1px solid var(--bd);font-size:11px;color:var(--mt);display:flex;justify-content:space-between}
+.gftr b{font-family:'Outfit';color:var(--tx)}
+
+/* Acciones beta (super-admin) */
+.beta-actions{background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:14px;padding:14px;margin-bottom:18px}
+.beta-actions-hdr{font-family:'Outfit';font-size:13px;font-weight:800;color:#92400e;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.beta-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.ba-btn{background:#fff;border:1.5px solid #d97706;color:#78350f;border-radius:9px;padding:10px 12px;font-family:'Outfit';font-size:12px;font-weight:700;cursor:pointer;transition:transform .12s,box-shadow .12s;text-align:left;line-height:1.3}
+.ba-btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(217,119,6,.25)}
+.ba-btn.on{background:#10b981;border-color:#047857;color:#fff}
+.ba-btn.warn{background:#fff;border-color:#dc2626;color:#991b1b}
+.ba-btn.warn:hover{box-shadow:0 4px 10px rgba(220,38,38,.25)}
 </style>
 </head>
 <body>
@@ -1123,23 +1148,47 @@ function renderAdminE2() {
   }
 
   const c = S.communities[ME.communityId];
+
+  // ── Panel "Acciones beta" (siempre visible para super-admin) ──
+  let h = '';
+  if (ME.isSuperAdmin) {
+    const isTorneo = c && c.mode === 'tournament';
+    const isUnlocked = c && c.stage2Unlocked === true;
+    h += `<div class="beta-actions">
+      <div class="beta-actions-hdr">🧪 Acciones beta (solo super-admin)</div>
+      <div class="beta-actions-grid">
+        <button class="ba-btn ${isTorneo ? 'on' : ''}" onclick="toggleMode()">
+          ${isTorneo ? '🏆 Modo: Torneo (clic para Normal)' : '📅 Modo: Normal (clic para Torneo)'}
+        </button>
+        <button class="ba-btn ${isUnlocked ? 'on' : ''}" onclick="toggleStage2()">
+          ${isUnlocked ? '🔓 Etapa 2: ABIERTA (clic para cerrar)' : '🔒 Etapa 2: CERRADA (clic para abrir)'}
+        </button>
+        <button class="ba-btn" onclick="genMyTestPicks()">🎲 Generar MIS picks al azar (E1+E2)</button>
+        <button class="ba-btn" onclick="genOfficialResultsRandom()">🎯 Generar marcadores oficiales al azar (E1)</button>
+        <button class="ba-btn warn" onclick="clearMyPicks()">🗑 Limpiar mis picks (E1+E2)</button>
+        <button class="ba-btn warn" onclick="clearOfficialResults()">🗑 Limpiar marcadores oficiales</button>
+      </div>
+    </div>`;
+  }
+
+  // ── Modo Torneo requerido para el bracket ──
   if (!c || c.mode !== 'tournament') {
-    content.innerHTML = `
-      <div class="lock-banner">
-        <div class="lock-emoji">ℹ️</div>
-        <div class="lock-title">Modo Torneo requerido</div>
-        <div class="lock-text">El bracket de Etapa 2 solo aplica al modo Torneo.</div>
-      </div>`;
+    h += `<div class="lock-banner">
+      <div class="lock-emoji">ℹ️</div>
+      <div class="lock-title">Modo Torneo requerido</div>
+      <div class="lock-text">El bracket de Etapa 2 solo aplica al modo Torneo. Usa el toggle de arriba para cambiar el modo.</div>
+    </div>`;
+    content.innerHTML = h;
     return;
   }
 
   if (!S.adminR || !S.adminR.grupos) {
-    content.innerHTML = `
-      <div class="lock-banner">
-        <div class="lock-emoji">⏳</div>
-        <div class="lock-title">Falta capturar fase de grupos</div>
-        <div class="lock-text">Primero captura todos los marcadores de grupos en el index principal antes de empezar con el bracket.</div>
-      </div>`;
+    h += `<div class="lock-banner">
+      <div class="lock-emoji">⏳</div>
+      <div class="lock-title">Falta capturar fase de grupos</div>
+      <div class="lock-text">Primero captura todos los marcadores de grupos en el index principal (o usa el botón "🎯 Generar marcadores oficiales al azar" de arriba) antes de empezar con el bracket.</div>
+    </div>`;
+    content.innerHTML = h;
     return;
   }
 
@@ -1152,7 +1201,7 @@ function renderAdminE2() {
   const thrDone = adminCompletedCount('thr', 1);
   const totalDone = r32Done + r16Done + qfDone + sfDone + finDone + thrDone;
 
-  let h = `<div class="banner-beta">
+  h += `<div class="banner-beta">
     <span class="banner-beta-icon">⚙️</span>
     <div><strong>Admin Etapa 2.</strong> Captura aquí los marcadores oficiales del bracket. Los equipos de octavos en adelante se llenan automáticamente con los ganadores que captures.</div>
   </div>`;
@@ -1699,7 +1748,7 @@ function renderGruposReadonly() {
 
   let h = `<div class="banner-beta">
     <span class="banner-beta-icon">🌎</span>
-    <div><strong>Tus picks de fase de grupos.</strong> Vista de solo lectura — tus 72 marcadores siguen sellados en blockchain. Para editar usa el index principal mientras no esté cerrada Etapa 1.</div>
+    <div><strong>Tus picks de fase de grupos.</strong> Vista de solo lectura — para editar usa el index principal mientras no esté cerrada Etapa 1.</div>
   </div>`;
 
   h += `<div class="res-summary">
@@ -1708,7 +1757,8 @@ function renderGruposReadonly() {
     <div>Total Etapa 1: <b>${totalPts} pts</b></div>
   </div>`;
 
-  // Por grupo
+  // Grid de grupos (igual al index 1: ggrid)
+  h += `<div class="ggrid">`;
   for (const g of GKEYS) {
     const teams = GRP[g];
     const myArr = (myG[g] && myG[g].matches) || [];
@@ -1716,7 +1766,45 @@ function renderGruposReadonly() {
 
     let gPts = 0;
     let gFilled = 0;
-    let matchesH = '';
+
+    // Header del grupo
+    h += `<div class="gcard">
+      <div class="ghdr"><span class="glbl">Grupo ${g}</span></div>`;
+
+    // Tabla de standings calculada desde MIS picks
+    const myTable = calcGroupTable(g, myG[g] || null);
+    h += `<div class="gtbl-wrap">
+      <table class="gtbl">
+        <thead><tr>
+          <th class="w-rank">#</th>
+          <th>Equipo</th>
+          <th class="ctr">PTS</th>
+          <th class="ctr">PJ</th>
+          <th class="ctr">G</th>
+          <th class="ctr">E</th>
+          <th class="ctr">P</th>
+          <th class="ctr">DG</th>
+        </tr></thead><tbody>`;
+    myTable.forEach((t, i) => {
+      const cls = i === 0 ? 'r1' : (i === 1 ? 'r2' : (i === 2 && t.pj > 0 ? 'r3' : ''));
+      const bdg = i < 3 ? `<span class="rk-bdg rk-${i+1}">${i+1}°</span>` : `<span class="rk-num">${i+1}</span>`;
+      const gd = t.gd > 0 ? `+${t.gd}` : t.gd;
+      h += `<tr class="${cls}">
+        <td class="w-rank">${bdg}</td>
+        <td class="tm-cell"><span class="flag">${flag(t.name)}</span>${esc(t.name)}</td>
+        <td class="ctr b">${t.pts}</td>
+        <td class="ctr m">${t.pj}</td>
+        <td class="ctr m">${t.w}</td>
+        <td class="ctr m">${t.d}</td>
+        <td class="ctr m">${t.l}</td>
+        <td class="ctr m">${gd}</td>
+      </tr>`;
+    });
+    h += '</tbody></table></div>';
+
+    // Lista de partidos
+    h += `<div class="gmlist">
+      <div class="gmlist-hdr">Partidos · tus picks</div>`;
     GROUP_MATCH_PAIRS.forEach(([i, j], mi) => {
       const t1 = teams[i], t2 = teams[j];
       const mp = myArr[mi];
@@ -1726,40 +1814,26 @@ function renderGruposReadonly() {
       const pts = hasReal && hasPick ? calcMatchE1Points(mp, ad) : 0;
       if (hasPick) gFilled++;
       if (hasReal) gPts += pts;
-      const pickStr = hasPick ? `${mp.a}–${mp.b}` : '—';
-      const realStr = hasReal ? `${ad.a}–${ad.b}` : '<span class="g-pending">pendiente</span>';
-      const ptsHtml = hasReal ? `<div class="g-pts${pts > 0 ? ' got' : ''}">${pts}<small>pts</small></div>` : '<div class="g-pts muted">—</div>';
-      matchesH += `<div class="g-mrow${pts > 0 ? ' got' : ''}">
-        <div class="g-teams"><span class="flag">${flag(t1)}</span>${abbr(t1)} <span class="g-vs">vs</span> <span class="flag">${flag(t2)}</span>${abbr(t2)}</div>
-        <div class="g-cols">
-          <span>Real: <b>${realStr}</b></span>
-          <span>Yo: <b>${pickStr}</b></span>
-        </div>
-        ${ptsHtml}
+      const pickL = hasPick ? mp.a : '—';
+      const pickR = hasPick ? mp.b : '—';
+      const realL = hasReal ? ad.a : '–';
+      const realR = hasReal ? ad.b : '–';
+      const ptsBadge = hasReal && hasPick ? `<span class="gm-pts${pts > 0 ? ' got' : ''}">${pts}p</span>` : '';
+      h += `<div class="gm-row${pts > 0 ? ' won' : ''}">
+        <span class="gm-tm gm-tm-l"><span class="flag">${flag(t1)}</span>${abbr(t1)}</span>
+        <span class="gm-pick">${pickL}–${pickR}</span>
+        <span class="gm-tm gm-tm-r">${abbr(t2)}<span class="flag">${flag(t2)}</span></span>
+        <span class="gm-real">${hasReal ? `Real ${realL}–${realR}` : '<i>pendiente</i>'}</span>
+        ${ptsBadge}
       </div>`;
     });
+    h += `</div>`;
 
-    // Tabla calculada desde MIS picks
-    const myTable = calcGroupTable(g, myG[g] || null);
-    let tableH = `<div class="g-table">
-      <div class="g-table-head">Mi tabla calculada</div>
-      <table>
-        <thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>Pts</th><th>DG</th></tr></thead>
-        <tbody>`;
-    myTable.forEach((t, idx) => {
-      tableH += `<tr class="${idx < 2 ? 'top' : ''}"><td>${idx + 1}</td><td><span class="flag">${flag(t.name)}</span>${esc(t.name)}</td><td>${t.pj}</td><td><b>${t.pts}</b></td><td>${t.gd > 0 ? '+' + t.gd : t.gd}</td></tr>`;
-    });
-    tableH += '</tbody></table></div>';
-
-    h += `<div class="g-card">
-      <div class="g-head">
-        <div class="g-letter">Grupo ${g}</div>
-        <div class="g-meta">Llenados: <b>${gFilled}/6</b> · Pts: <b>${gPts}</b></div>
-      </div>
-      <div class="g-matches">${matchesH}</div>
-      ${tableH}
-    </div>`;
+    // Footer del grupo
+    h += `<div class="gftr">Llenados: <b>${gFilled}/6</b> · Pts del grupo: <b>${gPts}</b></div>`;
+    h += `</div>`;
   }
+  h += `</div>`;
 
   content.innerHTML = h;
 }
@@ -1847,6 +1921,125 @@ window.openMyPicks = function () {
     </div>
     ${rows}`;
   openModal('🔮 Mis picks E2', body);
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ACCIONES BETA — toggles + generadores de datos de prueba
+// ═══════════════════════════════════════════════════════════════
+window.toggleMode = async function () {
+  if (!ME.isSuperAdmin) return;
+  const c = S.communities[ME.communityId]; if (!c) return;
+  const next = c.mode === 'tournament' ? 'normal' : 'tournament';
+  if (!confirm(`Cambiar modo de la comunidad a "${next}"?`)) return;
+  try {
+    await db.ref('communities/' + ME.communityId + '/mode').set(next);
+    if (S_tab === 'admin') renderAdminE2();
+  } catch (e) { alert('Error: ' + (e.message || e)); }
+};
+
+window.toggleStage2 = async function () {
+  if (!ME.isSuperAdmin) return;
+  const c = S.communities[ME.communityId]; if (!c) return;
+  const next = !(c.stage2Unlocked === true);
+  try {
+    await db.ref('communities/' + ME.communityId + '/stage2Unlocked').set(next);
+    if (S_tab === 'admin') renderAdminE2();
+  } catch (e) { alert('Error: ' + (e.message || e)); }
+};
+
+function rndScore() { return Math.floor(Math.random() * 4); }
+
+window.genMyTestPicks = async function () {
+  if (!ME.isSuperAdmin) return;
+  if (!confirm('Llenar TUS picks de E1 (72 marcadores) y E2 (bracket completo) al azar?')) return;
+  try {
+    // E1 grupos
+    const grupos = {};
+    for (const g of GKEYS) {
+      const matches = [];
+      for (let mi = 0; mi < 6; mi++) matches.push({ a: rndScore(), b: rndScore() });
+      grupos[g] = { matches };
+    }
+    await db.ref('picks/' + ME.uid + '/grupos').set(grupos);
+
+    // E2 bracket — solo si tenemos adminR.grupos (necesario para conocer R32 teams)
+    if (S.adminR && S.adminR.grupos) {
+      const bracketE2 = { r32V2: [], r16V2: [], qfV2: [], sfV2: [] };
+      const tempBracket = MY_BRACKET; // backup
+      MY_BRACKET = bracketE2; // use as scratchpad for getMatchTeams chain
+
+      // R32 — usa equipos reales del admin
+      for (let i = 0; i < 16; i++) {
+        const [t1, t2] = getMatchTeams('r32', i);
+        if (!t1 || !t2) { bracketE2.r32V2[i] = { a: null, b: null, w: '', pen: '' }; continue; }
+        const a = rndScore(), b = rndScore();
+        const pen = a === b ? (Math.random() < 0.5 ? t1 : t2) : '';
+        const w = a > b ? t1 : (b > a ? t2 : pen);
+        bracketE2.r32V2[i] = { a, b, w, pen };
+      }
+      // R16, QF, SF — usan ganadores del MY_BRACKET (que es bracketE2 ahorita)
+      for (const [rnd, total] of [['r16', 8], ['qf', 4], ['sf', 2]]) {
+        for (let i = 0; i < total; i++) {
+          const [t1, t2] = getMatchTeams(rnd, i);
+          if (!t1 || !t2) { bracketE2[rnd + 'V2'][i] = { a: null, b: null, w: '', pen: '' }; continue; }
+          const a = rndScore(), b = rndScore();
+          const pen = a === b ? (Math.random() < 0.5 ? t1 : t2) : '';
+          const w = a > b ? t1 : (b > a ? t2 : pen);
+          bracketE2[rnd + 'V2'][i] = { a, b, w, pen };
+        }
+      }
+      // Final + 3er
+      const [finT1, finT2] = getMatchTeams('fin', 0);
+      if (finT1 && finT2) {
+        const a = rndScore(), b = rndScore();
+        const pen = a === b ? (Math.random() < 0.5 ? finT1 : finT2) : '';
+        bracketE2.finV2 = { a, b, w: a > b ? finT1 : (b > a ? finT2 : pen), pen };
+      }
+      const [thrT1, thrT2] = getMatchTeams('thr', 0);
+      if (thrT1 && thrT2) {
+        const a = rndScore(), b = rndScore();
+        const pen = a === b ? (Math.random() < 0.5 ? thrT1 : thrT2) : '';
+        bracketE2.thrV2 = { a, b, w: a > b ? thrT1 : (b > a ? thrT2 : pen), pen };
+      }
+      MY_BRACKET = tempBracket; // restore (listener volverá a poner el valor de Firebase)
+      await db.ref('picks/' + ME.uid + '/bracketE2').set(bracketE2);
+    }
+    alert('✅ Picks de prueba generados');
+  } catch (e) { alert('Error: ' + (e.message || e)); }
+};
+
+window.genOfficialResultsRandom = async function () {
+  if (!ME.isSuperAdmin) return;
+  if (!confirm('Generar marcadores OFICIALES al azar para los 72 partidos de grupos? Esto sobrescribe community_results/' + ME.communityId + '/grupos')) return;
+  try {
+    const grupos = {};
+    for (const g of GKEYS) {
+      const matches = [];
+      for (let mi = 0; mi < 6; mi++) matches.push({ a: rndScore(), b: rndScore() });
+      grupos[g] = { matches };
+    }
+    await db.ref('community_results/' + ME.communityId + '/grupos').set(grupos);
+    alert('✅ Marcadores oficiales generados');
+  } catch (e) { alert('Error: ' + (e.message || e)); }
+};
+
+window.clearMyPicks = async function () {
+  if (!ME.isSuperAdmin) return;
+  if (!confirm('Borrar TODOS tus picks (E1 grupos + E2 bracket)? Esta acción no se puede deshacer.')) return;
+  try {
+    await db.ref('picks/' + ME.uid + '/grupos').remove();
+    await db.ref('picks/' + ME.uid + '/bracketE2').remove();
+    alert('✅ Picks borrados');
+  } catch (e) { alert('Error: ' + (e.message || e)); }
+};
+
+window.clearOfficialResults = async function () {
+  if (!ME.isSuperAdmin) return;
+  if (!confirm('Borrar TODOS los marcadores oficiales (E1 grupos + E2 bracket) de la comunidad? Esta acción no se puede deshacer.')) return;
+  try {
+    await db.ref('community_results/' + ME.communityId).remove();
+    alert('✅ Marcadores oficiales borrados');
+  } catch (e) { alert('Error: ' + (e.message || e)); }
 };
 
 console.log('%c🏆 indexE2.html cargado','color:#dc2626;font-weight:800;font-size:14px');
