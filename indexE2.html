@@ -1042,11 +1042,15 @@ const TOURNAMENT_START=new Date('2026-06-11T16:00:00Z'); // 11 Jun 2026 — lock
 const R32_START=new Date('2026-06-28T20:00:00Z');
 
 function isLocked(){
+  // Beta Test Com bypass para testing en indexE2
+  try{const c=S.communities[ME.communityId];if(c&&(c.name||'').toLowerCase().trim()==='beta test com')return false;}catch(e){}
   // Once tournament starts, GROUP picks are frozen (admin can still edit results)
   return new Date()>=TOURNAMENT_START;
 }
 
 function isBracketLockedByDate(){
+  // Beta Test Com bypass para testing en indexE2
+  try{const c=S.communities[ME.communityId];if(c&&(c.name||'').toLowerCase().trim()==='beta test com')return false;}catch(e){}
   // Once R32 (16avos) starts, ALL bracket picks lock (Tournament Mode + Normal Mode)
   return new Date()>=R32_START;
 }
