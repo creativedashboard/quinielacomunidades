@@ -604,6 +604,29 @@ html[data-ucolor] .br-team.clickable:hover:not(.empty):not(.locked){border-color
 .br-team.locked{opacity:.4;cursor:not-allowed;background:var(--bg)}
 .br-team.locked.empty{opacity:.2}
 
+/* ── Bracket V2 read-only (filas con bandera + nombre + caja de marcador) ── */
+.brv2-match-wrap{position:relative;display:flex;align-items:center;gap:4px}
+.brv2-match{flex:1;display:flex;flex-direction:column;gap:2px;background:var(--card);border:1.5px solid var(--bd);border-radius:7px;padding:3px 4px 4px;position:relative}
+.brv2-match-num{position:absolute;top:-8px;font-family:'Outfit',sans-serif;font-size:8px;font-weight:800;color:#fff;background:var(--ac);padding:2px 5px;border-radius:3px;letter-spacing:.4px;line-height:1.35;z-index:2}
+html[data-ucolor] .brv2-match-num{background:var(--uc)}
+.brv2-match-info{font-size:8px;color:var(--mt);text-align:center;font-weight:600;font-family:'DM Sans',sans-serif;opacity:.85;letter-spacing:.1px;line-height:1.2;padding:1px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brv2-trow{display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:5px;background:var(--bg);border:1.5px solid transparent;font-size:11px;font-weight:500;white-space:nowrap;min-width:0}
+.brv2-trow.winner{border-color:#dc2626;background:#fee2e2;color:#991b1b;font-weight:700}
+html[data-ucolor] .brv2-trow.winner{border-color:var(--uc);background:var(--ucl);color:var(--uc-d)}
+.brv2-trow.empty{color:var(--mt);opacity:.4}
+.brv2-flag{font-size:13px;flex-shrink:0;line-height:1}
+.brv2-name{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.3px;flex:1;overflow:hidden;text-overflow:ellipsis;font-size:13px;line-height:1.2}
+.brv2-sc{flex-shrink:0;min-width:22px;text-align:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;background:#fff;border:1.5px solid var(--bd);border-radius:5px;padding:1px 4px;color:var(--tx);line-height:1.2}
+.brv2-trow.winner .brv2-sc{border-color:#dc2626;color:#991b1b}
+html[data-ucolor] .brv2-trow.winner .brv2-sc{border-color:var(--uc);color:var(--uc-d)}
+/* Penalty winner indicator (○ / ●) */
+.brv2-pen{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0}
+.brv2-pen-lbl{font-size:7px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.3px;text-align:center;line-height:1.05;font-family:'DM Sans',sans-serif}
+.brv2-pen-dots{display:flex;flex-direction:column;gap:4px;align-items:center}
+.brv2-pen-dot{width:9px;height:9px;border-radius:50%;border:1.5px solid #9ca3af;background:#fff}
+.brv2-pen-dot.on{background:#dc2626;border-color:#991b1b}
+html[data-ucolor] .brv2-pen-dot.on{background:var(--uc);border-color:var(--uc-d)}
+
 /* CENTER: Final box */
 .br-final-center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 28px;flex-shrink:0;gap:10px;min-width:200px;position:relative}
 .br-final-glow{position:absolute;inset:-20px;background:radial-gradient(circle,var(--g1b) 0%,transparent 65%);pointer-events:none;z-index:-1}
@@ -1043,8 +1066,10 @@ const TOURNAMENT_START=new Date('2026-06-11T16:00:00Z'); // 11 Jun 2026 — lock
 const R32_START=new Date('2026-06-28T20:00:00Z');
 
 function isLocked(){
-  // Beta Test Com bypass para testing en indexE2
-  try{const c=S.communities[ME.communityId];if(c&&(c.name||'').toLowerCase().trim()==='beta test com')return false;}catch(e){}
+  // (Bypass de Beta Test Com removido el 2026-06-22 por petición de Cris — sus picks
+  // ya quedaron en localStorage y no quiere poder editarlos por accidente. Si necesita
+  // re-editar grupos en testing, descomentar la línea de abajo.)
+  // try{const c=S.communities[ME.communityId];if(c&&(c.name||'').toLowerCase().trim()==='beta test com')return false;}catch(e){}
   // Once tournament starts, GROUP picks are frozen (admin can still edit results)
   return new Date()>=TOURNAMENT_START;
 }
@@ -2205,11 +2230,26 @@ function _writeLocalAdminE2(cid,p){try{localStorage.setItem(_localAdminE2Key(cid
 
 // Get MY picks (or empty if not set) — Beta Test Com lee de localStorage primero
 function myPicks(){
-  if(isBetaTestCom()){const l=_readLocalPicks(ME.uid);if(l)return mergeP(l);}
+  if(isBetaTestCom()){
+    const l=_readLocalPicks(ME.uid);
+    if(l){
+      const p=mergeP(l);
+      // Beta Test Com defense: si grupos completos pero t8 vacío, calcularlo
+      if((p.t8||[]).filter(Boolean).length<8){try{if(typeof cleanT8==='function')cleanT8(p);}catch(e){}}
+      return p;
+    }
+  }
   return mergeP(S.picks[ME.uid]);
 }
 function userPicks(uid){
-  if(isBetaTestCom(uid)){const l=_readLocalPicks(uid);if(l)return mergeP(l);}
+  if(isBetaTestCom(uid)){
+    const l=_readLocalPicks(uid);
+    if(l){
+      const p=mergeP(l);
+      if((p.t8||[]).filter(Boolean).length<8){try{if(typeof cleanT8==='function')cleanT8(p);}catch(e){}}
+      return p;
+    }
+  }
   return mergeP(S.picks[uid]);
 }
 
@@ -3393,22 +3433,183 @@ function rAdminT8(){
 
 
 function rViewToggle(){
-  // En indexE2 (bracket V2 con marcadores+penales) solo tiene sentido Vista Tarjetas.
-  // La Vista Bracket de árbol no encaja con el UI de score+penales.
-  S.bracketView='cards';
+  // En indexE2 V2: Vista Tarjetas es editable, Vista Bracket es read-only (resumen visual del árbol)
   return `<div style="display:flex;justify-content:center;margin-bottom:16px">
     <div class="br-view-toggle" style="box-shadow:0 2px 8px rgba(0,0,0,.06)">
-      <button class="active">📋 Vista Tarjetas</button>
-      <button disabled style="opacity:.45;cursor:not-allowed" title="Vista Bracket no disponible en Etapa 2 (V2)">🏆 Vista Bracket</button>
+      <button class="${S.bracketView==='cards'?'active':''}" onclick="S.bracketView='cards';render()">📋 Vista Tarjetas</button>
+      <button class="${S.bracketView==='bracket'?'active':''}" onclick="S.bracketView='bracket';render()" title="Vista de árbol · solo lectura">🏆 Vista Bracket</button>
     </div>
   </div>`;
 }
 
-// Editable inline bracket — renders a fully editable bracket as inline content
+// Vista Bracket en indexE2: V2 read-only (resumen visual del árbol con marcadores+penales)
+// Para editar, usa Vista Tarjetas.
 function rEditableBracket(){
-  const p=myPicks();
-  // Render the bracket using buildBracket but with editable callbacks
-  return buildEditableBracket(p);
+  return buildBracketV2ReadOnly();
+}
+
+// Construye el árbol del bracket en read-only, leyendo datos V2 (MY_BRACKET / S.adminR.bracketE2).
+// Por cada partido muestra: bandera + nombre + marcador, y si fue empate con ganador de penales
+// muestra el indicador (○ / ●) al lado del partido.
+function buildBracketV2ReadOnly(){
+  const teamSrc=(useOfficialForBracket()&&S.adminR)?S.adminR:myPicks();
+  // Helper: devuelve [t1, t2] para un partido del bracket usando V2
+  function teams(rk,mi){return getMatchTeamsV2(rk,mi,false);}
+  // Pick V2 del user para ese partido (puede ser null si todavía no llenó)
+  function pickFor(rk,mi){return getMyPickV2(rk,mi);}
+  // Render de una fila de equipo (bandera + nombre + caja con marcador)
+  function trow(name,score,isWinner){
+    if(!name){
+      return `<div class="brv2-trow empty"><span class="brv2-flag">—</span><span class="brv2-name">—</span><span class="brv2-sc">–</span></div>`;
+    }
+    const scStr=(score!=null&&score!=='')?score:'–';
+    return `<div class="brv2-trow${isWinner?' winner':''}" title="${esc(name)}"><span class="brv2-flag">${flag(name)}</span><span class="brv2-name">${esc(abbr(name))}</span><span class="brv2-sc">${scStr}</span></div>`;
+  }
+  // Indicador de penales (○ / ●) — solo si fue empate y hay ganador de penales
+  function penIndicator(pickObj){
+    if(!pickObj||pickObj.a==null||pickObj.b==null)return '';
+    if(Number(pickObj.a)!==Number(pickObj.b))return '';
+    if(!pickObj.pen)return '';
+    return `<div class="brv2-pen" title="Ganador en penales: ${esc(pickObj.pen)}">
+      <div class="brv2-pen-lbl">Ganador<br>penales</div>
+      <div class="brv2-pen-dots">
+        <span class="brv2-pen-dot${pickObj.pen===pickObj._t1?' on':''}"></span>
+        <span class="brv2-pen-dot${pickObj.pen===pickObj._t2?' on':''}"></span>
+      </div>
+    </div>`;
+  }
+  // Render de un partido (M73, M89, etc.) — incluye número, fecha, dos team rows y opcional indicador penales
+  function match(mi_info,t1,t2,pick,isRight){
+    const a=pick&&pick.a!=null?pick.a:null;
+    const b=pick&&pick.b!=null?pick.b:null;
+    const w=pick&&pick.w?pick.w:'';
+    // Para el indicador de penales necesito saber qué equipo es t1 y t2
+    const penPick=pick?{...pick,_t1:t1,_t2:t2}:null;
+    const penNum=isRight?'right:6px;left:auto':'left:6px';
+    return `<div class="brv2-match-wrap">
+      <div class="brv2-match">
+        <span class="brv2-match-num" style="${penNum}">M${mi_info.m}</span>
+        <div class="brv2-match-info">${mi_info.d} · ${mi_info.t} · ${mi_info.c||''}</div>
+        ${trow(t1,a,!!w&&w===t1)}
+        ${trow(t2,b,!!w&&w===t2)}
+      </div>
+      ${penIndicator(penPick)}
+    </div>`;
+  }
+  const leftR32Pairs=[[1,4],[0,2],[10,11],[8,9]];
+  const rightR32Pairs=[[3,5],[6,7],[13,15],[12,14]];
+  let h='<div class="br-wrap">';
+  // ─── LEFT SIDE ───
+  h+='<div class="br-side br-side-left">';
+  // R32
+  h+='<div class="br-col br-col-r32">';
+  for(const[a,b]of leftR32Pairs){
+    h+='<div class="br-pair">';
+    for(const idx of[a,b]){
+      const[t1,t2]=teams('r32',idx);
+      h+=match(MATCH_INFO.r32[idx],t1,t2,pickFor('r32',idx),false);
+    }
+    h+='</div>';
+  }
+  h+='</div>';
+  // R16
+  h+='<div class="br-col br-col-r16">';
+  for(const pair of[[0,1],[2,3]]){
+    h+='<div class="br-pair">';
+    for(const i of pair){
+      const[t1,t2]=teams('r16',i);
+      h+=match(MATCH_INFO.r16[i],t1,t2,pickFor('r16',i),false);
+    }
+    h+='</div>';
+  }
+  h+='</div>';
+  // QF
+  h+='<div class="br-col br-col-qf"><div class="br-pair">';
+  for(const i of[0,1]){const[t1,t2]=teams('qf',i);h+=match(MATCH_INFO.qf[i],t1,t2,pickFor('qf',i),false);}
+  h+='</div></div>';
+  // SF (left side: match 0)
+  h+='<div class="br-col br-col-sf"><div class="br-pair">';
+  {const[t1,t2]=teams('sf',0);h+=match(MATCH_INFO.sf[0],t1,t2,pickFor('sf',0),false);}
+  h+='</div></div>';
+  h+='</div>'; // end left
+  // ─── CENTER: FINAL + 3RD ───
+  const[fT1,fT2]=teams('fin',0);
+  const finPick=pickFor('fin',0);
+  const champ=finPick&&finPick.w?finPick.w:'';
+  const runnerUp=champ?(champ===fT1?fT2:(champ===fT2?fT1:'')):'';
+  const[tT1,tT2]=teams('thr',0);
+  const thrPick=pickFor('thr',0);
+  h+='<div class="br-final-center">';
+  h+='<div class="br-final-glow"></div>';
+  h+=`<div class="br-final-banner">🏆 Gran Final<span class="br-final-banner-sub">M${MATCH_INFO.fin.m} · ${MATCH_INFO.fin.d} · ${MATCH_INFO.fin.t}<br>📍 ${MATCH_INFO.fin.c}</span></div>`;
+  h+='<div class="br-trophy">🏆</div>';
+  h+='<div class="br-final-box">';
+  h+='<div class="br-final-lbl">Final<small>Marcador y ganador</small></div>';
+  const finA=finPick&&finPick.a!=null?finPick.a:null;
+  const finB=finPick&&finPick.b!=null?finPick.b:null;
+  h+=`<div style="display:flex;flex-direction:column;gap:5px">
+    ${trow(fT1,finA,!!champ&&champ===fT1)}
+    <span style="text-align:center;font-size:9px;color:var(--mt);font-weight:800;font-family:'DM Sans',sans-serif">VS</span>
+    ${trow(fT2,finB,!!champ&&champ===fT2)}
+  </div>`;
+  // Indicador penales final
+  if(finPick&&finA!=null&&finB!=null&&Number(finA)===Number(finB)&&finPick.pen){
+    h+=`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--ac);margin-top:5px">⚽ Penales: ${esc(abbr(finPick.pen))}</div>`;
+  }
+  h+='</div>';
+  if(champ){
+    h+=`<div class="br-champ-team" title="${esc(champ)}"><span style="font-size:22px">${flag(champ)}</span><span>${esc(abbr(champ))}</span></div>`;
+    h+=`<div style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:800;color:#78350f;text-transform:uppercase;letter-spacing:1.2px;margin-top:-6px">★ Campeón ★</div>`;
+    if(runnerUp){
+      h+=`<div class="br-runnerup-card" title="${esc(runnerUp)}"><span style="font-size:18px">${flag(runnerUp)}</span><span>${esc(abbr(runnerUp))}</span></div>`;
+      h+=`<div style="font-family:'Outfit',sans-serif;font-size:9px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;margin-top:-3px">🥈 Subcampeón</div>`;
+    }
+  }
+  // 3rd place
+  h+='<div class="br-thirdplace-box">';
+  h+=`<div class="br-thirdplace-lbl">🥉 3er Lugar<small>M${MATCH_INFO.thr.m} · ${MATCH_INFO.thr.d} · ${MATCH_INFO.thr.t}</small></div>`;
+  if(tT1||tT2){
+    const thrA=thrPick&&thrPick.a!=null?thrPick.a:null;
+    const thrB=thrPick&&thrPick.b!=null?thrPick.b:null;
+    const thrW=thrPick&&thrPick.w?thrPick.w:'';
+    h+=`<div style="display:flex;flex-direction:column;gap:4px">
+      ${trow(tT1,thrA,!!thrW&&thrW===tT1)}
+      <span style="text-align:center;font-size:9px;color:var(--mt);font-weight:800;font-family:'DM Sans',sans-serif">VS</span>
+      ${trow(tT2,thrB,!!thrW&&thrW===tT2)}
+    </div>`;
+    if(thrPick&&thrA!=null&&thrB!=null&&Number(thrA)===Number(thrB)&&thrPick.pen){
+      h+=`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--ac);margin-top:4px">⚽ Penales: ${esc(abbr(thrPick.pen))}</div>`;
+    }
+  }else{
+    h+='<div style="font-size:11px;color:var(--mt);font-family:\'DM Sans\',sans-serif;text-align:center">Completa Semis primero</div>';
+  }
+  h+='</div>';
+  h+='</div>'; // end center
+  // ─── RIGHT SIDE ───
+  h+='<div class="br-side br-side-right">';
+  h+='<div class="br-col br-col-sf"><div class="br-pair">';
+  {const[t1,t2]=teams('sf',1);h+=match(MATCH_INFO.sf[1],t1,t2,pickFor('sf',1),true);}
+  h+='</div></div>';
+  h+='<div class="br-col br-col-qf"><div class="br-pair">';
+  for(const i of[2,3]){const[t1,t2]=teams('qf',i);h+=match(MATCH_INFO.qf[i],t1,t2,pickFor('qf',i),true);}
+  h+='</div></div>';
+  h+='<div class="br-col br-col-r16">';
+  for(const pair of[[4,5],[6,7]]){
+    h+='<div class="br-pair">';
+    for(const i of pair){const[t1,t2]=teams('r16',i);h+=match(MATCH_INFO.r16[i],t1,t2,pickFor('r16',i),true);}
+    h+='</div>';
+  }
+  h+='</div>';
+  h+='<div class="br-col br-col-r32">';
+  for(const[a,b]of rightR32Pairs){
+    h+='<div class="br-pair">';
+    for(const idx of[a,b]){const[t1,t2]=teams('r32',idx);h+=match(MATCH_INFO.r32[idx],t1,t2,pickFor('r32',idx),true);}
+    h+='</div>';
+  }
+  h+='</div>';
+  h+='</div>'; // end right
+  h+='</div>'; // end br-wrap
+  return h;
 }
 
 function buildEditableBracket(p){
@@ -7241,6 +7442,8 @@ window.genMyTestPicksE2=async function(){
     if(isBetaTestCom()){
       const cur=_readLocalPicks(ME.uid)||{};
       cur.grupos=grupos;
+      // Calcular t8 (mejores 3eros) — necesario para que calcProgress habilite 16avos
+      try{cleanT8(cur);}catch(e){console.warn('cleanT8 fail',e);}
       _writeLocalPicks(ME.uid,cur);
     }else{
       await db.ref('picks/'+ME.uid+'/grupos').set(grupos);
