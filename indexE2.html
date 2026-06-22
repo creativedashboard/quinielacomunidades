@@ -328,11 +328,11 @@ body {
       </div>
     </div>
     <div class="sb-section">
-      <button class="sb-btn on" onclick="goTab('dashboard')">📊 Dashboard</button>
-      <button class="sb-btn" onclick="goTab('bracket')">🏆 Mi Bracket</button>
-      <button class="sb-btn" onclick="goTab('grupos-readonly')">🌎 Mis picks de grupos</button>
-      <button class="sb-btn" onclick="goTab('instrucciones')">📖 Instrucciones</button>
-      <button class="sb-btn" id="sb-admin-btn" style="color:var(--am);display:none" onclick="goTab('admin')">⚙️ Admin E2</button>
+      <button class="sb-btn on" onclick="goTab('dashboard', event)">📊 Dashboard</button>
+      <button class="sb-btn" onclick="goTab('bracket', event)">🏆 Mi Bracket</button>
+      <button class="sb-btn" onclick="goTab('grupos-readonly', event)">🌎 Mis picks de grupos</button>
+      <button class="sb-btn" onclick="goTab('instrucciones', event)">📖 Instrucciones</button>
+      <button class="sb-btn" id="sb-admin-btn" style="color:var(--am);display:none" onclick="goTab('admin', event)">⚙️ Admin E2</button>
     </div>
     <div class="sb-user">
       <div class="sb-user-pic" id="sb-user-pic">?</div>
@@ -560,18 +560,57 @@ function safeRender() {
   _renderTimer = setTimeout(renderInitial, 50);
 }
 
-function goTab(tab) {
+function goTab(tab, evt) {
   S_tab = tab;
+  // Marcar botón activo (usando closest para que funcione aunque cliques en el icono)
   document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('on'));
-  event.target.classList.add('on');
-  // Por ahora todos los tabs muestran el placeholder
-  document.getElementById('topbar-title').textContent = {
-    'dashboard':'Dashboard E2',
-    'bracket':'Mi Bracket',
-    'grupos-readonly':'Mis picks de grupos',
-    'instrucciones':'Instrucciones',
-    'admin':'Admin Etapa 2'
-  }[tab] || 'Etapa 2';
+  const btn = (evt && evt.currentTarget) || (evt && evt.target && evt.target.closest('.sb-btn'));
+  if (btn) btn.classList.add('on');
+  // Actualizar título y subtítulo
+  const titles = {
+    'dashboard': { t: 'Dashboard E2', s: 'Etapa 2 · Eliminatorias del Mundial 2026' },
+    'bracket': { t: 'Mi Bracket', s: 'Llena tu bracket de eliminatorias con marcadores y penales' },
+    'grupos-readonly': { t: 'Mis picks de grupos', s: 'Tus predicciones de Etapa 1 (solo lectura)' },
+    'instrucciones': { t: 'Instrucciones', s: 'Cómo funciona la Etapa 2' },
+    'admin': { t: 'Admin Etapa 2', s: 'Gestiona resultados oficiales del bracket' }
+  };
+  const meta = titles[tab] || { t: 'Etapa 2', s: '' };
+  document.getElementById('topbar-title').textContent = meta.t;
+  document.getElementById('topbar-sub').textContent = meta.s;
+  // Renderizar contenido específico del tab (todos placeholders en Fase 1)
+  const content = document.getElementById('content');
+  const placeholders = {
+    'dashboard': { emoji: '📊', title: 'Dashboard E2 (próxima fase)',
+      text: 'Aquí irán: leaderboard con puntos sumados de E1 + E2, próximos partidos del bracket, últimos resultados, modal de "Mis resultados E2", modal de "Mis picks E2".' },
+    'bracket': { emoji: '🏆', title: 'Mi Bracket V2 (próxima fase)',
+      text: 'Aquí podrás llenar marcadores y elegir ganadores de penales para 16avos, octavos, cuartos, semis, final y 3er lugar. Sistema de puntos Forma C: 3 pts marcador exacto, 1 pt solo ganador, 2 pts penales, 5 pts combo.' },
+    'grupos-readonly': { emoji: '🌎', title: 'Mis picks de grupos (próxima fase)',
+      text: 'Aquí verás tus 72 marcadores de fase de grupos en modo solo lectura. Tus picks de E1 siguen sellados en blockchain, esta sección es solo para consulta.' },
+    'instrucciones': { emoji: '📖', title: 'Instrucciones de Etapa 2',
+      text: 'La Etapa 2 (Eliminatorias) usa el sistema Forma C de puntos: cada partido del bracket vale hasta 5 pts. Acertar marcador exacto = 3 pts. Solo ganador = 1 pt. Penales acertados = 2 pts. Marcador exacto en empate + penales = 5 pts.' },
+    'admin': { emoji: '⚙️', title: 'Admin E2 (próxima fase)',
+      text: 'Aquí podrás capturar marcadores oficiales del bracket (16avos a Final), sync con openfootball para el bracket, y ver marcadores pendientes.' }
+  };
+  const p = placeholders[tab] || placeholders.dashboard;
+  content.innerHTML = `
+    <div class="banner-beta">
+      <span class="banner-beta-icon">🧪</span>
+      <div><strong>Estás en la versión BETA de Etapa 2.</strong> Esta es la Fase 1 (estructura base). Todas las funciones se irán implementando en fases siguientes.</div>
+    </div>
+    <div class="placeholder">
+      <div class="placeholder-emoji">${p.emoji}</div>
+      <div class="placeholder-title">${p.title}</div>
+      <div class="placeholder-text">${p.text}</div>
+      <div class="placeholder-progress">
+        <strong>✅ Fase 1: Estructura base (estamos aquí)</strong><br>
+        ⏳ Fase 2: Mi Bracket V2 (siguiente)<br>
+        ⏳ Fase 3: Admin E2<br>
+        ⏳ Fase 4: Dashboard E2<br>
+        ⏳ Fase 5: Picks de grupos read-only<br>
+        ⏳ Fase 6: Pulido final
+      </div>
+    </div>
+  `;
 }
 
 console.log('%c🏆 indexE2.html cargado','color:#dc2626;font-weight:800;font-size:14px');
