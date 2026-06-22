@@ -2563,12 +2563,21 @@ function calcProgress(p){
     const m=p.grupos[g].matches;
     if(m&&m.length===6&&m.every(x=>x&&x.a!=null&&x.b!=null&&x.a!==''&&x.b!=='')){grpFilled++;}
   }
-  const t8cnt=(p.t8||[]).length;
-  const r32done=R32_FIXED.filter(({i})=>p.r32[i]).length+R32_THIRDS.filter(({i})=>p.r32[i]).length;
-  const r16done=p.r16.filter(Boolean).length;
-  const qfDone=p.qf.filter(Boolean).length;
-  const sfDone=p.sf.filter(Boolean).length;
-  const finDone=p.fin?1:0;
+  const t8cnt=(p.t8||[]).filter(Boolean).length;
+  // ─── Progreso del bracket leído de V2 (MY_BRACKET para el current user) ───
+  // Un partido está "hecho" cuando pick.w (winner) está definido.
+  const e2=(typeof MY_BRACKET!=='undefined'&&MY_BRACKET)||{};
+  function _v2done(rk,mi){
+    if(rk==='fin')return !!(e2.finV2&&e2.finV2.w);
+    if(rk==='thr')return !!(e2.thrV2&&e2.thrV2.w);
+    const arr=e2[rk+'V2']||[];
+    return !!(arr[mi]&&arr[mi].w);
+  }
+  let r32done=0;for(let i=0;i<16;i++)if(_v2done('r32',i))r32done++;
+  let r16done=0;for(let i=0;i<8;i++)if(_v2done('r16',i))r16done++;
+  let qfDone=0;for(let i=0;i<4;i++)if(_v2done('qf',i))qfDone++;
+  let sfDone=0;for(let i=0;i<2;i++)if(_v2done('sf',i))sfDone++;
+  const finDone=_v2done('fin',0)?1:0;
   return{grpFilled,t8cnt,r32done,r16done,qfDone,sfDone,finDone};
 }
 
