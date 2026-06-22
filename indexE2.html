@@ -398,17 +398,18 @@ html[data-ucolor] .mbtn.on{background:var(--uc);border-color:var(--uc)}
 .vsbdg{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--mt);padding:0 2px;flex-shrink:0}
 
 /* ── BRACKET V2 (Etapa 2) ─────────────────────────── */
-.mrow-v2{display:grid;grid-template-columns:1fr 46px 10px 46px 1fr;gap:6px;align-items:center;margin-top:8px}
-.mteam-v2{display:flex;align-items:center;gap:5px;padding:8px 7px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;font-size:11.5px;font-weight:700;color:var(--tx);min-width:0;overflow:hidden}
-.mteam-v2.winner{background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:#2563eb;color:#1e3a8a}
-html[data-ucolor] .mteam-v2.winner{background:var(--ucl);border-color:var(--uc);color:var(--uc-d)}
-.mteam-v2.empty{opacity:.5;font-style:italic;font-weight:500}
-.mtnm-v2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.mteam-v2 .flag{font-size:14px;flex-shrink:0}
-.sci-v2{width:46px;padding:8px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-weight:800;font-size:15px;font-family:'Outfit',sans-serif}
-.sci-v2:focus{outline:none;border-color:var(--ac);background:var(--card)}
+.mteams-v2{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.tm-row-v2{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:1.5px solid var(--bd);border-radius:9px;font-size:12.5px;font-weight:700;color:var(--tx);transition:background .15s,border-color .15s}
+.tm-row-v2.winner{background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:#2563eb;color:#1e3a8a}
+html[data-ucolor] .tm-row-v2.winner{background:var(--ucl);border-color:var(--uc);color:var(--uc-d)}
+.tm-row-v2.empty{opacity:.5;font-style:italic;font-weight:500}
+.tm-row-v2 .flag{font-size:18px;flex-shrink:0}
+.tm-nm-v2{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-family:'Outfit',sans-serif}
+.sci-v2{width:52px;padding:7px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:7px;background:#fff;color:var(--tx);font-weight:800;font-size:16px;font-family:'Outfit',sans-serif;flex-shrink:0}
+.tm-row-v2.winner .sci-v2{border-color:#2563eb}
+html[data-ucolor] .tm-row-v2.winner .sci-v2{border-color:var(--uc)}
+.sci-v2:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 2px var(--acl)}
 .sci-v2:disabled{opacity:.4;cursor:not-allowed}
-.sd-v2{text-align:center;font-weight:700;color:var(--mt);font-size:13px}
 .pens-v2{margin-top:8px;padding:7px 9px;background:var(--bg);border:1px dashed var(--bd);border-radius:8px;transition:opacity .2s}
 .pens-v2.dim{opacity:.45;pointer-events:none}
 .pens-l{font-size:10px;font-weight:700;color:var(--mt);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
@@ -1640,7 +1641,8 @@ auth.onAuthStateChanged(async user=>{
       ME.name=profile.name;
     }
     // ═══════ WHITELIST GATE — indexE2.html (Etapa 2 BETA) ═══════
-    if(!ME.isSuperAdmin){
+    // Solo activo cuando BETA_TEST_MODE_ENABLED=true
+    if(typeof BETA_TEST_MODE_ENABLED!=='undefined'&&BETA_TEST_MODE_ENABLED&&!ME.isSuperAdmin){
       const E2_BETA_NAMES=['Beta Test Com'];
       try{
         const cs=await db.ref('communities/'+profile.communityId).once('value');
@@ -2045,7 +2047,12 @@ function loadApp(forceAdmin){
       }
       safeRender();
     }},
-    {path:'picks',                handler:snap=>{S.picks=snap.val()||{};MY_BRACKET=(S.picks[ME.uid]||{}).bracketE2||{};safeRender();}},
+    {path:'picks',                handler:snap=>{S.picks=snap.val()||{};
+      // Beta Test Com: bracketE2 viene de localStorage; otras, de Firebase
+      if(isBetaTestCom()){MY_BRACKET=_readLocalBracketE2(ME.uid)||{};}
+      else{MY_BRACKET=(S.picks[ME.uid]||{}).bracketE2||{};}
+      safeRender();
+    }},
     {path:'communities',          handler:snap=>{S.communities=snap.val()||{};safeRender();}},
     {path:'community_admins',     handler:snap=>{S.community_admins=snap.val()||{};safeRender();}},
     // Licenses listener — only super-admin needs this data; other users get blocked by Firebase rules
@@ -2163,10 +2170,20 @@ function mergeAdm(v){
   return b;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// 🧪 BETA-TEST-COM MODE — Para deshabilitar TODOS los hacks de testing,
+// cambia esta constante a false y todo el código de Beta Test Com
+// (whitelist, localStorage, bypass de fechas, acciones beta) se ignora.
+// Buscar "BETA_TEST_MODE_ENABLED" o "isBetaTestCom" en este archivo
+// para encontrar los puntos modificados.
+// ═══════════════════════════════════════════════════════════════
+const BETA_TEST_MODE_ENABLED=true;
+
 // ─── Beta Test Com: override de picks vía localStorage ───
 // Firebase server rules bloquean writes a picks/{uid}/grupos después de la fecha de inicio.
-// Para la comunidad de prueba, guardamos los picks SOLO en el navegador.
+// Para la comunidad de prueba, guardamos picks SOLO en el navegador.
 function isBetaTestCom(uid){
+  if(!BETA_TEST_MODE_ENABLED)return false;
   uid=uid||ME.uid;if(!uid)return false;
   const u=S.users[uid];if(!u)return false;
   const c=S.communities[u.communityId];
@@ -2175,6 +2192,9 @@ function isBetaTestCom(uid){
 function _localPicksKey(uid){return 'BETA_TEST_PICKS_'+uid;}
 function _readLocalPicks(uid){try{const r=localStorage.getItem(_localPicksKey(uid));return r?JSON.parse(r):null;}catch(e){return null;}}
 function _writeLocalPicks(uid,p){try{localStorage.setItem(_localPicksKey(uid),JSON.stringify(p));}catch(e){console.warn('local picks save fail',e);}}
+function _localBracketE2Key(uid){return 'BETA_TEST_BRACKETE2_'+uid;}
+function _readLocalBracketE2(uid){try{const r=localStorage.getItem(_localBracketE2Key(uid));return r?JSON.parse(r):null;}catch(e){return null;}}
+function _writeLocalBracketE2(uid,p){try{localStorage.setItem(_localBracketE2Key(uid),JSON.stringify(p));}catch(e){console.warn('local bracketE2 save fail',e);}}
 
 // Get MY picks (or empty if not set) — Beta Test Com lee de localStorage primero
 function myPicks(){
@@ -2477,7 +2497,7 @@ function calcPts(uid){
     for(const t of(p.t8||[])){if(realSet.has(t)){tot+=PTS.t8;bd.t8+=PTS.t8;bd.lugares+=PTS.t8;}}
   }
   // ─── Bracket V2 (Etapa 2) · Forma C scoring (3/1/2/5) ───
-  const myE2=(p&&p.bracketE2)||((S.picks[uid]||{}).bracketE2)||{};
+  const myE2=(isBetaTestCom(uid)?_readLocalBracketE2(uid):null)||(p&&p.bracketE2)||((S.picks[uid]||{}).bracketE2)||{};
   const admE2=(r&&r.bracketE2)||{};
   function pickArrV2(o,k){return (o&&o[k+'V2'])||[];}
   function pickSglV2(o,k){return (o&&o[k+'V2'])||null;}
@@ -2569,7 +2589,11 @@ function getOrInitAdminPickV2(rk,mi){
   const k=rk+'V2';if(!e[k])e[k]=[];
   if(!e[k][mi])e[k][mi]={w:'',a:null,b:null,pen:''};return e[k][mi];
 }
-async function saveMyBracketV2(){if(!ME.uid)return;try{await db.ref('picks/'+ME.uid+'/bracketE2').set(MY_BRACKET);}catch(e){console.warn('save my bracket V2:',e);}}
+async function saveMyBracketV2(){
+  if(!ME.uid)return;
+  if(isBetaTestCom()){_writeLocalBracketE2(ME.uid,MY_BRACKET);return;}
+  try{await db.ref('picks/'+ME.uid+'/bracketE2').set(MY_BRACKET);}catch(e){console.warn('save my bracket V2:',e);}
+}
 async function saveAdminBracketV2(){if(!ME.communityId||!S.adminR)return;try{await db.ref('community_results/'+ME.communityId+'/bracketE2').set(S.adminR.bracketE2||{});}catch(e){console.warn('save admin V2:',e);}}
 
 window.setMcV2Score=async function(rk,mi,side,val,adm){
@@ -2644,13 +2668,19 @@ function mcV2({lbl,t1,t2,pickObj,dis,info,rk,mi,adm}){
   const onB=t2&&!dis?`setMcV2Score('${js(rk)}',${mi},'b',this.value,${aa})`:'';
   const pA=t1&&!dis?`setMcV2Pen('${js(rk)}',${mi},'${js(t1)}',${aa})`:'';
   const pB=t2&&!dis?`setMcV2Pen('${js(rk)}',${mi},'${js(t2)}',${aa})`:'';
+  // Cada equipo en su propia fila → el nombre completo cabe sin truncarse
   return `<div class="mcard"><div class="mlbl">${lbl}</div>${infoHtml}
-    <div class="mrow-v2">
-      <div class="mteam-v2${w===t1&&t1?' winner':''}${!t1?' empty':''}"><span class="flag">${flag(t1)||''}</span><span class="mtnm-v2">${esc(t1)||'?'}</span></div>
-      <input type="number" class="sci-v2" value="${a}" min="0" max="20" ${dis?'disabled':''} onchange="${onA}" placeholder="–">
-      <span class="sd-v2">–</span>
-      <input type="number" class="sci-v2" value="${b}" min="0" max="20" ${dis?'disabled':''} onchange="${onB}" placeholder="–">
-      <div class="mteam-v2${w===t2&&t2?' winner':''}${!t2?' empty':''}"><span class="flag">${flag(t2)||''}</span><span class="mtnm-v2">${esc(t2)||'?'}</span></div>
+    <div class="mteams-v2">
+      <div class="tm-row-v2${w===t1&&t1?' winner':''}${!t1?' empty':''}">
+        <span class="flag">${flag(t1)||''}</span>
+        <span class="tm-nm-v2">${esc(t1)||'?'}</span>
+        <input type="text" inputmode="numeric" maxlength="2" class="sci-v2" value="${a}" ${dis?'disabled':''} onchange="${onA}" onfocus="this.select()" placeholder="–">
+      </div>
+      <div class="tm-row-v2${w===t2&&t2?' winner':''}${!t2?' empty':''}">
+        <span class="flag">${flag(t2)||''}</span>
+        <span class="tm-nm-v2">${esc(t2)||'?'}</span>
+        <input type="text" inputmode="numeric" maxlength="2" class="sci-v2" value="${b}" ${dis?'disabled':''} onchange="${onB}" onfocus="this.select()" placeholder="–">
+      </div>
     </div>
     <div class="pens-v2 ${isTie?'':'dim'}">
       <div class="pens-l">Si empatan, ¿quién gana en penales?</div>
@@ -4997,8 +5027,8 @@ function rAdmin(){
   );
   const roleLbl=ME.isSuperAdmin?'👑 Super Admin':'⚙️ Admin de Comunidad';
   let h=`<div class="admnotice">${roleLbl} — ${ME.isSuperAdmin?'Gestionas TODA la plataforma.':'Gestionas TU comunidad.'}</div>`;
-  // ─── Panel "Acciones beta" (solo super-admin en indexE2) ───
-  if(ME.isSuperAdmin){
+  // ─── Panel "Acciones beta" (solo super-admin en indexE2, gated por BETA_TEST_MODE_ENABLED) ───
+  if(ME.isSuperAdmin&&typeof BETA_TEST_MODE_ENABLED!=='undefined'&&BETA_TEST_MODE_ENABLED){
     const c=S.communities[ME.communityId];
     const isT=c&&c.mode==='tournament';
     const isU=c&&c.stage2Unlocked===true;
@@ -7214,7 +7244,8 @@ window.genMyTestPicksE2=async function(){
       const[f1,f2]=getMatchTeamsV2('fin',0,false);if(f1&&f2){const a=_rndScoreE2(),b=_rndScoreE2();const pen=a===b?(Math.random()<0.5?f1:f2):'';e2.finV2={a,b,w:a>b?f1:(b>a?f2:pen),pen};}
       const[h1,h2]=getMatchTeamsV2('thr',0,false);if(h1&&h2){const a=_rndScoreE2(),b=_rndScoreE2();const pen=a===b?(Math.random()<0.5?h1:h2):'';e2.thrV2={a,b,w:a>b?h1:(b>a?h2:pen),pen};}
       MY_BRACKET=save;
-      await db.ref('picks/'+ME.uid+'/bracketE2').set(e2);
+      if(isBetaTestCom())_writeLocalBracketE2(ME.uid,e2);
+      else await db.ref('picks/'+ME.uid+'/bracketE2').set(e2);
     }else{
       errors.push('E2 bracket: aún no hay marcadores oficiales de grupos. Primero usa 🎯 "Generar marcadores oficiales al azar (E1)" para que se conozcan los 32 equipos.');
     }
@@ -7238,9 +7269,14 @@ window.clearMyPicksE2=async function(){
   if(!ME.isSuperAdmin)return;
   if(!confirm('Borrar TODOS tus picks (E1+E2)?'))return;
   try{
-    if(isBetaTestCom()){try{localStorage.removeItem(_localPicksKey(ME.uid));}catch(e){}}
-    else{try{await db.ref('picks/'+ME.uid+'/grupos').remove();}catch(e){console.warn(e);}}
-    await db.ref('picks/'+ME.uid+'/bracketE2').remove();
+    if(isBetaTestCom()){
+      try{localStorage.removeItem(_localPicksKey(ME.uid));}catch(e){}
+      try{localStorage.removeItem(_localBracketE2Key(ME.uid));}catch(e){}
+      MY_BRACKET={};
+    }else{
+      try{await db.ref('picks/'+ME.uid+'/grupos').remove();}catch(e){console.warn(e);}
+      await db.ref('picks/'+ME.uid+'/bracketE2').remove();
+    }
     alert('✅ Picks borrados');
     render();
   }catch(e){alert('Error: '+(e.message||e));}
