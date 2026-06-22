@@ -2163,9 +2163,28 @@ function mergeAdm(v){
   return b;
 }
 
-// Get MY picks (or empty if not set)
-function myPicks(){return mergeP(S.picks[ME.uid]);}
-function userPicks(uid){return mergeP(S.picks[uid]);}
+// ─── Beta Test Com: override de picks vía localStorage ───
+// Firebase server rules bloquean writes a picks/{uid}/grupos después de la fecha de inicio.
+// Para la comunidad de prueba, guardamos los picks SOLO en el navegador.
+function isBetaTestCom(uid){
+  uid=uid||ME.uid;if(!uid)return false;
+  const u=S.users[uid];if(!u)return false;
+  const c=S.communities[u.communityId];
+  return c&&(c.name||'').toLowerCase().trim()==='beta test com';
+}
+function _localPicksKey(uid){return 'BETA_TEST_PICKS_'+uid;}
+function _readLocalPicks(uid){try{const r=localStorage.getItem(_localPicksKey(uid));return r?JSON.parse(r):null;}catch(e){return null;}}
+function _writeLocalPicks(uid,p){try{localStorage.setItem(_localPicksKey(uid),JSON.stringify(p));}catch(e){console.warn('local picks save fail',e);}}
+
+// Get MY picks (or empty if not set) — Beta Test Com lee de localStorage primero
+function myPicks(){
+  if(isBetaTestCom()){const l=_readLocalPicks(ME.uid);if(l)return mergeP(l);}
+  return mergeP(S.picks[ME.uid]);
+}
+function userPicks(uid){
+  if(isBetaTestCom(uid)){const l=_readLocalPicks(uid);if(l)return mergeP(l);}
+  return mergeP(S.picks[uid]);
+}
 
 // Who is in MY community?
 function myCommunityMembers(){
@@ -2184,16 +2203,16 @@ function scheduleSavePicks(picks){
   _saveTimer=setTimeout(async()=>{
     if(!_pendingPicks)return;
     const p=_pendingPicks;_pendingPicks=null;
+    // Beta Test Com: save localmente (Firebase bloquea writes después de la fecha de inicio)
+    if(isBetaTestCom()){_writeLocalPicks(ME.uid,p);return;}
     try{await db.ref('picks/'+ME.uid).set(p);}catch(e){console.warn('Save fail',e);}
   },500);
 }
-// FIX A: Flush save inmediatamente cuando la pestaña se va al fondo o se cierra.
-// Esto evita pérdida de datos cuando el usuario tipea su última predicción y
-// cierra la pestaña / cambia de app / bloquea el celular antes de los 500ms.
 function flushPendingSave(){
   if(!_pendingPicks||!ME.uid)return;
   clearTimeout(_saveTimer);
   const p=_pendingPicks;_pendingPicks=null;
+  if(isBetaTestCom()){_writeLocalPicks(ME.uid,p);return;}
   try{db.ref('picks/'+ME.uid).set(p).catch(e=>console.warn('Flush save failed',e));}
   catch(e){console.warn('Flush save error',e);}
 }
@@ -7171,11 +7190,17 @@ window.genMyTestPicksE2=async function(){
   if(!ME.isSuperAdmin)return;
   if(!confirm('Llenar TUS picks de E1 (72) y E2 (bracket) al azar?'))return;
   const errors=[];
-  // Intento E1 grupos (puede fallar si Firebase rules bloquean por fecha de bloqueo)
+  // E1 grupos — Beta Test Com usa localStorage; otras, Firebase
   try{
     const grupos={};
     for(const g of GKEYS){const ms=[];for(let mi=0;mi<6;mi++)ms.push({a:_rndScoreE2(),b:_rndScoreE2()});grupos[g]={matches:ms};}
-    await db.ref('picks/'+ME.uid+'/grupos').set(grupos);
+    if(isBetaTestCom()){
+      const cur=_readLocalPicks(ME.uid)||{};
+      cur.grupos=grupos;
+      _writeLocalPicks(ME.uid,cur);
+    }else{
+      await db.ref('picks/'+ME.uid+'/grupos').set(grupos);
+    }
   }catch(e){
     errors.push('E1 grupos: '+(e.message||e)+' (no problema — sigues sin puntos E1 pero E2 sí funciona)');
   }
@@ -7212,8 +7237,13 @@ window.genOfficialResultsRandomE2=async function(){
 window.clearMyPicksE2=async function(){
   if(!ME.isSuperAdmin)return;
   if(!confirm('Borrar TODOS tus picks (E1+E2)?'))return;
-  try{await db.ref('picks/'+ME.uid+'/grupos').remove();await db.ref('picks/'+ME.uid+'/bracketE2').remove();alert('✅ Picks borrados');}
-  catch(e){alert('Error: '+(e.message||e));}
+  try{
+    if(isBetaTestCom()){try{localStorage.removeItem(_localPicksKey(ME.uid));}catch(e){}}
+    else{try{await db.ref('picks/'+ME.uid+'/grupos').remove();}catch(e){console.warn(e);}}
+    await db.ref('picks/'+ME.uid+'/bracketE2').remove();
+    alert('✅ Picks borrados');
+    render();
+  }catch(e){alert('Error: '+(e.message||e));}
 };
 window.clearOfficialResultsE2=async function(){
   if(!ME.isSuperAdmin)return;
