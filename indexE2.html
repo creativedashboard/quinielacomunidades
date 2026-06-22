@@ -397,6 +397,37 @@ html[data-ucolor] .mbtn.on{background:var(--uc);border-color:var(--uc)}
 .mbtn .flag{font-size:14px;flex-shrink:0}
 .vsbdg{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--mt);padding:0 2px;flex-shrink:0}
 
+/* ── BRACKET V2 (Etapa 2) ─────────────────────────── */
+.mrow-v2{display:grid;grid-template-columns:1fr 46px 10px 46px 1fr;gap:6px;align-items:center;margin-top:8px}
+.mteam-v2{display:flex;align-items:center;gap:5px;padding:8px 7px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;font-size:11.5px;font-weight:700;color:var(--tx);min-width:0;overflow:hidden}
+.mteam-v2.winner{background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:#2563eb;color:#1e3a8a}
+html[data-ucolor] .mteam-v2.winner{background:var(--ucl);border-color:var(--uc);color:var(--uc-d)}
+.mteam-v2.empty{opacity:.5;font-style:italic;font-weight:500}
+.mtnm-v2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mteam-v2 .flag{font-size:14px;flex-shrink:0}
+.sci-v2{width:46px;padding:8px 4px;text-align:center;border:1.5px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-weight:800;font-size:15px;font-family:'Outfit',sans-serif}
+.sci-v2:focus{outline:none;border-color:var(--ac);background:var(--card)}
+.sci-v2:disabled{opacity:.4;cursor:not-allowed}
+.sd-v2{text-align:center;font-weight:700;color:var(--mt);font-size:13px}
+.pens-v2{margin-top:8px;padding:7px 9px;background:var(--bg);border:1px dashed var(--bd);border-radius:8px;transition:opacity .2s}
+.pens-v2.dim{opacity:.45;pointer-events:none}
+.pens-l{font-size:10px;font-weight:700;color:var(--mt);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.pens-r{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pb-v2{background:var(--card);border:1.5px solid var(--bd);border-radius:6px;padding:6px 8px;font-size:11px;font-weight:700;color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-family:'DM Sans',sans-serif;transition:all .15s}
+.pb-v2:hover:not(:disabled){background:var(--bg);border-color:var(--ac)}
+.pb-v2.on{background:linear-gradient(135deg,var(--ac),var(--acd));color:#fff;border-color:var(--acd)}
+html[data-ucolor] .pb-v2.on{background:var(--uc);border-color:var(--uc-d)}
+.pb-v2:disabled{opacity:.4;cursor:not-allowed}
+.pb-v2 .flag{font-size:13px}
+.beta-actions{background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:14px;padding:14px;margin-bottom:18px}
+.beta-actions-hdr{font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:#92400e;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.beta-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.ba-btn{background:#fff;border:1.5px solid #d97706;color:#78350f;border-radius:9px;padding:10px 12px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:transform .12s,box-shadow .12s;text-align:left;line-height:1.3}
+.ba-btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(217,119,6,.25)}
+.ba-btn.on{background:#10b981;border-color:#047857;color:#fff}
+.ba-btn.warn{background:#fff;border-color:#dc2626;color:#991b1b}
+.ba-btn.warn:hover{box-shadow:0 4px 10px rgba(220,38,38,.25)}
+
 /* ── FINAL ──────────────────────────────────────────── */
 .fw{max-width:480px;margin:0 auto}
 .fc{background:var(--card);border:2px solid var(--g1d);border-radius:14px;padding:22px;margin-bottom:14px;text-align:center}
@@ -2010,7 +2041,7 @@ function loadApp(forceAdmin){
       }
       safeRender();
     }},
-    {path:'picks',                handler:snap=>{S.picks=snap.val()||{};safeRender();}},
+    {path:'picks',                handler:snap=>{S.picks=snap.val()||{};MY_BRACKET=(S.picks[ME.uid]||{}).bracketE2||{};safeRender();}},
     {path:'communities',          handler:snap=>{S.communities=snap.val()||{};safeRender();}},
     {path:'community_admins',     handler:snap=>{S.community_admins=snap.val()||{};safeRender();}},
     // Licenses listener — only super-admin needs this data; other users get blocked by Firebase rules
@@ -2422,12 +2453,17 @@ function calcPts(uid){
     const realSet=new Set(r.t8);
     for(const t of(p.t8||[])){if(realSet.has(t)){tot+=PTS.t8;bd.t8+=PTS.t8;bd.lugares+=PTS.t8;}}
   }
-  for(let i=0;i<16;i++)if(p.r32[i]&&p.r32[i]===r.r32[i]){tot+=PTS.r32;bd.r32+=PTS.r32;}
-  for(let i=0;i<8;i++) if(p.r16[i]&&p.r16[i]===r.r16[i]){tot+=PTS.r16;bd.r16+=PTS.r16;}
-  for(let i=0;i<4;i++) if(p.qf[i] &&p.qf[i] ===r.qf[i] ){tot+=PTS.qf;bd.qf+=PTS.qf;}
-  for(let i=0;i<2;i++) if(p.sf[i] &&p.sf[i] ===r.sf[i] ){tot+=PTS.sf;bd.sf+=PTS.sf;}
-  if(p.fin&&p.fin===r.fin){tot+=PTS.fin;bd.fin+=PTS.fin;}
-  if(p.thr&&p.thr===r.thr){tot+=PTS.thr;bd.thr+=PTS.thr;}
+  // ─── Bracket V2 (Etapa 2) · Forma C scoring (3/1/2/5) ───
+  const myE2=(p&&p.bracketE2)||((S.picks[uid]||{}).bracketE2)||{};
+  const admE2=(r&&r.bracketE2)||{};
+  function pickArrV2(o,k){return (o&&o[k+'V2'])||[];}
+  function pickSglV2(o,k){return (o&&o[k+'V2'])||null;}
+  for(let i=0;i<16;i++){const pk=pickArrV2(myE2,'r32')[i],rk=pickArrV2(admE2,'r32')[i];const pts=calcMatchV2Points(pk,rk);if(pts){tot+=pts;bd.r32+=pts;}}
+  for(let i=0;i<8;i++) {const pk=pickArrV2(myE2,'r16')[i],rk=pickArrV2(admE2,'r16')[i];const pts=calcMatchV2Points(pk,rk);if(pts){tot+=pts;bd.r16+=pts;}}
+  for(let i=0;i<4;i++) {const pk=pickArrV2(myE2,'qf')[i], rk=pickArrV2(admE2,'qf')[i]; const pts=calcMatchV2Points(pk,rk);if(pts){tot+=pts;bd.qf+=pts;}}
+  for(let i=0;i<2;i++) {const pk=pickArrV2(myE2,'sf')[i], rk=pickArrV2(admE2,'sf')[i]; const pts=calcMatchV2Points(pk,rk);if(pts){tot+=pts;bd.sf+=pts;}}
+  {const pk=pickSglV2(myE2,'fin'),rk=pickSglV2(admE2,'fin');const pts=calcMatchV2Points(pk,rk);if(pts){tot+=pts;bd.fin+=pts;}}
+  {const pk=pickSglV2(myE2,'thr'),rk=pickSglV2(admE2,'thr');const pts=calcMatchV2Points(pk,rk);if(pts){tot+=pts;bd.thr+=pts;}}
   return{tot,bd};
 }
 
@@ -2472,6 +2508,146 @@ function mc({lbl,t1,t2,w,dis,f1,f2,info}){
     <div class="vsbdg">vs</div>
     <button class="mbtn${w&&w===t2&&!dis?' on':''}" ${dis||!f2?'disabled':''} onclick="${f2||''}">${t2?`<span class="flag">${flag(t2)}</span>`:''}<span>${esc(t2)||'?'}</span></button>
   </div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BRACKET V2 (Etapa 2) — marcadores + penales · Forma C (3/1/2/5)
+// Persistencia: picks/{uid}/bracketE2 + community_results/{cid}/bracketE2
+// ═══════════════════════════════════════════════════════════════
+let MY_BRACKET={};
+async function loadMyBracket(){
+  if(!ME.uid)return;
+  try{const s=await db.ref('picks/'+ME.uid+'/bracketE2').once('value');MY_BRACKET=s.val()||{};}
+  catch(e){console.warn('loadMyBracket:',e);MY_BRACKET={};}
+}
+function getMyPickV2(rk,mi){
+  if(rk==='fin')return MY_BRACKET.finV2||null;
+  if(rk==='thr')return MY_BRACKET.thrV2||null;
+  return (MY_BRACKET[rk+'V2']||[])[mi]||null;
+}
+function getAdminPickV2(rk,mi){
+  const e2=S.adminR&&S.adminR.bracketE2;if(!e2)return null;
+  if(rk==='fin')return e2.finV2||null;
+  if(rk==='thr')return e2.thrV2||null;
+  return (e2[rk+'V2']||[])[mi]||null;
+}
+function winnerOfV2(rk,mi,adm){const p=adm?getAdminPickV2(rk,mi):getMyPickV2(rk,mi);return (p&&p.w)||'';}
+function getOrInitPickV2(rk,mi){
+  if(rk==='fin'){if(!MY_BRACKET.finV2)MY_BRACKET.finV2={w:'',a:null,b:null,pen:''};return MY_BRACKET.finV2;}
+  if(rk==='thr'){if(!MY_BRACKET.thrV2)MY_BRACKET.thrV2={w:'',a:null,b:null,pen:''};return MY_BRACKET.thrV2;}
+  const k=rk+'V2';if(!MY_BRACKET[k])MY_BRACKET[k]=[];
+  if(!MY_BRACKET[k][mi])MY_BRACKET[k][mi]={w:'',a:null,b:null,pen:''};return MY_BRACKET[k][mi];
+}
+function getOrInitAdminPickV2(rk,mi){
+  if(!S.adminR)S.adminR={};if(!S.adminR.bracketE2)S.adminR.bracketE2={};
+  const e=S.adminR.bracketE2;
+  if(rk==='fin'){if(!e.finV2)e.finV2={w:'',a:null,b:null,pen:''};return e.finV2;}
+  if(rk==='thr'){if(!e.thrV2)e.thrV2={w:'',a:null,b:null,pen:''};return e.thrV2;}
+  const k=rk+'V2';if(!e[k])e[k]=[];
+  if(!e[k][mi])e[k][mi]={w:'',a:null,b:null,pen:''};return e[k][mi];
+}
+async function saveMyBracketV2(){if(!ME.uid)return;try{await db.ref('picks/'+ME.uid+'/bracketE2').set(MY_BRACKET);}catch(e){console.warn('save my bracket V2:',e);}}
+async function saveAdminBracketV2(){if(!ME.communityId||!S.adminR)return;try{await db.ref('community_results/'+ME.communityId+'/bracketE2').set(S.adminR.bracketE2||{});}catch(e){console.warn('save admin V2:',e);}}
+
+window.setMcV2Score=async function(rk,mi,side,val,adm){
+  if(adm&&!ME.isAdmin)return;
+  if(!adm){const r=bracketSetterLockReason&&bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
+  const pk=adm?getOrInitAdminPickV2(rk,mi):getOrInitPickV2(rk,mi);
+  pk[side]=val===''?null:parseInt(val);
+  if(pk.a!=null&&pk.b!=null&&!isNaN(pk.a)&&!isNaN(pk.b)){
+    const [t1,t2]=getMatchTeamsV2(rk,mi,adm);
+    if(pk.a>pk.b)pk.w=t1;
+    else if(pk.b>pk.a)pk.w=t2;
+    else pk.w=pk.pen||'';
+  }
+  if(adm)saveAdminBracketV2();else saveMyBracketV2();
+  render();
+};
+window.setMcV2Pen=async function(rk,mi,team,adm){
+  if(adm&&!ME.isAdmin)return;
+  if(!adm){const r=bracketSetterLockReason&&bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
+  const pk=adm?getOrInitAdminPickV2(rk,mi):getOrInitPickV2(rk,mi);
+  pk.pen=team;
+  if(pk.a!=null&&pk.b!=null&&pk.a===pk.b)pk.w=team;
+  if(adm)saveAdminBracketV2();else saveMyBracketV2();
+  render();
+};
+
+function getMatchTeamsV2(rk,mi,adm){
+  if(rk==='r32'){
+    const teamSrc=(!adm&&useOfficialForBracket&&useOfficialForBracket()&&S.adminR)?S.adminR:(adm?S.adminR:myPicks());
+    if(!teamSrc)return ['',''];
+    const fx=R32_FIXED.find(x=>x.i===mi);
+    if(fx)return [rc(fx.c1,teamSrc),rc(fx.c2,teamSrc)];
+    const th=R32_THIRDS.findIndex(x=>x.i===mi);
+    if(th>=0){
+      const t1=rc(R32_THIRDS[th].c1,teamSrc)||'';
+      let t2='';
+      try{
+        const ranking=calcAllThirds(teamSrc.grupos||{});
+        const top8=ranking.slice(0,8).map(t=>t.group).sort();
+        const key=top8.length===8?top8.map(g=>'3'+g).join('-'):null;
+        const ax=key?ANNEX_C_TABLE[key]:null;
+        if(ax){
+          const t3code=ax[R32_THIRDS[th].c1];
+          if(t3code){const gl=t3code.slice(-1);const tbl=calcGroupTable(gl,(teamSrc.grupos||{})[gl]);if(tbl[2])t2=tbl[2].name;}
+        }else t2=(teamSrc.t8||[])[th]||'';
+      }catch(e){t2=(teamSrc.t8||[])[th]||'';}
+      return [t1,t2];
+    }
+    return ['',''];
+  }
+  if(rk==='r16'){const[a,b]=R16B[mi];return [winnerOfV2('r32',a,adm),winnerOfV2('r32',b,adm)];}
+  if(rk==='qf') {const[a,b]=QFB[mi]; return [winnerOfV2('r16',a,adm),winnerOfV2('r16',b,adm)];}
+  if(rk==='sf') {const[a,b]=SFB[mi]; return [winnerOfV2('qf',a,adm), winnerOfV2('qf',b,adm)];}
+  if(rk==='fin')return [winnerOfV2('sf',0,adm),winnerOfV2('sf',1,adm)];
+  if(rk==='thr'){
+    const sf0=getMatchTeamsV2('sf',0,adm),sf1=getMatchTeamsV2('sf',1,adm);
+    const w0=winnerOfV2('sf',0,adm),w1=winnerOfV2('sf',1,adm);
+    return [sf0.find(t=>t&&t!==w0)||'',sf1.find(t=>t&&t!==w1)||''];
+  }
+  return ['',''];
+}
+
+function mcV2({lbl,t1,t2,pickObj,dis,info,rk,mi,adm}){
+  const infoHtml=info?`<div class="minfo">📅 ${info.d} · 📍 ${info.c||''}</div>`:'';
+  const a=pickObj&&pickObj.a!=null?pickObj.a:'';
+  const b=pickObj&&pickObj.b!=null?pickObj.b:'';
+  const w=pickObj&&pickObj.w?pickObj.w:'';
+  const pen=pickObj&&pickObj.pen?pickObj.pen:'';
+  const isTie=a!==''&&b!==''&&Number(a)===Number(b);
+  const aa=adm?'true':'false';
+  const onA=t1&&!dis?`setMcV2Score('${js(rk)}',${mi},'a',this.value,${aa})`:'';
+  const onB=t2&&!dis?`setMcV2Score('${js(rk)}',${mi},'b',this.value,${aa})`:'';
+  const pA=t1&&!dis?`setMcV2Pen('${js(rk)}',${mi},'${js(t1)}',${aa})`:'';
+  const pB=t2&&!dis?`setMcV2Pen('${js(rk)}',${mi},'${js(t2)}',${aa})`:'';
+  return `<div class="mcard"><div class="mlbl">${lbl}</div>${infoHtml}
+    <div class="mrow-v2">
+      <div class="mteam-v2${w===t1&&t1?' winner':''}${!t1?' empty':''}"><span class="flag">${flag(t1)||''}</span><span class="mtnm-v2">${esc(t1)||'?'}</span></div>
+      <input type="number" class="sci-v2" value="${a}" min="0" max="20" ${dis?'disabled':''} onchange="${onA}" placeholder="–">
+      <span class="sd-v2">–</span>
+      <input type="number" class="sci-v2" value="${b}" min="0" max="20" ${dis?'disabled':''} onchange="${onB}" placeholder="–">
+      <div class="mteam-v2${w===t2&&t2?' winner':''}${!t2?' empty':''}"><span class="flag">${flag(t2)||''}</span><span class="mtnm-v2">${esc(t2)||'?'}</span></div>
+    </div>
+    <div class="pens-v2 ${isTie?'':'dim'}">
+      <div class="pens-l">Si empatan, ¿quién gana en penales?</div>
+      <div class="pens-r">
+        <button class="pb-v2${pen===t1?' on':''}" ${dis||!t1?'disabled':''} onclick="${pA}">${t1?`<span class="flag">${flag(t1)}</span>`:''}<span>${esc(t1)||'?'}</span></button>
+        <button class="pb-v2${pen===t2?' on':''}" ${dis||!t2?'disabled':''} onclick="${pB}">${t2?`<span class="flag">${flag(t2)}</span>`:''}<span>${esc(t2)||'?'}</span></button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function calcMatchV2Points(p,r){
+  if(!p||!r||p.a==null||p.b==null||r.a==null||r.b==null)return 0;
+  const pa=parseInt(p.a),pb=parseInt(p.b),ra=parseInt(r.a),rb=parseInt(r.b);
+  if(isNaN(pa)||isNaN(pb)||isNaN(ra)||isNaN(rb))return 0;
+  let pts=0;
+  if(pa===ra&&pb===rb)pts+=3;
+  else if(p.w&&r.w&&p.w===r.w)pts+=1;
+  if(ra===rb&&r.pen&&p.pen&&p.pen===r.pen)pts+=2;
+  return pts;
 }
 
 // ══════════════════════════════════════════════════════
@@ -3426,10 +3602,8 @@ function rR32(adm){
   h+=`<div class="phase"><div class="phdr">Partidos de grupos <span class="ptag">${PTS.r32} pts c/u</span></div><div class="mgrid">`;
   for(const{i,c1,c2}of R32_FIXED){
     const t1=rc(c1,teamSrc)||'',t2=rc(c2,teamSrc)||'';
-    h+=mc({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,w:p.r32[i],dis:!t1||!t2,
-      f1:t1?`setR32(${i},'${js(t1)}',${a})`:'',
-      f2:t2?`setR32(${i},'${js(t2)}',${a})`:'',
-      info:MATCH_INFO.r32[i]});
+    const pickObj=adm?getAdminPickV2('r32',i):getMyPickV2('r32',i);
+    h+=mcV2({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rk:'r32',mi:i,adm});
   }
   h+=`</div></div><div class="phase"><div class="phdr">Mejores Terceros <span class="ptag">${PTS.r32} pts c/u</span></div>`;
   if(!adm){
@@ -3463,13 +3637,10 @@ function rR32(adm){
       for(let ti=0;ti<8;ti++){
         const{i,c1}=R32_THIRDS[ti];
         const t1=rc(c1,teamSrc)||'',t2=t8[ti]||'';
-        // Build label with Annex C info
         const t3code=annexMatchups?annexMatchups[c1]:null;
         const lbl=t3code?`${c1} vs ${t3code}`:`${c1} vs 3ro #${ti+1}`;
-        h+=mc({lbl:lbl,t1:t1||c1,t2:t2||'Por definir',w:p.r32[i],dis:!t1||!t2,
-          f1:t1&&t2?`setR32(${i},'${js(t1)}',false)`:'',
-          f2:t1&&t2?`setR32(${i},'${js(t2)}',false)`:'',
-          info:MATCH_INFO.r32[i]});
+        const pickObj=getMyPickV2('r32',i);
+        h+=mcV2({lbl,t1:t1||c1,t2:t2||'Por definir',pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rk:'r32',mi:i,adm:false});
       }
       h+='</div>';
     }
@@ -3498,12 +3669,8 @@ function rR32(adm){
       const t2=p.t8[ti]||'';
       const t3code=annexMatchups?annexMatchups[c1]:null;
       const lbl=t3code?`${c1} vs ${t3code}`:`${c1} vs 3ro (Annex C)`;
-      h+=`<div class="mcard"><div class="mlbl">${lbl}</div>
-        <div class="mrow">
-          <button class="mbtn${p.r32[i]===t1&&t1?' on':''}" ${!t1||!t2?'disabled':''} onclick="${t1&&t2?`setR32(${i},'${js(t1)}',true)`:''}">${t1?`<span class="flag">${flag(t1)}</span>`:''}<span>${esc(t1)||c1}</span></button>
-          <div class="vsbdg">vs</div>
-          <button class="mbtn${p.r32[i]===t2&&t2?' on':''}" ${!t1||!t2?'disabled':''} onclick="${t1&&t2?`setR32(${i},'${js(t2)}',true)`:''}">${t2?`<span class="flag">${flag(t2)}</span>`:''}<span>${esc(t2)||'Esperando 12 grupos...'}</span></button>
-        </div></div>`;
+      const pickObj=getAdminPickV2('r32',i);
+      h+=mcV2({lbl,t1:t1||c1,t2:t2||'Esperando 12 grupos...',pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rk:'r32',mi:i,adm:true});
     }
     h+='</div>';
   }
@@ -3521,17 +3688,14 @@ function rKO(round,adm){
     </div>`;
   }
   if(!adm&&S.bracketView==='bracket'){return rParticipants()+rViewToggle()+rEditableBracket();}
-  const cfg={r16:{lbl:'Octavos',br:R16B,src:p.r32,self:p.r16,fn:'setR16',pts:PTS.r16,n:8},qf:{lbl:'Cuartos',br:QFB,src:p.r16,self:p.qf,fn:'setQF',pts:PTS.qf,n:4},sf:{lbl:'Semis',br:SFB,src:p.qf,self:p.sf,fn:'setSF',pts:PTS.sf,n:2}}[round];
+  const cfg={r16:{lbl:'Octavos',n:8},qf:{lbl:'Cuartos',n:4},sf:{lbl:'Semis',n:2}}[round];
   let h=rParticipants();
   if(!adm)h+=rViewToggle();
-  h+=`<div class="phase"><div class="phdr">${cfg.lbl} <span class="ptag">${cfg.pts} pts c/u</span></div><div class="mgrid">`;
+  h+=`<div class="phase"><div class="phdr">${cfg.lbl} <span class="ptag">hasta 5 pts c/u</span></div><div class="mgrid">`;
   for(let i=0;i<cfg.n;i++){
-    const[s1,s2]=cfg.br[i];
-    const t1=cfg.src[s1]||'',t2=cfg.src[s2]||'';
-    h+=mc({lbl:`Partido ${i+1}`,t1:t1||'Por definir',t2:t2||'Por definir',w:cfg.self[i]||'',dis:!t1||!t2,
-      info:MATCH_INFO[round]&&MATCH_INFO[round][i],
-      f1:t1?`${cfg.fn}(${i},'${js(t1)}',${a})`:'',
-      f2:t2?`${cfg.fn}(${i},'${js(t2)}',${a})`:''});
+    const[t1,t2]=getMatchTeamsV2(round,i,adm);
+    const pickObj=adm?getAdminPickV2(round,i):getMyPickV2(round,i);
+    h+=mcV2({lbl:`Partido ${i+1}`,t1:t1||'Por definir',t2:t2||'Por definir',pickObj,dis:!t1||!t2,info:MATCH_INFO[round]&&MATCH_INFO[round][i],rk:round,mi:i,adm});
   }
   return h+'</div></div>';
 }
@@ -3547,27 +3711,19 @@ function rFinal(adm){
     </div>`;
   }
   if(!adm&&S.bracketView==='bracket'){return rParticipants()+rViewToggle()+rEditableBracket();}
-  const sf1=p.sf[0]||'',sf2=p.sf[1]||'',fw=p.fin;
-  const l0=[p.qf[0]||'',p.qf[1]||''].find(t=>t&&t!==p.sf[0])||'';
-  const l1=[p.qf[2]||'',p.qf[3]||''].find(t=>t&&t!==p.sf[1])||'';
-  return rParticipants()+(adm?'':rViewToggle())+`<div class="fw"><div class="fc">
-    <div class="fttl">🏆 Gran Final · ${PTS.fin} pts</div>
-    <div class="minfo" style="text-align:center;margin-bottom:10px">📅 ${MATCH_INFO.fin.d} · 📍 ${MATCH_INFO.fin.c}</div>
-    <div class="mrow">
-      <button class="mbtn${fw===sf1&&fw?' on':''}" ${!sf1?'disabled':''} onclick="${sf1?`setFin('${js(sf1)}',${a})`:''}">${sf1?`<span class="flag">${flag(sf1)}</span>`:''}<span>${esc(sf1)||'Por definir'}</span></button>
-      <div class="vsbdg">vs</div>
-      <button class="mbtn${fw===sf2&&fw?' on':''}" ${!sf2?'disabled':''} onclick="${sf2?`setFin('${js(sf2)}',${a})`:''}">${sf2?`<span class="flag">${flag(sf2)}</span>`:''}<span>${esc(sf2)||'Por definir'}</span></button>
-    </div>
-    ${fw?`<div class="champ">${flag(fw)} ${esc(fw)}</div>`:''}
-  </div>
-  <div class="mcard"><div class="mlbl">🥉 3er y 4to · ${PTS.thr} pts</div>
-    <div class="minfo">📅 ${MATCH_INFO.thr.d} · 📍 ${MATCH_INFO.thr.c}</div>
-    <div class="mrow">
-      <button class="mbtn${p.thr===l0&&p.thr?' on':''}" ${!l0?'disabled':''} onclick="${l0?`setThr('${js(l0)}',${a})`:''}">${l0?`<span class="flag">${flag(l0)}</span>`:''}<span>${esc(l0)||'Por definir'}</span></button>
-      <div class="vsbdg">vs</div>
-      <button class="mbtn${p.thr===l1&&p.thr?' on':''}" ${!l1?'disabled':''} onclick="${l1?`setThr('${js(l1)}',${a})`:''}">${l1?`<span class="flag">${flag(l1)}</span>`:''}<span>${esc(l1)||'Por definir'}</span></button>
-    </div>
-  </div></div>`;
+  const[fT1,fT2]=getMatchTeamsV2('fin',0,adm);
+  const finPick=adm?getAdminPickV2('fin',0):getMyPickV2('fin',0);
+  const[tT1,tT2]=getMatchTeamsV2('thr',0,adm);
+  const thrPick=adm?getAdminPickV2('thr',0):getMyPickV2('thr',0);
+  let h=rParticipants();
+  if(!adm)h+=rViewToggle();
+  h+=`<div class="phase"><div class="phdr">🏆 Gran Final <span class="ptag">hasta 5 pts</span></div><div class="mgrid">`;
+  h+=mcV2({lbl:'🏆 Gran Final',t1:fT1||'Por definir',t2:fT2||'Por definir',pickObj:finPick,dis:!fT1||!fT2,info:MATCH_INFO.fin,rk:'fin',mi:0,adm});
+  h+=`</div></div>`;
+  h+=`<div class="phase"><div class="phdr">🥉 3er Lugar <span class="ptag">hasta 5 pts</span></div><div class="mgrid">`;
+  h+=mcV2({lbl:'🥉 3er Lugar',t1:tT1||'Por definir',t2:tT2||'Por definir',pickObj:thrPick,dis:!tT1||!tT2,info:MATCH_INFO.thr,rk:'thr',mi:0,adm});
+  h+=`</div></div>`;
+  return h;
 }
 
 // ══════════════════════════════════════════════════════
@@ -4818,6 +4974,23 @@ function rAdmin(){
   );
   const roleLbl=ME.isSuperAdmin?'👑 Super Admin':'⚙️ Admin de Comunidad';
   let h=`<div class="admnotice">${roleLbl} — ${ME.isSuperAdmin?'Gestionas TODA la plataforma.':'Gestionas TU comunidad.'}</div>`;
+  // ─── Panel "Acciones beta" (solo super-admin en indexE2) ───
+  if(ME.isSuperAdmin){
+    const c=S.communities[ME.communityId];
+    const isT=c&&c.mode==='tournament';
+    const isU=c&&c.stage2Unlocked===true;
+    h+=`<div class="beta-actions">
+      <div class="beta-actions-hdr">🧪 Acciones beta (solo super-admin · indexE2)</div>
+      <div class="beta-actions-grid">
+        <button class="ba-btn ${isT?'on':''}" onclick="toggleModeE2()">${isT?'🏆 Modo: Torneo (clic→Normal)':'📅 Modo: Normal (clic→Torneo)'}</button>
+        <button class="ba-btn ${isU?'on':''}" onclick="toggleStage2E2()">${isU?'🔓 Etapa 2: ABIERTA (clic→cerrar)':'🔒 Etapa 2: CERRADA (clic→abrir)'}</button>
+        <button class="ba-btn" onclick="genMyTestPicksE2()">🎲 Generar MIS picks al azar (E1+E2)</button>
+        <button class="ba-btn" onclick="genOfficialResultsRandomE2()">🎯 Generar marcadores oficiales al azar (E1)</button>
+        <button class="ba-btn warn" onclick="clearMyPicksE2()">🗑 Limpiar mis picks (E1+E2)</button>
+        <button class="ba-btn warn" onclick="clearOfficialResultsE2()">🗑 Limpiar marcadores oficiales</button>
+      </div>
+    </div>`;
+  }
   // Sub-tabs now live in sidebar, so we don't render them here anymore.
   if(S.sub==='communities')      h+=rAdmCommunities();
   else if(S.sub==='licenses')    h+=rAdmLicenses();
@@ -6970,6 +7143,68 @@ function renderFloatNext(){
   if(action){btn.style.display='inline-flex';btn.textContent=btnLbl;_floatNextAction=action;btn.onclick=action;}
   else{btn.style.display='none';_floatNextAction=null;}
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ACCIONES BETA (indexE2 · solo super-admin)
+// ═══════════════════════════════════════════════════════════════
+window.toggleModeE2=async function(){
+  if(!ME.isSuperAdmin)return;
+  const c=S.communities[ME.communityId];if(!c)return;
+  const next=c.mode==='tournament'?'normal':'tournament';
+  if(!confirm(`Cambiar modo a "${next}"?`))return;
+  try{await db.ref('communities/'+ME.communityId+'/mode').set(next);}
+  catch(e){alert('Error: '+(e.message||e));}
+};
+window.toggleStage2E2=async function(){
+  if(!ME.isSuperAdmin)return;
+  const c=S.communities[ME.communityId];if(!c)return;
+  const next=!(c.stage2Unlocked===true);
+  try{await db.ref('communities/'+ME.communityId+'/stage2Unlocked').set(next);}
+  catch(e){alert('Error: '+(e.message||e));}
+};
+function _rndScoreE2(){return Math.floor(Math.random()*4);}
+window.genMyTestPicksE2=async function(){
+  if(!ME.isSuperAdmin)return;
+  if(!confirm('Llenar TUS picks de E1 (72) y E2 (bracket) al azar?'))return;
+  try{
+    const grupos={};
+    for(const g of GKEYS){const ms=[];for(let mi=0;mi<6;mi++)ms.push({a:_rndScoreE2(),b:_rndScoreE2()});grupos[g]={matches:ms};}
+    await db.ref('picks/'+ME.uid+'/grupos').set(grupos);
+    if(S.adminR&&S.adminR.grupos){
+      const e2={r32V2:[],r16V2:[],qfV2:[],sfV2:[]};
+      const save=MY_BRACKET;MY_BRACKET=e2;
+      for(let i=0;i<16;i++){const[t1,t2]=getMatchTeamsV2('r32',i,false);if(!t1||!t2){e2.r32V2[i]={a:null,b:null,w:'',pen:''};continue;}const a=_rndScoreE2(),b=_rndScoreE2();const pen=a===b?(Math.random()<0.5?t1:t2):'';e2.r32V2[i]={a,b,w:a>b?t1:(b>a?t2:pen),pen};}
+      for(const[rk,n]of[['r16',8],['qf',4],['sf',2]]){for(let i=0;i<n;i++){const[t1,t2]=getMatchTeamsV2(rk,i,false);if(!t1||!t2){e2[rk+'V2'][i]={a:null,b:null,w:'',pen:''};continue;}const a=_rndScoreE2(),b=_rndScoreE2();const pen=a===b?(Math.random()<0.5?t1:t2):'';e2[rk+'V2'][i]={a,b,w:a>b?t1:(b>a?t2:pen),pen};}}
+      const[f1,f2]=getMatchTeamsV2('fin',0,false);if(f1&&f2){const a=_rndScoreE2(),b=_rndScoreE2();const pen=a===b?(Math.random()<0.5?f1:f2):'';e2.finV2={a,b,w:a>b?f1:(b>a?f2:pen),pen};}
+      const[h1,h2]=getMatchTeamsV2('thr',0,false);if(h1&&h2){const a=_rndScoreE2(),b=_rndScoreE2();const pen=a===b?(Math.random()<0.5?h1:h2):'';e2.thrV2={a,b,w:a>b?h1:(b>a?h2:pen),pen};}
+      MY_BRACKET=save;
+      await db.ref('picks/'+ME.uid+'/bracketE2').set(e2);
+    }
+    alert('✅ Picks de prueba generados');
+  }catch(e){alert('Error: '+(e.message||e));}
+};
+window.genOfficialResultsRandomE2=async function(){
+  if(!ME.isSuperAdmin)return;
+  if(!confirm('Generar marcadores OFICIALES al azar (E1 grupos)? Sobrescribe community_results/'+ME.communityId+'/grupos'))return;
+  try{
+    const grupos={};
+    for(const g of GKEYS){const ms=[];for(let mi=0;mi<6;mi++)ms.push({a:_rndScoreE2(),b:_rndScoreE2()});grupos[g]={matches:ms};}
+    await db.ref('community_results/'+ME.communityId+'/grupos').set(grupos);
+    alert('✅ Marcadores oficiales generados');
+  }catch(e){alert('Error: '+(e.message||e));}
+};
+window.clearMyPicksE2=async function(){
+  if(!ME.isSuperAdmin)return;
+  if(!confirm('Borrar TODOS tus picks (E1+E2)?'))return;
+  try{await db.ref('picks/'+ME.uid+'/grupos').remove();await db.ref('picks/'+ME.uid+'/bracketE2').remove();alert('✅ Picks borrados');}
+  catch(e){alert('Error: '+(e.message||e));}
+};
+window.clearOfficialResultsE2=async function(){
+  if(!ME.isSuperAdmin)return;
+  if(!confirm('Borrar TODOS los marcadores oficiales de la comunidad?'))return;
+  try{await db.ref('community_results/'+ME.communityId).remove();alert('✅ Borrados');}
+  catch(e){alert('Error: '+(e.message||e));}
+};
 </script>
 </body>
 </html>
