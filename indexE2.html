@@ -389,7 +389,13 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth();
 const db=firebase.database();
-const SUPER_ADMIN_UID='ZDQcOkt2woOs5owq1jxAnsZ0dYu2';
+// Super-admins: misma lista que el index principal
+const SUPER_ADMIN_UIDS=[
+  'ZDQcOkt2woOs5owq1jxAnsZ0dYu2', // soycrisscheme@gmail.com
+  'g0Ca2BE4ZeZz9DjRkhCud1aawLM2'  // capitaldecosas@gmail.com
+];
+function isSuperAdminUid(uid){return SUPER_ADMIN_UIDS.includes(uid);}
+const SUPER_ADMIN_UID=SUPER_ADMIN_UIDS[0];
 
 // ═══════════════════════════════════════════════════════════════
 // 🧪 WHITELIST DE COMUNIDADES BETA
@@ -439,7 +445,7 @@ auth.onAuthStateChanged(async user => {
   ME.email = user.email || '';
   ME.name = user.displayName || (user.email || '').split('@')[0];
   ME.photo = user.photoURL || '';
-  ME.isSuperAdmin = (user.uid === SUPER_ADMIN_UID);
+  ME.isSuperAdmin = isSuperAdminUid(user.uid);
 
   showScreen('loading');
 
