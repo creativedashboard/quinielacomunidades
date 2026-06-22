@@ -946,7 +946,7 @@ html[data-ucolor] .fn-btn{background:var(--uc)}
           </div>
         </div>
         <div class="tb-right">
-          <button class="tb-bracket-btn" id="tb-mybracket-btn" onclick="openMyBracket()" title="Ver mi bracket completo">🏆 Mi bracket</button>
+          <!-- Botón "Mi bracket" removido en indexE2 — Vista Bracket está en cada tab del bracket -->
         </div>
       </div>
       <div class="main">
@@ -2034,7 +2034,8 @@ function showAdminUnlock(){
 function loadApp(forceAdmin){
   showScreen('app');
   if(forceAdmin)S.tab='admin';
-  else S.tab='dashboard'; // regular users land on Dashboard
+  // indexE2: usuarios aterrizan directo en 16avos (Etapa 2 es el foco aquí)
+  else S.tab='r32';
 
   // Check if user has accepted terms — show modal if not
   setTimeout(()=>{
@@ -3457,15 +3458,60 @@ function rEditableBracket(){
   return buildBracketV2ReadOnly();
 }
 
-// Construye el árbol del bracket en read-only, leyendo datos V2 (MY_BRACKET / S.adminR.bracketE2).
+// Construye el árbol del bracket en read-only, leyendo datos V2.
+// Si recibe `uid`, lee la data de ese usuario; si no, lee la del current user (MY_BRACKET).
 // Por cada partido muestra: bandera + nombre + marcador, y si fue empate con ganador de penales
 // muestra el indicador (○ / ●) al lado del partido.
-function buildBracketV2ReadOnly(){
-  const teamSrc=(useOfficialForBracket()&&S.adminR)?S.adminR:myPicks();
-  // Helper: devuelve [t1, t2] para un partido del bracket usando V2
-  function teams(rk,mi){return getMatchTeamsV2(rk,mi,false);}
-  // Pick V2 del user para ese partido (puede ser null si todavía no llenó)
-  function pickFor(rk,mi){return getMyPickV2(rk,mi);}
+function buildBracketV2ReadOnly(uid){
+  const isOther=uid&&uid!==ME.uid;
+  // Get the user's bracket data
+  let userBracket;
+  if(!isOther){userBracket=(typeof MY_BRACKET!=='undefined'&&MY_BRACKET)||{};}
+  else if(isBetaTestCom(uid)){userBracket=_readLocalBracketE2(uid)||{};}
+  else{userBracket=(S.picks[uid]||{}).bracketE2||{};}
+  // Pick V2 helpers parametrizados para este user
+  function pickFor(rk,mi){
+    if(rk==='fin')return userBracket.finV2||null;
+    if(rk==='thr')return userBracket.thrV2||null;
+    return (userBracket[rk+'V2']||[])[mi]||null;
+  }
+  function winnerFor(rk,mi){const p=pickFor(rk,mi);return (p&&p.w)||'';}
+  // Helper: devuelve [t1, t2] para un partido del bracket
+  // R32: viene de adminR (Etapa 2 abierta) o de los picks del user en grupos
+  // R16+: cascada de ganadores del bracket V2 DE ESE USUARIO
+  function teams(rk,mi){
+    if(rk==='r32'){
+      const teamSrc=(useOfficialForBracket()&&S.adminR)?S.adminR:(isOther?userPicks(uid):myPicks());
+      if(!teamSrc)return ['',''];
+      const fx=R32_FIXED.find(x=>x.i===mi);
+      if(fx)return [rc(fx.c1,teamSrc),rc(fx.c2,teamSrc)];
+      const th=R32_THIRDS.findIndex(x=>x.i===mi);
+      if(th>=0){
+        const t1=rc(R32_THIRDS[th].c1,teamSrc)||'';
+        let t2='';
+        try{
+          const ranking=calcAllThirds(teamSrc.grupos||{});
+          const top8=ranking.slice(0,8).map(t=>t.group).sort();
+          const key=top8.length===8?top8.map(g=>'3'+g).join('-'):null;
+          const ax=key?ANNEX_C_TABLE[key]:null;
+          if(ax){const t3=ax[R32_THIRDS[th].c1];if(t3){const gl=t3.slice(-1);const tbl=calcGroupTable(gl,(teamSrc.grupos||{})[gl]);if(tbl[2])t2=tbl[2].name;}}
+          else t2=(teamSrc.t8||[])[th]||'';
+        }catch(e){t2=(teamSrc.t8||[])[th]||'';}
+        return [t1,t2];
+      }
+      return ['',''];
+    }
+    if(rk==='r16'){const[a,b]=R16B[mi];return [winnerFor('r32',a),winnerFor('r32',b)];}
+    if(rk==='qf') {const[a,b]=QFB[mi]; return [winnerFor('r16',a),winnerFor('r16',b)];}
+    if(rk==='sf') {const[a,b]=SFB[mi]; return [winnerFor('qf',a), winnerFor('qf',b)];}
+    if(rk==='fin')return [winnerFor('sf',0),winnerFor('sf',1)];
+    if(rk==='thr'){
+      const sf0=teams('sf',0),sf1=teams('sf',1);
+      const w0=winnerFor('sf',0),w1=winnerFor('sf',1);
+      return [sf0.find(t=>t&&t!==w0)||'',sf1.find(t=>t&&t!==w1)||''];
+    }
+    return ['',''];
+  }
   // Render de una fila de equipo (bandera + nombre + caja con marcador)
   function trow(name,score,isWinner){
     if(!name){
@@ -5054,10 +5100,38 @@ function rDashboard(){
       <div style="font-size:13px;color:var(--g1t)"><strong>Quiniela bloqueada</strong> — El torneo ya empezó. Solo puedes consultar tus predicciones.</div>
     </div>`;
   }
+  // Banner Etapa 2 abierta (Modo Torneo, stage2 desbloqueada, user no-admin)
+  let stage2Banner='';
+  const _c=S.communities[ME.communityId];
+  if(_c&&_c.mode==='tournament'&&_c.stage2Unlocked===true){
+    // Cuenta cuántos partidos del bracket lleva el user llenados (de los 32 totales)
+    const e2=(typeof MY_BRACKET!=='undefined'&&MY_BRACKET)||{};
+    let filled=0;
+    for(const arr of[e2.r32V2,e2.r16V2,e2.qfV2,e2.sfV2]){if(arr)for(const p of arr)if(p&&p.w)filled++;}
+    if(e2.finV2&&e2.finV2.w)filled++;
+    if(e2.thrV2&&e2.thrV2.w)filled++;
+    const total=32;
+    const isFull=filled>=total;
+    if(!isFull){
+      stage2Banner=`<div style="padding:14px 16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:26px;flex-shrink:0">🔓</span>
+        <div style="flex:1;min-width:200px;font-size:13px;color:#78350f;line-height:1.5">
+          <strong>¡Etapa 2 abierta!</strong> Ya puedes llenar tu bracket de eliminatorias.
+          ${filled>0?`<span style="display:inline-block;background:rgba(217,119,6,.2);padding:2px 8px;border-radius:6px;font-weight:700;margin-left:6px">${filled}/${total} partidos</span>`:'<span style="display:inline-block;background:rgba(220,38,38,.15);padding:2px 8px;border-radius:6px;font-weight:700;margin-left:6px;color:#991b1b">Sin empezar</span>'}
+        </div>
+        <button onclick="S.tab='r32';render()" style="background:#d97706;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">🏆 Ir al bracket →</button>
+      </div>`;
+    }else{
+      stage2Banner=`<div style="padding:12px 16px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);border:1.5px solid #10b981;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">✅</span>
+        <div style="font-size:13px;color:#065f46"><strong>Bracket completo</strong> — Llenaste tus 32 partidos de Etapa 2. Ya solo queda esperar los resultados.</div>
+      </div>`;
+    }
+  }
   const comm=S.communities[ME.communityId];
   const myComm=comm;
   const bannerHtml=myComm&&myComm.bannerUrl?`<div style="margin-bottom:14px;border-radius:var(--r);overflow:hidden;border:1.5px solid var(--bd);background:var(--card)"><img src="${esc(myComm.bannerUrl)}" alt="Banner de ${esc(myComm.name)}" style="width:100%;height:auto;display:block" onerror="this.parentElement.style.display='none'"></div>`:'';
-  let h=lockedBanner+bannerHtml+`<div class="cd-wrap">
+  let h=lockedBanner+stage2Banner+bannerHtml+`<div class="cd-wrap">
     <div class="cd-label">⚽ Mundial 2026 · 11 Jun</div>
     <div class="cd-units" id="cd-nums">${cdHtml(ct)}</div>
     ${!isLocked()?`<div id="lock-cd-wrap" style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);font-size:11px;font-weight:600;opacity:.9;letter-spacing:.3px">🔒 La quiniela se bloquea en <span id="lock-cd-nums" style="font-weight:800">${lockCdHtml(getLockCountdown())}</span></div>`:''}
@@ -6955,7 +7029,11 @@ function buildBracket(uid,u,col){
     <button class="br-close" onclick="closeBracket()">✕ Cerrar</button>
   </div>
   <div class="br-scroll" id="br-scroll-${js(uid)}">`;
-  
+  // indexE2: usar Vista Bracket V2 read-only en lugar del árbol V1
+  h+=buildBracketV2ReadOnly(uid);
+  h+='</div>';
+  return h;
+  // ─── Código V1 abajo queda inerte (no se alcanza) ───
   function teamCell(name,winner){
     if(!name)return `<div class="br-team empty"><span class="br-flag">—</span><span class="br-tname">—</span></div>`;
     return `<div class="br-team${winner?' winner':''}" title="${esc(name)}"><span class="br-flag">${flag(name)}</span><span class="br-tname">${esc(abbr(name))}</span></div>`;
@@ -7201,16 +7279,17 @@ function rInstrucciones(){
         </div>
       </div>
       <div class="ins-desc" style="color:#1e3a8a">
-        Cuando termine la fase de grupos REAL del Mundial, tu admin abre la Etapa 2 y aparecen los <strong>32 equipos OFICIALES</strong> que clasificaron. Tú completas:
+        Cuando termine la fase de grupos REAL del Mundial, tu admin abre la Etapa 2 y aparecen los <strong>32 equipos OFICIALES</strong> que clasificaron. En cada partido del bracket predices <strong>marcador exacto + ganador en penales</strong> (si empatan):
         <ul style="margin:8px 0 0 18px;padding:0;line-height:1.7">
-          <li><strong>16avos</strong> (16 partidos) — quiénes pasan a octavos</li>
-          <li><strong>Octavos</strong> (8) — a cuartos</li>
-          <li><strong>Cuartos</strong> (4) — a semis</li>
-          <li><strong>Semis</strong> (2) — finalistas</li>
-          <li><strong>Final</strong> — el campeón</li>
-          <li><strong>3er lugar</strong> — entre los 2 perdedores de semis</li>
+          <li><strong>16avos</strong> · 16 partidos (8 fijos + 8 mejores 3eros)</li>
+          <li><strong>Octavos</strong> · 8 partidos</li>
+          <li><strong>Cuartos</strong> · 4 partidos</li>
+          <li><strong>Semis</strong> · 2 partidos</li>
+          <li><strong>3er lugar</strong> · entre los 2 perdedores de semis</li>
+          <li><strong>Final</strong> · el campeón</li>
         </ul>
-        <div style="margin-top:10px;padding:8px 12px;background:rgba(124,58,237,.1);border-left:3px solid #7c3aed;border-radius:4px;font-size:12.5px"><strong>💡 Lo importante:</strong> aunque te haya fallado un grupo, en Etapa 2 todos parten de los mismos 32 equipos REALES. Sigues compitiendo al máximo.</div>
+        <div style="margin-top:10px;padding:8px 12px;background:rgba(37,99,235,.08);border-left:3px solid #2563eb;border-radius:4px;font-size:12.5px"><strong>⭐ Sistema Forma C:</strong> hasta 5 pts por partido. Marcador exacto = 3 pts, solo ganador = 1 pt, +2 si aciertas el ganador de penales (cuando hay empate). Ver tabla completa abajo.</div>
+        <div style="margin-top:8px;padding:8px 12px;background:rgba(124,58,237,.1);border-left:3px solid #7c3aed;border-radius:4px;font-size:12.5px"><strong>💡 Lo importante:</strong> aunque te haya fallado un grupo, en Etapa 2 todos parten de los mismos 32 equipos REALES. Sigues compitiendo al máximo.</div>
         <div style="margin-top:8px;padding:8px 12px;background:rgba(220,38,38,.1);border-left:3px solid #dc2626;border-radius:4px;font-size:12.5px"><strong>⚠️ Cierre del bracket:</strong> el 28 de junio cuando inicia el primer partido de 16avos.</div>
       </div>
     </div>
@@ -7252,19 +7331,21 @@ function rInstrucciones(){
           </table>
         </div>
         <div style="background:linear-gradient(135deg,#f0f9ff,#dbeafe);border:1.5px solid #93c5fd;border-radius:10px;padding:14px">
-          <div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:#1e40af;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px">🏆 Etapa 2 · Bracket</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:#1e40af;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px">🏆 Etapa 2 · Bracket (Forma C)</div>
+          <div style="font-size:11.5px;color:#1e3a8a;line-height:1.5;margin-bottom:10px">En cada partido del bracket predices el <strong>marcador exacto + ganador en penales</strong>. Hasta <strong>5 pts por partido</strong>:</div>
           <table style="width:100%;font-size:13px;color:#1e3a8a">
-            <tr><td style="padding:4px 0">Ganador 16avos</td><td style="text-align:right;font-weight:800">${PTS.r32}</td></tr>
-            <tr><td style="padding:4px 0">Ganador Octavos</td><td style="text-align:right;font-weight:800">${PTS.r16}</td></tr>
-            <tr><td style="padding:4px 0">Ganador Cuartos</td><td style="text-align:right;font-weight:800">${PTS.qf}</td></tr>
-            <tr><td style="padding:4px 0">Ganador Semis</td><td style="text-align:right;font-weight:800">${PTS.sf}</td></tr>
-            <tr><td style="padding:4px 0">Campeón</td><td style="text-align:right;font-weight:800">${PTS.fin}</td></tr>
-            <tr><td style="padding:4px 0">3er lugar</td><td style="text-align:right;font-weight:800">${PTS.thr}</td></tr>
+            <tr><td style="padding:4px 0">🎯 Marcador exacto</td><td style="text-align:right;font-weight:800">3</td></tr>
+            <tr><td style="padding:4px 0">✓ Solo ganador (no exacto)</td><td style="text-align:right;font-weight:800">1</td></tr>
+            <tr><td style="padding:4px 0">⚽ Penales acertados (en empate)</td><td style="text-align:right;font-weight:800">+2</td></tr>
+            <tr style="border-top:1.5px solid #93c5fd"><td style="padding:6px 0 0;font-weight:700">⭐ Combo máximo (3+2)</td><td style="text-align:right;font-weight:800;padding-top:6px">5</td></tr>
           </table>
+          <div style="margin-top:10px;padding:8px 10px;background:rgba(37,99,235,.08);border-radius:6px;font-size:11px;color:#1e3a8a;line-height:1.5">
+            <strong>Ejemplo:</strong> partido real termina 1-1 y gana en penales México. Si predijiste 1-1 + pen México → <strong>5 pts</strong>. Si predijiste 2-2 + pen México → <strong>1 + 2 = 3 pts</strong>. Si solo predijiste pen México (otro marcador) → <strong>1 pt</strong> por acertar ganador.
+          </div>
         </div>
       </div>
       <div style="margin-top:12px;padding:10px 14px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--mt);line-height:1.6">
-        💡 <strong>Total máximo posible:</strong> 268 pts en Etapa 1 + 94 pts en Etapa 2 = <strong style="color:var(--tx)">362 pts</strong>
+        💡 <strong>Total máximo posible:</strong> 268 pts en Etapa 1 + <strong>160 pts en Etapa 2</strong> (32 partidos × 5 pts) = <strong style="color:var(--tx)">428 pts</strong>
       </div>
     </div>
   `;
@@ -7284,6 +7365,14 @@ function rInstrucciones(){
           <div style="font-size:13px;color:var(--mt);line-height:1.6">No. En Etapa 2 todos parten de los <strong>32 equipos reales</strong> que clasificaron, así que aunque te falle un grupo, sigues compitiendo al máximo en el bracket.</div>
         </div>
         `:''}
+        <div>
+          <div style="font-weight:700;color:var(--tx);font-size:13.5px;margin-bottom:4px">¿Tengo que elegir ganador de penales en el bracket?</div>
+          <div style="font-size:13px;color:var(--mt);line-height:1.6">Solo si tu pick es empate (ej. 1-1). En ese caso debes elegir quién gana en penales. Si predices un marcador no-empate (ej. 2-1), el ganador es automático y los penales no aplican.</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:var(--tx);font-size:13.5px;margin-bottom:4px">¿Cuántos puntos máximo puedo sacar por partido del bracket?</div>
+          <div style="font-size:13px;color:var(--mt);line-height:1.6"><strong>5 pts</strong> = marcador exacto en un empate (3) + ganador en penales correcto (2). Si el partido real no fue empate, el máximo es 3 pts (marcador exacto).</div>
+        </div>
         <div>
           <div style="font-weight:700;color:var(--tx);font-size:13.5px;margin-bottom:4px">¿Qué pasa si no lleno todos los partidos?</div>
           <div style="font-size:13px;color:var(--mt);line-height:1.6">Los partidos sin marcador <strong>no suman puntos</strong>. Trata de llenar todo lo que puedas antes del 11 de junio.</div>
