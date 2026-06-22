@@ -274,6 +274,132 @@ body {
   #sidebar { width:100%; height:auto; position:relative; }
   #screen-app.on { flex-direction:column; }
 }
+
+/* ════ BRACKET V2 (copiado del index, simplificado) ════ */
+.phase{margin-bottom:22px}
+.phdr{font-size:11px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.65px;margin-bottom:11px;display:flex;align-items:center;gap:8px}
+.ptag{font-size:10px;background:var(--acl);color:var(--ac);padding:2px 8px;border-radius:12px;font-weight:700}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px}
+.mcard{background:var(--card);border:1.5px solid var(--bd);border-radius:var(--r);padding:11px}
+.mlbl{font-size:10px;color:var(--mt);font-weight:600;margin-bottom:8px;letter-spacing:.3px}
+.minfo{font-size:10px;color:var(--mt);margin-bottom:8px;font-weight:500;opacity:.85;margin-top:-4px}
+.mrow-v2{display:flex;gap:5px;align-items:stretch}
+.mteam-v2{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:7px 4px;background:var(--bg);border:1.5px solid var(--bd);border-radius:7px;text-align:center;min-height:54px;color:var(--tx);transition:all .15s var(--ease-out)}
+.mteam-v2 .flag{font-size:18px;line-height:1;flex-shrink:0}
+.mteam-v2 .mteam-name-v2{font-family:'DM Sans',sans-serif;font-weight:600;font-size:11px;line-height:1.15;text-align:center;word-break:normal;overflow-wrap:normal;hyphens:none;white-space:normal;max-width:100%}
+.mteam-v2.winner{background:var(--acl);border-color:var(--ac);color:var(--ac);font-weight:800}
+.mteam-v2.winner .mteam-name-v2{font-weight:800;color:var(--ac)}
+.mteam-v2.empty{opacity:.5}
+.score-input-v2{width:38px;height:54px;flex-shrink:0;border:1.5px solid var(--bd);border-radius:7px;background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;font-weight:800;font-size:18px;text-align:center;-moz-appearance:textfield;transition:all .12s var(--ease-out);align-self:stretch}
+.score-input-v2::-webkit-outer-spin-button,.score-input-v2::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.score-input-v2:focus{outline:none;border-color:var(--ac);background:#fff}
+.score-input-v2:disabled{opacity:.4;background:var(--bg2)}
+.score-dash-v2{color:var(--mt);font-weight:700;align-self:center;padding:0 1px;font-size:13px}
+.pens-block-v2{margin-top:9px;padding-top:9px;border-top:1px dashed var(--bd);transition:opacity .15s}
+.pens-block-v2.dimmed{opacity:.4}
+.pens-lbl-v2{font-size:9.5px;color:var(--mt);font-weight:600;margin-bottom:5px;text-align:center;letter-spacing:.2px}
+.pens-row-v2{display:flex;gap:4px}
+.pens-btn-v2{flex:1;padding:5px 6px;border:1.5px solid var(--bd);border-radius:6px;background:var(--bg);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:600;color:var(--mt);transition:all .12s;display:flex;align-items:center;justify-content:center;gap:3px}
+.pens-btn-v2:hover:not(:disabled){border-color:#7c3aed;color:#6d28d9;background:#ede9fe}
+.pens-btn-v2.on{background:#7c3aed;color:#fff;border-color:#7c3aed;font-weight:700}
+.pens-btn-v2:disabled{opacity:.4;cursor:default}
+.lock-banner{background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:14px;padding:24px;margin:20px auto;max-width:560px;text-align:center;color:#78350f;line-height:1.6}
+.lock-banner .lock-emoji{font-size:48px;margin-bottom:10px}
+.lock-banner .lock-title{font-family:'Outfit';font-size:18px;font-weight:800;margin-bottom:8px}
+.lock-banner .lock-text{font-size:13px}
+
+/* Admin E2 progress card */
+.adm-progress{background:var(--cd);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;margin-bottom:18px}
+.adm-prog-title{font-family:'Outfit';font-size:14px;font-weight:800;color:var(--tx);margin-bottom:10px}
+.adm-prog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
+.adm-prog-item{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:8px 6px;text-align:center;font-size:11px;display:flex;flex-direction:column;gap:2px}
+.adm-prog-item b{font-family:'Outfit';font-size:11px;color:var(--mt);text-transform:uppercase;letter-spacing:.5px}
+.adm-prog-item span{font-family:'Outfit';font-size:16px;font-weight:800;color:var(--tx)}
+.adm-prog-item.done{background:linear-gradient(135deg,#d1fae5,#a7f3d0);border-color:#10b981}
+.adm-prog-item.done span{color:#047857}
+
+/* Dashboard E2 */
+.dash-actions{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.dash-btn{background:var(--ac);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-family:'Outfit';font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;flex:1;min-width:160px}
+.dash-btn:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(220,38,38,.25)}
+.lb-card{background:var(--cd);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:18px}
+.lb-title{font-family:'Outfit';font-size:15px;font-weight:800;color:var(--tx);margin-bottom:4px}
+.lb-sub{font-size:12px;color:var(--mt);margin-bottom:14px}
+.lb-sub b{color:var(--tx)}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-empty{padding:14px;text-align:center;color:var(--mt);font-size:13px;font-style:italic}
+.lb-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:var(--bg);border:1px solid var(--bd)}
+.lb-row.me{background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#d97706}
+.lb-rank{font-family:'Outfit';font-weight:800;font-size:14px;width:24px;text-align:center;color:var(--mt)}
+.lb-row.me .lb-rank{color:#92400e}
+.lb-pic{width:34px;height:34px;border-radius:50%;background:var(--ac);background-size:cover;background-position:center;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.lb-info{flex:1;min-width:0}
+.lb-name{font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-mini{font-size:10px;color:var(--ac);font-weight:800}
+.lb-break{font-size:11px;color:var(--mt)}
+.lb-pts{font-family:'Outfit';font-size:18px;font-weight:800;color:var(--ac);text-align:right;display:flex;align-items:baseline;gap:3px}
+.lb-pts span{font-size:9px;font-weight:600;color:var(--mt)}
+.dash-matches{display:flex;flex-direction:column;gap:10px}
+.dmrow{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
+.dmrow-head{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.dmrow-rnd{font-weight:700;color:var(--ac)}
+.dmrow-teams{font-size:13px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.dmrow-teams .flag{margin-right:4px}
+.dmrow-vs{font-size:10px;color:var(--mt);font-weight:600}
+.dmrow-when{font-size:11px;color:var(--mt)}
+.dmrow-score{font-family:'Outfit';font-size:15px;font-weight:800;color:var(--ac)}
+.dmrow-pen{font-size:10px;color:var(--mt);font-weight:600;text-transform:uppercase}
+.dmrow-pick{font-size:11px;color:var(--mt);margin-top:3px}
+.dmrow-pick.muted{font-style:italic}
+.dmrow-pick b{color:var(--ac)}
+
+/* Modal */
+.e2-modal{position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.e2-modal.open{display:flex}
+.e2-modal-card{background:var(--cd);border-radius:16px;width:100%;max-width:520px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.e2-modal-head{padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center}
+.e2-modal-title{font-family:'Outfit';font-size:16px;font-weight:800;color:var(--tx)}
+.e2-modal-x{background:none;border:none;font-size:24px;color:var(--mt);cursor:pointer;padding:0;width:30px;height:30px;line-height:1}
+.e2-modal-body{padding:14px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.res-summary{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;font-size:12px;color:var(--mt);margin-bottom:6px}
+.res-summary b{color:var(--ac);font-family:'Outfit';font-size:14px}
+.res-row,.pk-row{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:4px 10px}
+.res-row.got{background:linear-gradient(135deg,#d1fae5,#a7f3d0);border-color:#10b981}
+.res-rnd,.pk-rnd{font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.res-teams,.pk-teams{font-family:'Outfit';font-size:13px;font-weight:700;color:var(--tx);grid-column:1/2}
+.res-cols{font-size:11px;color:var(--mt);display:flex;gap:12px;grid-column:1/2;flex-wrap:wrap}
+.res-cols b{color:var(--tx)}
+.res-pts{grid-column:2/3;grid-row:1/3;align-self:center;font-family:'Outfit';font-size:20px;font-weight:800;color:var(--ac);text-align:right}
+.res-pts small{font-size:9px;color:var(--mt);font-weight:600;display:block;text-align:right}
+.pk-pick{grid-column:2/3;grid-row:1/3;align-self:center;font-family:'Outfit';font-size:14px;font-weight:700;color:var(--ac)}
+.pk-row.future{opacity:.6}
+
+/* Grupos read-only */
+.g-card{background:var(--cd);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:14px}
+.g-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
+.g-letter{font-family:'Outfit';font-size:18px;font-weight:800;color:var(--ac)}
+.g-meta{font-size:11px;color:var(--mt)}
+.g-meta b{color:var(--tx);font-family:'Outfit'}
+.g-matches{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.g-mrow{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:12px}
+.g-mrow.got{background:linear-gradient(135deg,#d1fae5,#a7f3d0);border-color:#10b981}
+.g-teams{font-family:'Outfit';font-weight:700;color:var(--tx);grid-column:1/2}
+.g-vs{font-size:9px;color:var(--mt);font-weight:600;margin:0 4px}
+.g-cols{font-size:11px;color:var(--mt);display:flex;gap:12px;grid-column:1/2;flex-wrap:wrap}
+.g-cols b{color:var(--tx);font-family:'Outfit'}
+.g-pts{grid-column:2/3;grid-row:1/3;align-self:center;font-family:'Outfit';font-size:16px;font-weight:800;color:var(--ac);text-align:right;line-height:1}
+.g-pts.got{color:#047857}
+.g-pts.muted{color:var(--mt);font-size:13px}
+.g-pts small{font-size:8px;color:var(--mt);font-weight:600;display:block}
+.g-pending{font-style:italic;color:var(--mt);font-weight:400}
+.g-table{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px}
+.g-table-head{font-family:'Outfit';font-size:11px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.g-table table{width:100%;border-collapse:collapse;font-size:11px}
+.g-table th{text-align:left;padding:4px 6px;color:var(--mt);font-weight:600;border-bottom:1px solid var(--bd);font-size:10px;text-transform:uppercase}
+.g-table td{padding:5px 6px;border-bottom:1px solid var(--bd);color:var(--tx)}
+.g-table tr:last-child td{border-bottom:none}
+.g-table tr.top td{font-weight:700;background:rgba(220,38,38,.05)}
+.g-table .flag{margin-right:4px}
 </style>
 </head>
 <body>
@@ -398,6 +524,138 @@ function isSuperAdminUid(uid){return SUPER_ADMIN_UIDS.includes(uid);}
 const SUPER_ADMIN_UID=SUPER_ADMIN_UIDS[0];
 
 // ═══════════════════════════════════════════════════════════════
+// CONSTANTES DEL MUNDIAL 2026 (copiadas del index principal)
+// ═══════════════════════════════════════════════════════════════
+const GRP={
+  A:['México','Corea del Sur','Sudáfrica','Rep. Checa'],
+  B:['Canadá','Suiza','Qatar','Bosnia y Herz.'],
+  C:['Brasil','Marruecos','Escocia','Haití'],
+  D:['EE. UU.','Paraguay','Australia','Turquía'],
+  E:['Alemania','Ecuador','Costa de Marfil','Curazao'],
+  F:['Países Bajos','Japón','Túnez','Suecia'],
+  G:['Bélgica','Irán','Egipto','Nueva Zelanda'],
+  H:['España','Uruguay','Arabia Saudita','Cabo Verde'],
+  I:['Francia','Senegal','Noruega','Irak'],
+  J:['Argentina','Austria','Argelia','Jordania'],
+  K:['Portugal','Colombia','Uzbekistán','R.D. Congo'],
+  L:['Inglaterra','Croacia','Panamá','Ghana']
+};
+const GKEYS=Object.keys(GRP);
+const GROUP_MATCH_PAIRS=[[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
+const ABBREVS={
+  'México':'MEX','Corea del Sur':'KOR','Sudáfrica':'RSA','Rep. Checa':'CZE',
+  'Canadá':'CAN','Suiza':'SUI','Qatar':'QAT','Bosnia y Herz.':'BIH',
+  'Brasil':'BRA','Marruecos':'MAR','Escocia':'SCO','Haití':'HAI',
+  'EE. UU.':'USA','Paraguay':'PAR','Australia':'AUS','Turquía':'TUR',
+  'Alemania':'GER','Ecuador':'ECU','Costa de Marfil':'CIV','Curazao':'CUW',
+  'Países Bajos':'NED','Japón':'JPN','Túnez':'TUN','Suecia':'SWE',
+  'Bélgica':'BEL','Irán':'IRN','Egipto':'EGY','Nueva Zelanda':'NZL',
+  'España':'ESP','Uruguay':'URU','Arabia Saudita':'KSA','Cabo Verde':'CPV',
+  'Francia':'FRA','Senegal':'SEN','Noruega':'NOR','Irak':'IRQ',
+  'Argentina':'ARG','Austria':'AUT','Argelia':'ALG','Jordania':'JOR',
+  'Portugal':'POR','Colombia':'COL','Uzbekistán':'UZB','R.D. Congo':'COD',
+  'Inglaterra':'ENG','Croacia':'CRO','Panamá':'PAN','Ghana':'GHA'
+};
+const FLAGS={
+  'México':'🇲🇽','Corea del Sur':'🇰🇷','Sudáfrica':'🇿🇦','Rep. Checa':'🇨🇿',
+  'Canadá':'🇨🇦','Suiza':'🇨🇭','Qatar':'🇶🇦','Bosnia y Herz.':'🇧🇦',
+  'Brasil':'🇧🇷','Marruecos':'🇲🇦','Escocia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Haití':'🇭🇹',
+  'EE. UU.':'🇺🇸','Paraguay':'🇵🇾','Australia':'🇦🇺','Turquía':'🇹🇷',
+  'Alemania':'🇩🇪','Ecuador':'🇪🇨','Costa de Marfil':'🇨🇮','Curazao':'🇨🇼',
+  'Países Bajos':'🇳🇱','Japón':'🇯🇵','Túnez':'🇹🇳','Suecia':'🇸🇪',
+  'Bélgica':'🇧🇪','Irán':'🇮🇷','Egipto':'🇪🇬','Nueva Zelanda':'🇳🇿',
+  'España':'🇪🇸','Uruguay':'🇺🇾','Arabia Saudita':'🇸🇦','Cabo Verde':'🇨🇻',
+  'Francia':'🇫🇷','Senegal':'🇸🇳','Noruega':'🇳🇴','Irak':'🇮🇶',
+  'Argentina':'🇦🇷','Austria':'🇦🇹','Argelia':'🇩🇿','Jordania':'🇯🇴',
+  'Portugal':'🇵🇹','Colombia':'🇨🇴','Uzbekistán':'🇺🇿','R.D. Congo':'🇨🇩',
+  'Inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Croacia':'🇭🇷','Panamá':'🇵🇦','Ghana':'🇬🇭'
+};
+const abbr=t=>ABBREVS[t]||(t||'').substring(0,3).toUpperCase();
+const flag=t=>FLAGS[t]||'🏳';
+const R32_FIXED=[{i:0,c1:'2A',c2:'2B'},{i:2,c1:'1F',c2:'2C'},{i:3,c1:'1C',c2:'2F'},{i:5,c1:'2E',c2:'2I'},{i:10,c1:'2K',c2:'2L'},{i:11,c1:'1H',c2:'2J'},{i:13,c1:'1J',c2:'2H'},{i:15,c1:'2D',c2:'2G'}];
+const R32_THIRDS=[{i:1,c1:'1E'},{i:4,c1:'1I'},{i:6,c1:'1A'},{i:7,c1:'1L'},{i:8,c1:'1D'},{i:9,c1:'1G'},{i:12,c1:'1B'},{i:14,c1:'1K'}];
+const R16B=[[0,1],[2,3],[10,11],[8,9],[4,5],[6,7],[13,15],[12,14]];
+const QFB=[[0,1],[2,3],[4,5],[6,7]];
+const SFB=[[0,1],[2,3]];
+const MATCH_INFO={"r32":[{"m":73,"d":"28 Jun","t":"13:00","c":"Los Angeles"},{"m":74,"d":"29 Jun","t":"14:30","c":"Boston"},{"m":75,"d":"29 Jun","t":"19:00","c":"Monterrey"},{"m":76,"d":"29 Jun","t":"11:00","c":"Houston"},{"m":77,"d":"30 Jun","t":"15:00","c":"Nueva York"},{"m":78,"d":"30 Jun","t":"11:00","c":"Dallas"},{"m":79,"d":"30 Jun","t":"19:00","c":"CDMX"},{"m":80,"d":"1 Jul","t":"10:00","c":"Atlanta"},{"m":81,"d":"1 Jul","t":"18:00","c":"SF Bay"},{"m":82,"d":"1 Jul","t":"14:00","c":"Seattle"},{"m":83,"d":"2 Jul","t":"17:00","c":"Toronto"},{"m":84,"d":"2 Jul","t":"13:00","c":"Los Angeles"},{"m":85,"d":"2 Jul","t":"21:00","c":"Vancouver"},{"m":86,"d":"3 Jul","t":"16:00","c":"Miami"},{"m":87,"d":"3 Jul","t":"19:30","c":"Kansas City"},{"m":88,"d":"3 Jul","t":"12:00","c":"Dallas"}],"r16":[{"m":89,"d":"4 Jul","t":"15:00","c":"Philadelphia"},{"m":90,"d":"4 Jul","t":"11:00","c":"Houston"},{"m":93,"d":"6 Jul","t":"13:00","c":"Dallas"},{"m":94,"d":"6 Jul","t":"18:00","c":"Seattle"},{"m":91,"d":"5 Jul","t":"14:00","c":"Nueva York"},{"m":92,"d":"5 Jul","t":"18:00","c":"CDMX"},{"m":95,"d":"7 Jul","t":"10:00","c":"Atlanta"},{"m":96,"d":"7 Jul","t":"14:00","c":"Vancouver"}],"qf":[{"m":97,"d":"9 Jul","t":"14:00","c":"Boston"},{"m":98,"d":"10 Jul","t":"13:00","c":"Los Angeles"},{"m":99,"d":"11 Jul","t":"15:00","c":"Miami"},{"m":100,"d":"11 Jul","t":"19:00","c":"Kansas City"}],"sf":[{"m":101,"d":"14 Jul","t":"13:00","c":"Dallas"},{"m":102,"d":"15 Jul","t":"13:00","c":"Atlanta"}],"fin":{"m":104,"d":"19 Jul","t":"13:00","c":"Nueva York (MetLife)"},"thr":{"m":103,"d":"18 Jul","t":"15:00","c":"Miami"}};
+
+// ═══════════════════════════════════════════════════════════════
+// FUNCIONES HELPER
+// ═══════════════════════════════════════════════════════════════
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const js=s=>(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+// calcGroupTable con reglas FIFA 2026 (head-to-head antes que GD)
+function calcGroupTable(g,gp){
+  const teams=GRP[g].map((name,idx)=>({name,idx,pts:0,pj:0,gf:0,ga:0,gd:0,w:0,d:0,l:0}));
+  if(!gp||!gp.matches)return teams;
+  GROUP_MATCH_PAIRS.forEach(([i,j],mi)=>{
+    const m=gp.matches[mi];
+    if(!m||m.a==null||m.b==null||m.a===''||m.b==='')return;
+    const a=parseInt(m.a),b=parseInt(m.b);
+    if(isNaN(a)||isNaN(b))return;
+    teams[i].pj++;teams[j].pj++;
+    teams[i].gf+=a;teams[i].ga+=b;teams[i].gd=teams[i].gf-teams[i].ga;
+    teams[j].gf+=b;teams[j].ga+=a;teams[j].gd=teams[j].gf-teams[j].ga;
+    if(a>b){teams[i].pts+=3;teams[i].w++;teams[j].l++;}
+    else if(a<b){teams[j].pts+=3;teams[j].w++;teams[i].l++;}
+    else{teams[i].pts++;teams[j].pts++;teams[i].d++;teams[j].d++;}
+  });
+  function buildMiniTable(tiedIdxs){
+    const tiedSet=new Set(tiedIdxs);const mini={};
+    tiedIdxs.forEach(idx=>{mini[idx]={pts:0,gf:0,ga:0,gd:0};});
+    GROUP_MATCH_PAIRS.forEach(([i,j],mi)=>{
+      if(!tiedSet.has(i)||!tiedSet.has(j))return;
+      const m=gp.matches[mi];if(!m||m.a==null||m.b==null)return;
+      const a=parseInt(m.a),b=parseInt(m.b);if(isNaN(a)||isNaN(b))return;
+      mini[i].gf+=a;mini[i].ga+=b;mini[i].gd=mini[i].gf-mini[i].ga;
+      mini[j].gf+=b;mini[j].ga+=a;mini[j].gd=mini[j].gf-mini[j].ga;
+      if(a>b)mini[i].pts+=3;else if(a<b)mini[j].pts+=3;
+      else{mini[i].pts++;mini[j].pts++;}
+    });
+    return mini;
+  }
+  teams.sort((x,y)=>{
+    if(y.pts!==x.pts)return y.pts-x.pts;
+    const tied=teams.filter(t=>t.pts===x.pts).map(t=>t.idx);
+    if(tied.length>=2){
+      const m=buildMiniTable(tied);const mx=m[x.idx],my=m[y.idx];
+      if(my.pts!==mx.pts)return my.pts-mx.pts;
+      if(my.gd!==mx.gd)return my.gd-mx.gd;
+      if(my.gf!==mx.gf)return my.gf-mx.gf;
+    }
+    if(y.gd!==x.gd)return y.gd-x.gd;
+    if(y.gf!==x.gf)return y.gf-x.gf;
+    return x.idx-y.idx;
+  });
+  return teams;
+}
+// Ranking de todos los 3eros (para mejores 8)
+function calcAllThirds(allGroups){
+  const thirds=[];
+  for(const g of GKEYS){
+    const table=calcGroupTable(g,allGroups?allGroups[g]:null);
+    if(table[2]){
+      thirds.push({group:g,team:table[2].name,pts:table[2].pts,gd:table[2].gd,gf:table[2].gf});
+    }
+  }
+  thirds.sort((x,y)=>{
+    if(y.pts!==x.pts)return y.pts-x.pts;
+    if(y.gd!==x.gd)return y.gd-x.gd;
+    return y.gf-x.gf;
+  });
+  return thirds;
+}
+// rc(code, p): obtiene el equipo según código tipo "1A" (1° del grupo A) o "2B" (2° del grupo B)
+function rc(code,p){
+  if(!code)return '';
+  const pos=parseInt(code[0]);const g=code[1];
+  if(isNaN(pos)||!GRP[g]||!p||!p.grupos||!p.grupos[g])return '';
+  const table=calcGroupTable(g,p.grupos[g]);
+  return (table[pos-1]&&table[pos-1].name)||'';
+}
+
+// ═══════════════════════════════════════════════════════════════
 // 🧪 WHITELIST DE COMUNIDADES BETA
 // Para autorizar más comunidades, agrega el CID aquí.
 // Para abrirlo a TODAS las comunidades, déjalo en null.
@@ -405,7 +663,7 @@ const SUPER_ADMIN_UID=SUPER_ADMIN_UIDS[0];
 const E2_BETA_COMMUNITY_NAMES = ['Beta Test Com'];
 
 // State global
-const S = { users:{}, communities:{}, community_admins:{}, picks:{}, adminR:null };
+const S = { users:{}, communities:{}, community_admins:{}, picks:{}, adminR:null, adminE2:null };
 const ME = { uid:'', name:'', email:'', photo:'', communityId:'', isSuperAdmin:false, isCommunityAdmin:false };
 let S_tab = 'dashboard';
 
@@ -472,6 +730,9 @@ auth.onAuthStateChanged(async user => {
     S.community_admins = caSnap.val() || {};
     ME.isCommunityAdmin = !!(S.community_admins[ME.communityId] && S.community_admins[ME.communityId][ME.uid]);
 
+    // Cargar bracket V2 del user antes del primer render
+    await loadMyBracket();
+
     // Listeners en tiempo real (lectura solo)
     db.ref('users').on('value', snap => { S.users = snap.val() || {}; safeRender(); });
     db.ref('communities').on('value', snap => { S.communities = snap.val() || {}; safeRender(); });
@@ -479,9 +740,16 @@ auth.onAuthStateChanged(async user => {
     db.ref('picks').on('value', snap => { S.picks = snap.val() || {}; safeRender(); });
     if (ME.communityId) {
       db.ref('community_results/' + ME.communityId).on('value', snap => {
-        S.adminR = snap.val() || null; safeRender();
+        S.adminR = snap.val() || null;
+        S.adminE2 = (S.adminR && S.adminR.bracketE2) || null;
+        safeRender();
       });
     }
+    // Listener del bracket V2 propio (por si lo edita otra pestaña)
+    db.ref('picks/' + ME.uid + '/bracketE2').on('value', snap => {
+      MY_BRACKET = snap.val() || {};
+      if (S_tab === 'bracket') renderBracket();
+    });
 
     // Mostrar app
     renderInitial();
@@ -557,7 +825,556 @@ function renderInitial() {
 let _renderTimer;
 function safeRender() {
   clearTimeout(_renderTimer);
-  _renderTimer = setTimeout(renderInitial, 50);
+  _renderTimer = setTimeout(() => {
+    renderInitial();
+    // Re-render del tab activo
+    if (S_tab === 'dashboard') renderDashboard();
+    else if (S_tab === 'bracket') renderBracket();
+    else if (S_tab === 'grupos-readonly') renderGruposReadonly();
+    else if (S_tab === 'admin') renderAdminE2();
+  }, 50);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BRACKET V2 — picks del user + render del bracket
+// ═══════════════════════════════════════════════════════════════
+let MY_BRACKET = {}; // Picks locales del user (formato V2)
+
+async function loadMyBracket() {
+  if (!ME.uid) return;
+  try {
+    const snap = await db.ref('picks/' + ME.uid + '/bracketE2').once('value');
+    MY_BRACKET = snap.val() || {};
+  } catch (e) {
+    console.warn('Error cargando bracket:', e);
+    MY_BRACKET = {};
+  }
+}
+
+function getOrInitPick(rndKey, mi) {
+  if (rndKey === 'fin') {
+    if (!MY_BRACKET.finV2) MY_BRACKET.finV2 = { w: '', a: null, b: null, pen: '' };
+    return MY_BRACKET.finV2;
+  }
+  if (rndKey === 'thr') {
+    if (!MY_BRACKET.thrV2) MY_BRACKET.thrV2 = { w: '', a: null, b: null, pen: '' };
+    return MY_BRACKET.thrV2;
+  }
+  const key = rndKey + 'V2';
+  if (!MY_BRACKET[key]) MY_BRACKET[key] = [];
+  if (!MY_BRACKET[key][mi]) MY_BRACKET[key][mi] = { w: '', a: null, b: null, pen: '' };
+  return MY_BRACKET[key][mi];
+}
+
+async function saveMyBracket() {
+  if (!ME.uid) return;
+  try {
+    await db.ref('picks/' + ME.uid + '/bracketE2').set(MY_BRACKET);
+  } catch (e) {
+    console.warn('Error guardando bracket:', e);
+  }
+}
+
+function winnerOf(rndKey, mi) {
+  if (rndKey === 'fin') return (MY_BRACKET.finV2 && MY_BRACKET.finV2.w) || '';
+  if (rndKey === 'thr') return (MY_BRACKET.thrV2 && MY_BRACKET.thrV2.w) || '';
+  const arr = MY_BRACKET[rndKey + 'V2'] || [];
+  return (arr[mi] && arr[mi].w) || '';
+}
+
+function getMatchTeams(rndKey, mi) {
+  if (rndKey === 'r32') {
+    const fx = R32_FIXED.find(x => x.i === mi);
+    const th = R32_THIRDS.findIndex(x => x.i === mi);
+    if (fx) return [rc(fx.c1, S.adminR), rc(fx.c2, S.adminR)];
+    if (th >= 0) {
+      const t1 = rc(R32_THIRDS[th].c1, S.adminR);
+      const thirds = calcAllThirds(S.adminR && S.adminR.grupos);
+      const t2 = (thirds[th] && thirds[th].team) || '';
+      return [t1, t2];
+    }
+    return ['', ''];
+  }
+  if (rndKey === 'r16') {
+    const [s1, s2] = R16B[mi];
+    return [winnerOf('r32', s1), winnerOf('r32', s2)];
+  }
+  if (rndKey === 'qf') {
+    const [s1, s2] = QFB[mi];
+    return [winnerOf('r16', s1), winnerOf('r16', s2)];
+  }
+  if (rndKey === 'sf') {
+    const [s1, s2] = SFB[mi];
+    return [winnerOf('qf', s1), winnerOf('qf', s2)];
+  }
+  if (rndKey === 'fin') {
+    return [winnerOf('sf', 0), winnerOf('sf', 1)];
+  }
+  if (rndKey === 'thr') {
+    const sf0Teams = getMatchTeams('sf', 0);
+    const sf1Teams = getMatchTeams('sf', 1);
+    const sf0Win = winnerOf('sf', 0);
+    const sf1Win = winnerOf('sf', 1);
+    const l0 = sf0Teams.find(t => t && t !== sf0Win) || '';
+    const l1 = sf1Teams.find(t => t && t !== sf1Win) || '';
+    return [l0, l1];
+  }
+  return ['', ''];
+}
+
+function mcV2({ lbl, t1, t2, pickObj, dis, info, rndKey, mi }) {
+  const infoHtml = info ? `<div class="minfo">📅 ${info.d} · ⏰ ${info.t} · 📍 ${info.c}</div>` : '';
+  const a = pickObj && pickObj.a != null ? pickObj.a : '';
+  const b = pickObj && pickObj.b != null ? pickObj.b : '';
+  const w = pickObj && pickObj.w ? pickObj.w : '';
+  const pen = pickObj && pickObj.pen ? pickObj.pen : '';
+  const isTie = a !== '' && b !== '' && Number(a) === Number(b);
+  const onA = t1 && !dis ? `setMcV2Score('${js(rndKey)}',${mi},'a',this.value)` : '';
+  const onB = t2 && !dis ? `setMcV2Score('${js(rndKey)}',${mi},'b',this.value)` : '';
+  const penAClick = t1 && !dis ? `setMcV2Pen('${js(rndKey)}',${mi},'${js(t1)}')` : '';
+  const penBClick = t2 && !dis ? `setMcV2Pen('${js(rndKey)}',${mi},'${js(t2)}')` : '';
+  return `<div class="mcard">
+    <div class="mlbl">${lbl}</div>${infoHtml}
+    <div class="mrow-v2">
+      <div class="mteam-v2${w === t1 ? ' winner' : ''}${!t1 ? ' empty' : ''}">${t1 ? `<span class="flag">${flag(t1)}</span><span class="mteam-name-v2">${esc(t1)}</span>` : '<span class="mteam-name-v2">?</span>'}</div>
+      <input type="number" class="score-input-v2" value="${a}" min="0" max="20" ${dis ? 'disabled' : ''} onchange="${onA}" placeholder="–">
+      <span class="score-dash-v2">–</span>
+      <input type="number" class="score-input-v2" value="${b}" min="0" max="20" ${dis ? 'disabled' : ''} onchange="${onB}" placeholder="–">
+      <div class="mteam-v2${w === t2 ? ' winner' : ''}${!t2 ? ' empty' : ''}">${t2 ? `<span class="flag">${flag(t2)}</span><span class="mteam-name-v2">${esc(t2)}</span>` : '<span class="mteam-name-v2">?</span>'}</div>
+    </div>
+    <div class="pens-block-v2 ${isTie ? '' : 'dimmed'}">
+      <div class="pens-lbl-v2">Si empatan, ¿quién gana en penales?</div>
+      <div class="pens-row-v2">
+        <button class="pens-btn-v2${pen === t1 ? ' on' : ''}" ${dis || !t1 ? 'disabled' : ''} onclick="${penAClick}">${t1 ? `<span class="flag">${flag(t1)}</span>` : ''}<span>${esc(t1) || '?'}</span></button>
+        <button class="pens-btn-v2${pen === t2 ? ' on' : ''}" ${dis || !t2 ? 'disabled' : ''} onclick="${penBClick}">${t2 ? `<span class="flag">${flag(t2)}</span>` : ''}<span>${esc(t2) || '?'}</span></button>
+      </div>
+    </div>
+  </div>`;
+}
+
+window.setMcV2Score = async function (rndKey, mi, side, val) {
+  const pk = getOrInitPick(rndKey, mi);
+  pk[side] = val === '' ? null : parseInt(val);
+  if (pk.a != null && pk.b != null && !isNaN(pk.a) && !isNaN(pk.b)) {
+    const [t1, t2] = getMatchTeams(rndKey, mi);
+    if (pk.a > pk.b) pk.w = t1;
+    else if (pk.b > pk.a) pk.w = t2;
+    else pk.w = pk.pen || ''; // empate: se queda el ganador de penales si ya estaba
+  }
+  saveMyBracket();
+  if (S_tab === 'bracket') renderBracket();
+};
+
+window.setMcV2Pen = async function (rndKey, mi, team) {
+  const pk = getOrInitPick(rndKey, mi);
+  pk.pen = team;
+  if (pk.a != null && pk.b != null && pk.a === pk.b) pk.w = team;
+  saveMyBracket();
+  if (S_tab === 'bracket') renderBracket();
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN E2 — captura marcadores oficiales del bracket
+// ═══════════════════════════════════════════════════════════════
+function adminCanAccess() {
+  return ME.isSuperAdmin || ME.isCommunityAdmin;
+}
+
+function getOrInitAdminPick(rndKey, mi) {
+  if (!S.adminE2) S.adminE2 = {};
+  if (rndKey === 'fin') {
+    if (!S.adminE2.finV2) S.adminE2.finV2 = { w: '', a: null, b: null, pen: '' };
+    return S.adminE2.finV2;
+  }
+  if (rndKey === 'thr') {
+    if (!S.adminE2.thrV2) S.adminE2.thrV2 = { w: '', a: null, b: null, pen: '' };
+    return S.adminE2.thrV2;
+  }
+  const key = rndKey + 'V2';
+  if (!S.adminE2[key]) S.adminE2[key] = [];
+  if (!S.adminE2[key][mi]) S.adminE2[key][mi] = { w: '', a: null, b: null, pen: '' };
+  return S.adminE2[key][mi];
+}
+
+function adminWinnerOf(rndKey, mi) {
+  if (!S.adminE2) return '';
+  if (rndKey === 'fin') return (S.adminE2.finV2 && S.adminE2.finV2.w) || '';
+  if (rndKey === 'thr') return (S.adminE2.thrV2 && S.adminE2.thrV2.w) || '';
+  const arr = S.adminE2[rndKey + 'V2'] || [];
+  return (arr[mi] && arr[mi].w) || '';
+}
+
+function getAdminTeams(rndKey, mi) {
+  if (rndKey === 'r32') {
+    const fx = R32_FIXED.find(x => x.i === mi);
+    const th = R32_THIRDS.findIndex(x => x.i === mi);
+    if (fx) return [rc(fx.c1, S.adminR), rc(fx.c2, S.adminR)];
+    if (th >= 0) {
+      const t1 = rc(R32_THIRDS[th].c1, S.adminR);
+      const thirds = calcAllThirds(S.adminR && S.adminR.grupos);
+      const t2 = (thirds[th] && thirds[th].team) || '';
+      return [t1, t2];
+    }
+    return ['', ''];
+  }
+  if (rndKey === 'r16') { const [s1,s2]=R16B[mi]; return [adminWinnerOf('r32',s1), adminWinnerOf('r32',s2)]; }
+  if (rndKey === 'qf')  { const [s1,s2]=QFB[mi];  return [adminWinnerOf('r16',s1), adminWinnerOf('r16',s2)]; }
+  if (rndKey === 'sf')  { const [s1,s2]=SFB[mi];  return [adminWinnerOf('qf',s1),  adminWinnerOf('qf',s2)];  }
+  if (rndKey === 'fin') return [adminWinnerOf('sf', 0), adminWinnerOf('sf', 1)];
+  if (rndKey === 'thr') {
+    const sf0Teams = getAdminTeams('sf', 0);
+    const sf1Teams = getAdminTeams('sf', 1);
+    const sf0Win = adminWinnerOf('sf', 0);
+    const sf1Win = adminWinnerOf('sf', 1);
+    const l0 = sf0Teams.find(t => t && t !== sf0Win) || '';
+    const l1 = sf1Teams.find(t => t && t !== sf1Win) || '';
+    return [l0, l1];
+  }
+  return ['', ''];
+}
+
+async function saveAdminE2() {
+  if (!ME.communityId) return;
+  try {
+    await db.ref('community_results/' + ME.communityId + '/bracketE2').set(S.adminE2 || {});
+  } catch (e) {
+    console.warn('Error guardando admin E2:', e);
+    alert('Error guardando: ' + (e.message || e));
+  }
+}
+
+window.setAdminScore = async function (rndKey, mi, side, val) {
+  if (!adminCanAccess()) return;
+  const pk = getOrInitAdminPick(rndKey, mi);
+  pk[side] = val === '' ? null : parseInt(val);
+  if (pk.a != null && pk.b != null && !isNaN(pk.a) && !isNaN(pk.b)) {
+    const [t1, t2] = getAdminTeams(rndKey, mi);
+    if (pk.a > pk.b) pk.w = t1;
+    else if (pk.b > pk.a) pk.w = t2;
+    else pk.w = pk.pen || '';
+  }
+  saveAdminE2();
+  if (S_tab === 'admin') renderAdminE2();
+};
+
+window.setAdminPen = async function (rndKey, mi, team) {
+  if (!adminCanAccess()) return;
+  const pk = getOrInitAdminPick(rndKey, mi);
+  pk.pen = team;
+  if (pk.a != null && pk.b != null && pk.a === pk.b) pk.w = team;
+  saveAdminE2();
+  if (S_tab === 'admin') renderAdminE2();
+};
+
+function adminMcV2({ lbl, t1, t2, pickObj, dis, info, rndKey, mi }) {
+  const infoHtml = info ? `<div class="minfo">📅 ${info.d} · ⏰ ${info.t} · 📍 ${info.c}</div>` : '';
+  const a = pickObj && pickObj.a != null ? pickObj.a : '';
+  const b = pickObj && pickObj.b != null ? pickObj.b : '';
+  const w = pickObj && pickObj.w ? pickObj.w : '';
+  const pen = pickObj && pickObj.pen ? pickObj.pen : '';
+  const isTie = a !== '' && b !== '' && Number(a) === Number(b);
+  const onA = t1 && !dis ? `setAdminScore('${js(rndKey)}',${mi},'a',this.value)` : '';
+  const onB = t2 && !dis ? `setAdminScore('${js(rndKey)}',${mi},'b',this.value)` : '';
+  const penAClick = t1 && !dis ? `setAdminPen('${js(rndKey)}',${mi},'${js(t1)}')` : '';
+  const penBClick = t2 && !dis ? `setAdminPen('${js(rndKey)}',${mi},'${js(t2)}')` : '';
+  return `<div class="mcard">
+    <div class="mlbl">${lbl}</div>${infoHtml}
+    <div class="mrow-v2">
+      <div class="mteam-v2${w === t1 ? ' winner' : ''}${!t1 ? ' empty' : ''}">${t1 ? `<span class="flag">${flag(t1)}</span><span class="mteam-name-v2">${esc(t1)}</span>` : '<span class="mteam-name-v2">?</span>'}</div>
+      <input type="number" class="score-input-v2" value="${a}" min="0" max="20" ${dis ? 'disabled' : ''} onchange="${onA}" placeholder="–">
+      <span class="score-dash-v2">–</span>
+      <input type="number" class="score-input-v2" value="${b}" min="0" max="20" ${dis ? 'disabled' : ''} onchange="${onB}" placeholder="–">
+      <div class="mteam-v2${w === t2 ? ' winner' : ''}${!t2 ? ' empty' : ''}">${t2 ? `<span class="flag">${flag(t2)}</span><span class="mteam-name-v2">${esc(t2)}</span>` : '<span class="mteam-name-v2">?</span>'}</div>
+    </div>
+    <div class="pens-block-v2 ${isTie ? '' : 'dimmed'}">
+      <div class="pens-lbl-v2">Si empatan, ¿quién gana en penales?</div>
+      <div class="pens-row-v2">
+        <button class="pens-btn-v2${pen === t1 ? ' on' : ''}" ${dis || !t1 ? 'disabled' : ''} onclick="${penAClick}">${t1 ? `<span class="flag">${flag(t1)}</span>` : ''}<span>${esc(t1) || '?'}</span></button>
+        <button class="pens-btn-v2${pen === t2 ? ' on' : ''}" ${dis || !t2 ? 'disabled' : ''} onclick="${penBClick}">${t2 ? `<span class="flag">${flag(t2)}</span>` : ''}<span>${esc(t2) || '?'}</span></button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function adminCompletedCount(rndKey, total) {
+  let done = 0;
+  for (let i = 0; i < total; i++) {
+    const pk = (rndKey === 'fin') ? (S.adminE2 && S.adminE2.finV2) :
+               (rndKey === 'thr') ? (S.adminE2 && S.adminE2.thrV2) :
+               ((S.adminE2 && S.adminE2[rndKey + 'V2']) || [])[i];
+    if (pk && pk.w) done++;
+  }
+  return done;
+}
+
+function renderAdminE2() {
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  // Bloqueo de acceso
+  if (!adminCanAccess()) {
+    content.innerHTML = `
+      <div class="lock-banner">
+        <div class="lock-emoji">🚫</div>
+        <div class="lock-title">Acceso restringido</div>
+        <div class="lock-text">Esta sección es solo para administradores de la comunidad.</div>
+      </div>`;
+    return;
+  }
+
+  const c = S.communities[ME.communityId];
+  if (!c || c.mode !== 'tournament') {
+    content.innerHTML = `
+      <div class="lock-banner">
+        <div class="lock-emoji">ℹ️</div>
+        <div class="lock-title">Modo Torneo requerido</div>
+        <div class="lock-text">El bracket de Etapa 2 solo aplica al modo Torneo.</div>
+      </div>`;
+    return;
+  }
+
+  if (!S.adminR || !S.adminR.grupos) {
+    content.innerHTML = `
+      <div class="lock-banner">
+        <div class="lock-emoji">⏳</div>
+        <div class="lock-title">Falta capturar fase de grupos</div>
+        <div class="lock-text">Primero captura todos los marcadores de grupos en el index principal antes de empezar con el bracket.</div>
+      </div>`;
+    return;
+  }
+
+  // Progress card
+  const r32Done = adminCompletedCount('r32', 16);
+  const r16Done = adminCompletedCount('r16', 8);
+  const qfDone  = adminCompletedCount('qf', 4);
+  const sfDone  = adminCompletedCount('sf', 2);
+  const finDone = adminCompletedCount('fin', 1);
+  const thrDone = adminCompletedCount('thr', 1);
+  const totalDone = r32Done + r16Done + qfDone + sfDone + finDone + thrDone;
+
+  let h = `<div class="banner-beta">
+    <span class="banner-beta-icon">⚙️</span>
+    <div><strong>Admin Etapa 2.</strong> Captura aquí los marcadores oficiales del bracket. Los equipos de octavos en adelante se llenan automáticamente con los ganadores que captures.</div>
+  </div>`;
+
+  h += `<div class="adm-progress">
+    <div class="adm-prog-title">Progreso · ${totalDone}/32 partidos capturados</div>
+    <div class="adm-prog-grid">
+      <div class="adm-prog-item${r32Done===16?' done':''}"><b>16avos</b><span>${r32Done}/16</span></div>
+      <div class="adm-prog-item${r16Done===8?' done':''}"><b>Octavos</b><span>${r16Done}/8</span></div>
+      <div class="adm-prog-item${qfDone===4?' done':''}"><b>Cuartos</b><span>${qfDone}/4</span></div>
+      <div class="adm-prog-item${sfDone===2?' done':''}"><b>Semis</b><span>${sfDone}/2</span></div>
+      <div class="adm-prog-item${finDone===1?' done':''}"><b>Final</b><span>${finDone}/1</span></div>
+      <div class="adm-prog-item${thrDone===1?' done':''}"><b>3er</b><span>${thrDone}/1</span></div>
+    </div>
+  </div>`;
+
+  // R32 fixed
+  h += `<div class="phase"><div class="phdr">16avos · 1° vs 2° de grupo</div><div class="mgrid">`;
+  for (const { i, c1, c2 } of R32_FIXED) {
+    const [t1, t2] = getAdminTeams('r32', i);
+    const pickObj = (S.adminE2 && S.adminE2.r32V2 || [])[i] || null;
+    h += adminMcV2({
+      lbl: `M${MATCH_INFO.r32[i].m} · ${c1} vs ${c2}`,
+      t1, t2, pickObj, dis: !t1 || !t2,
+      info: MATCH_INFO.r32[i], rndKey: 'r32', mi: i
+    });
+  }
+  h += `</div></div>`;
+
+  // R32 thirds
+  h += `<div class="phase"><div class="phdr">16avos · Mejores Terceros</div><div class="mgrid">`;
+  const thirds = calcAllThirds(S.adminR.grupos);
+  for (let ti = 0; ti < 8; ti++) {
+    const { i, c1 } = R32_THIRDS[ti];
+    const t1 = rc(c1, S.adminR);
+    const t2 = (thirds[ti] && thirds[ti].team) || '';
+    const pickObj = (S.adminE2 && S.adminE2.r32V2 || [])[i] || null;
+    h += adminMcV2({
+      lbl: `M${MATCH_INFO.r32[i].m} · ${c1} vs 3ro #${ti + 1}`,
+      t1, t2, pickObj, dis: !t1 || !t2,
+      info: MATCH_INFO.r32[i], rndKey: 'r32', mi: i
+    });
+  }
+  h += `</div></div>`;
+
+  // OCTAVOS
+  h += `<div class="phase"><div class="phdr">Octavos</div><div class="mgrid">`;
+  for (let i = 0; i < 8; i++) {
+    const [t1, t2] = getAdminTeams('r16', i);
+    const pickObj = (S.adminE2 && S.adminE2.r16V2 || [])[i] || null;
+    h += adminMcV2({
+      lbl: `M${MATCH_INFO.r16[i].m} · Octavos`,
+      t1, t2, pickObj, dis: !t1 || !t2,
+      info: MATCH_INFO.r16[i], rndKey: 'r16', mi: i
+    });
+  }
+  h += `</div></div>`;
+
+  // CUARTOS
+  h += `<div class="phase"><div class="phdr">Cuartos</div><div class="mgrid">`;
+  for (let i = 0; i < 4; i++) {
+    const [t1, t2] = getAdminTeams('qf', i);
+    const pickObj = (S.adminE2 && S.adminE2.qfV2 || [])[i] || null;
+    h += adminMcV2({
+      lbl: `M${MATCH_INFO.qf[i].m} · Cuartos`,
+      t1, t2, pickObj, dis: !t1 || !t2,
+      info: MATCH_INFO.qf[i], rndKey: 'qf', mi: i
+    });
+  }
+  h += `</div></div>`;
+
+  // SEMIS
+  h += `<div class="phase"><div class="phdr">Semifinales</div><div class="mgrid">`;
+  for (let i = 0; i < 2; i++) {
+    const [t1, t2] = getAdminTeams('sf', i);
+    const pickObj = (S.adminE2 && S.adminE2.sfV2 || [])[i] || null;
+    h += adminMcV2({
+      lbl: `M${MATCH_INFO.sf[i].m} · Semifinal`,
+      t1, t2, pickObj, dis: !t1 || !t2,
+      info: MATCH_INFO.sf[i], rndKey: 'sf', mi: i
+    });
+  }
+  h += `</div></div>`;
+
+  // FINAL + 3ER LUGAR
+  h += `<div class="phase"><div class="phdr">🏆 Gran Final y 3er Lugar</div><div class="mgrid">`;
+  const [finT1, finT2] = getAdminTeams('fin', 0);
+  h += adminMcV2({
+    lbl: `🏆 Gran Final · M${MATCH_INFO.fin.m}`,
+    t1: finT1, t2: finT2, pickObj: (S.adminE2 && S.adminE2.finV2) || null,
+    dis: !finT1 || !finT2,
+    info: MATCH_INFO.fin, rndKey: 'fin', mi: 0
+  });
+  const [thrT1, thrT2] = getAdminTeams('thr', 0);
+  h += adminMcV2({
+    lbl: `🥉 3er Lugar · M${MATCH_INFO.thr.m}`,
+    t1: thrT1, t2: thrT2, pickObj: (S.adminE2 && S.adminE2.thrV2) || null,
+    dis: !thrT1 || !thrT2,
+    info: MATCH_INFO.thr, rndKey: 'thr', mi: 0
+  });
+  h += `</div></div>`;
+
+  content.innerHTML = h;
+}
+
+function renderBracket() {
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  const c = S.communities[ME.communityId];
+  if (!c || c.mode !== 'tournament' || c.stage2Unlocked !== true) {
+    content.innerHTML = `
+      <div class="lock-banner">
+        <div class="lock-emoji">🔒</div>
+        <div class="lock-title">Etapa 2 bloqueada</div>
+        <div class="lock-text">El admin de tu comunidad aún no ha abierto la Etapa 2. Espera a que termine la fase de grupos y que el admin abra las eliminatorias.</div>
+      </div>`;
+    return;
+  }
+
+  if (!S.adminR || !S.adminR.grupos) {
+    content.innerHTML = `
+      <div class="lock-banner">
+        <div class="lock-emoji">⏳</div>
+        <div class="lock-title">Esperando resultados oficiales</div>
+        <div class="lock-text">El admin aún no ha capturado los marcadores oficiales de fase de grupos en esta comunidad.</div>
+      </div>`;
+    return;
+  }
+
+  let h = `<div class="banner-beta">
+    <span class="banner-beta-icon">🏆</span>
+    <div><strong>Llena tu bracket de Etapa 2.</strong> Sistema Forma C: 3 pts marcador exacto, 1 pt solo ganador, 2 pts penales acertados, 5 pts combo total.</div>
+  </div>`;
+
+  // R32 fixed (1° vs 2°)
+  h += `<div class="phase"><div class="phdr">Partidos de grupos · 16avos <span class="ptag">hasta 5 pts c/u</span></div><div class="mgrid">`;
+  for (const { i, c1, c2 } of R32_FIXED) {
+    const [t1, t2] = getMatchTeams('r32', i);
+    const pickObj = (MY_BRACKET.r32V2 || [])[i] || null;
+    h += mcV2({
+      lbl: `M${MATCH_INFO.r32[i].m} · ${c1} vs ${c2}`,
+      t1, t2, pickObj, dis: !t1 || !t2,
+      info: MATCH_INFO.r32[i], rndKey: 'r32', mi: i
+    });
+  }
+  h += `</div></div>`;
+
+  // R32 thirds (1° vs mejor 3°)
+  h += `<div class="phase"><div class="phdr">Mejores Terceros · 16avos <span class="ptag">hasta 5 pts c/u</span></div><div class="mgrid">`;
+  const thirds = calcAllThirds(S.adminR.grupos);
+  for (let ti = 0; ti < 8; ti++) {
+    const { i, c1 } = R32_THIRDS[ti];
+    const t1 = rc(c1, S.adminR);
+    const t2 = (thirds[ti] && thirds[ti].team) || '';
+    const pickObj = (MY_BRACKET.r32V2 || [])[i] || null;
+    h += mcV2({
+      lbl: `M${MATCH_INFO.r32[i].m} · ${c1} vs 3ro #${ti + 1}`,
+      t1, t2, pickObj, dis: !t1 || !t2,
+      info: MATCH_INFO.r32[i], rndKey: 'r32', mi: i
+    });
+  }
+  h += `</div></div>`;
+
+  // OCTAVOS
+  h += `<div class="phase"><div class="phdr">Octavos <span class="ptag">hasta 5 pts c/u</span></div><div class="mgrid">`;
+  for (let i = 0; i < 8; i++) {
+    const [t1, t2] = getMatchTeams('r16', i);
+    const pickObj = (MY_BRACKET.r16V2 || [])[i] || null;
+    h += mcV2({
+      lbl: `M${MATCH_INFO.r16[i].m} · Octavos`,
+      t1, t2, pickObj, dis: !t1 || !t2,
+      info: MATCH_INFO.r16[i], rndKey: 'r16', mi: i
+    });
+  }
+  h += `</div></div>`;
+
+  // CUARTOS
+  h += `<div class="phase"><div class="phdr">Cuartos <span class="ptag">hasta 5 pts c/u</span></div><div class="mgrid">`;
+  for (let i = 0; i < 4; i++) {
+    const [t1, t2] = getMatchTeams('qf', i);
+    const pickObj = (MY_BRACKET.qfV2 || [])[i] || null;
+    h += mcV2({
+      lbl: `M${MATCH_INFO.qf[i].m} · Cuartos`,
+      t1, t2, pickObj, dis: !t1 || !t2,
+      info: MATCH_INFO.qf[i], rndKey: 'qf', mi: i
+    });
+  }
+  h += `</div></div>`;
+
+  // SEMIS
+  h += `<div class="phase"><div class="phdr">Semifinales <span class="ptag">hasta 5 pts c/u</span></div><div class="mgrid">`;
+  for (let i = 0; i < 2; i++) {
+    const [t1, t2] = getMatchTeams('sf', i);
+    const pickObj = (MY_BRACKET.sfV2 || [])[i] || null;
+    h += mcV2({
+      lbl: `M${MATCH_INFO.sf[i].m} · Semifinal`,
+      t1, t2, pickObj, dis: !t1 || !t2,
+      info: MATCH_INFO.sf[i], rndKey: 'sf', mi: i
+    });
+  }
+  h += `</div></div>`;
+
+  // FINAL + 3ER LUGAR
+  h += `<div class="phase"><div class="phdr">🏆 Gran Final y 3er Lugar <span class="ptag">hasta 5 pts c/u</span></div><div class="mgrid">`;
+  const [finT1, finT2] = getMatchTeams('fin', 0);
+  h += mcV2({
+    lbl: `🏆 Gran Final · M${MATCH_INFO.fin.m}`,
+    t1: finT1, t2: finT2, pickObj: MY_BRACKET.finV2 || null,
+    dis: !finT1 || !finT2,
+    info: MATCH_INFO.fin, rndKey: 'fin', mi: 0
+  });
+  const [thrT1, thrT2] = getMatchTeams('thr', 0);
+  h += mcV2({
+    lbl: `🥉 3er Lugar · M${MATCH_INFO.thr.m}`,
+    t1: thrT1, t2: thrT2, pickObj: MY_BRACKET.thrV2 || null,
+    dis: !thrT1 || !thrT2,
+    info: MATCH_INFO.thr, rndKey: 'thr', mi: 0
+  });
+  h += `</div></div>`;
+
+  content.innerHTML = h;
 }
 
 function goTab(tab, evt) {
@@ -577,6 +1394,13 @@ function goTab(tab, evt) {
   const meta = titles[tab] || { t: 'Etapa 2', s: '' };
   document.getElementById('topbar-title').textContent = meta.t;
   document.getElementById('topbar-sub').textContent = meta.s;
+
+  // Dashboard, Bracket V2, Grupos read-only y Admin E2 tienen su propio render
+  if (tab === 'dashboard')        { renderDashboard(); return; }
+  if (tab === 'bracket')          { renderBracket(); return; }
+  if (tab === 'grupos-readonly')  { renderGruposReadonly(); return; }
+  if (tab === 'admin')            { renderAdminE2(); return; }
+
   // Renderizar contenido específico del tab (todos placeholders en Fase 1)
   const content = document.getElementById('content');
   const placeholders = {
@@ -612,6 +1436,418 @@ function goTab(tab, evt) {
     </div>
   `;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// SCORING (E1 grupos + E2 Forma C)
+// ═══════════════════════════════════════════════════════════════
+function calcMatchE1Points(p, r) {
+  if (!p || !r) return 0;
+  if (p.a == null || p.b == null || r.a == null || r.b == null) return 0;
+  const pa = parseInt(p.a), pb = parseInt(p.b);
+  const ra = parseInt(r.a), rb = parseInt(r.b);
+  if (isNaN(pa) || isNaN(pb) || isNaN(ra) || isNaN(rb)) return 0;
+  if (pa === ra && pb === rb) return 3;
+  if ((pa > pb && ra > rb) || (pa < pb && ra < rb) || (pa === pb && ra === rb)) return 1;
+  return 0;
+}
+
+function calcE1PointsFor(uid) {
+  const ups = (S.picks[uid] && S.picks[uid].grupos) || {};
+  const adminG = (S.adminR && S.adminR.grupos) || {};
+  let total = 0;
+  for (const g of GKEYS) {
+    const upArr = ups[g] && ups[g].matches; if (!upArr) continue;
+    const adArr = adminG[g] && adminG[g].matches; if (!adArr) continue;
+    for (let mi = 0; mi < 6; mi++) total += calcMatchE1Points(upArr[mi], adArr[mi]);
+  }
+  return total;
+}
+
+function calcMatchV2Points(p, r) {
+  if (!p || !r) return 0;
+  if (p.a == null || p.b == null || r.a == null || r.b == null) return 0;
+  const pa = parseInt(p.a), pb = parseInt(p.b);
+  const ra = parseInt(r.a), rb = parseInt(r.b);
+  if (isNaN(pa) || isNaN(pb) || isNaN(ra) || isNaN(rb)) return 0;
+  let pts = 0;
+  if (pa === ra && pb === rb) pts += 3;
+  else if (p.w && r.w && p.w === r.w) pts += 1;
+  if (ra === rb && r.pen && p.pen && p.pen === r.pen) pts += 2;
+  return pts;
+}
+
+function allBracketMatches() {
+  const out = [];
+  for (let i = 0; i < 16; i++) out.push({ rnd: 'r32', mi: i, info: MATCH_INFO.r32[i] });
+  for (let i = 0; i < 8; i++)  out.push({ rnd: 'r16', mi: i, info: MATCH_INFO.r16[i] });
+  for (let i = 0; i < 4; i++)  out.push({ rnd: 'qf',  mi: i, info: MATCH_INFO.qf[i] });
+  for (let i = 0; i < 2; i++)  out.push({ rnd: 'sf',  mi: i, info: MATCH_INFO.sf[i] });
+  out.push({ rnd: 'thr', mi: 0, info: MATCH_INFO.thr });
+  out.push({ rnd: 'fin', mi: 0, info: MATCH_INFO.fin });
+  return out;
+}
+
+function getAdminPick(rndKey, mi) {
+  if (!S.adminE2) return null;
+  if (rndKey === 'fin') return S.adminE2.finV2 || null;
+  if (rndKey === 'thr') return S.adminE2.thrV2 || null;
+  const arr = S.adminE2[rndKey + 'V2'] || [];
+  return arr[mi] || null;
+}
+
+function getMyV2Pick(rndKey, mi) {
+  if (!MY_BRACKET) return null;
+  if (rndKey === 'fin') return MY_BRACKET.finV2 || null;
+  if (rndKey === 'thr') return MY_BRACKET.thrV2 || null;
+  const arr = MY_BRACKET[rndKey + 'V2'] || [];
+  return arr[mi] || null;
+}
+
+function getUserV2Pick(uid, rndKey, mi) {
+  const u = (S.picks[uid] && S.picks[uid].bracketE2) || null;
+  if (!u) return null;
+  if (rndKey === 'fin') return u.finV2 || null;
+  if (rndKey === 'thr') return u.thrV2 || null;
+  const arr = u[rndKey + 'V2'] || [];
+  return arr[mi] || null;
+}
+
+function calcE2PointsFor(uid) {
+  let total = 0;
+  for (const { rnd, mi } of allBracketMatches()) {
+    const p = getUserV2Pick(uid, rnd, mi);
+    const r = getAdminPick(rnd, mi);
+    total += calcMatchV2Points(p, r);
+  }
+  return total;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD E2
+// ═══════════════════════════════════════════════════════════════
+function buildLeaderboard() {
+  const cid = ME.communityId;
+  const rows = [];
+  for (const uid in S.users) {
+    const u = S.users[uid];
+    if (!u || u.communityId !== cid) continue;
+    const e1 = calcE1PointsFor(uid);
+    const e2 = calcE2PointsFor(uid);
+    rows.push({
+      uid, name: u.name || (u.email || '').split('@')[0] || 'Usuario',
+      photo: u.photo || '', e1, e2, total: e1 + e2
+    });
+  }
+  rows.sort((a, b) => b.total - a.total || b.e2 - a.e2 || b.e1 - a.e1 || a.name.localeCompare(b.name));
+  return rows;
+}
+
+function rndLabel(rnd) {
+  return { r32: '16avos', r16: 'Octavos', qf: 'Cuartos', sf: 'Semis', fin: 'Final', thr: '3er Lugar' }[rnd] || rnd;
+}
+
+function bracketTeams(rnd, mi) { return getAdminTeams(rnd, mi); }
+
+function renderDashboard() {
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  const c = S.communities[ME.communityId];
+  const stageOpen = c && c.mode === 'tournament' && c.stage2Unlocked === true;
+
+  // Leaderboard
+  const lb = buildLeaderboard();
+  const myRow = lb.find(r => r.uid === ME.uid);
+  const myRank = myRow ? (lb.indexOf(myRow) + 1) : '—';
+  const lbTop = lb.slice(0, 10);
+
+  let h = `<div class="banner-beta">
+    <span class="banner-beta-icon">📊</span>
+    <div><strong>Dashboard Etapa 2.</strong> Puntos totales = Etapa 1 (grupos) + Etapa 2 (bracket Forma C). El leaderboard se actualiza en vivo.</div>
+  </div>`;
+
+  // Acciones rápidas
+  h += `<div class="dash-actions">
+    <button class="dash-btn" onclick="openMyResults()">📊 Mis resultados E2</button>
+    <button class="dash-btn" onclick="openMyPicks()">🔮 Mis picks E2</button>
+  </div>`;
+
+  // Leaderboard
+  h += `<div class="lb-card">
+    <div class="lb-title">🏆 Leaderboard · ${esc(c ? c.name : '')}</div>
+    <div class="lb-sub">Tu posición actual: <b>#${myRank}</b> · ${myRow ? (myRow.total + ' pts (E1: ' + myRow.e1 + ' + E2: ' + myRow.e2 + ')') : '0 pts'}</div>
+    <div class="lb-list">`;
+  if (lbTop.length === 0) {
+    h += `<div class="lb-empty">Aún no hay participantes en esta comunidad.</div>`;
+  } else {
+    lbTop.forEach((r, idx) => {
+      const isMe = r.uid === ME.uid;
+      const init = (r.name || '?').charAt(0).toUpperCase();
+      const avatar = r.photo ? `<div class="lb-pic" style="background-image:url('${r.photo}')"></div>` : `<div class="lb-pic">${init}</div>`;
+      h += `<div class="lb-row${isMe ? ' me' : ''}">
+        <div class="lb-rank">${idx + 1}</div>
+        ${avatar}
+        <div class="lb-info">
+          <div class="lb-name">${esc(r.name)}${isMe ? ' <span class="lb-mini">(yo)</span>' : ''}</div>
+          <div class="lb-break">E1: ${r.e1} · E2: ${r.e2}</div>
+        </div>
+        <div class="lb-pts">${r.total}<span>pts</span></div>
+      </div>`;
+    });
+  }
+  h += `</div></div>`;
+
+  // Próximos partidos y últimos resultados
+  const matches = allBracketMatches();
+  const upcoming = [], played = [];
+  for (const m of matches) {
+    const adm = getAdminPick(m.rnd, m.mi);
+    const [t1, t2] = bracketTeams(m.rnd, m.mi);
+    if (adm && adm.a != null && adm.b != null) {
+      played.push({ ...m, t1, t2, adm });
+    } else if (t1 && t2) {
+      upcoming.push({ ...m, t1, t2 });
+    }
+  }
+  upcoming.sort((a, b) => a.info.m - b.info.m);
+  played.sort((a, b) => b.info.m - a.info.m);
+
+  if (stageOpen) {
+    h += `<div class="lb-card">
+      <div class="lb-title">📅 Próximos partidos del bracket</div>`;
+    if (upcoming.length === 0) {
+      h += `<div class="lb-empty">No hay partidos próximos con equipos definidos.</div>`;
+    } else {
+      h += `<div class="dash-matches">`;
+      upcoming.slice(0, 6).forEach(m => {
+        h += matchRowDash(m, null);
+      });
+      h += `</div>`;
+    }
+    h += `</div>`;
+
+    h += `<div class="lb-card">
+      <div class="lb-title">📋 Últimos resultados</div>`;
+    if (played.length === 0) {
+      h += `<div class="lb-empty">Aún no se han capturado resultados del bracket.</div>`;
+    } else {
+      h += `<div class="dash-matches">`;
+      played.slice(0, 8).forEach(m => {
+        h += matchRowDash(m, m.adm);
+      });
+      h += `</div>`;
+    }
+    h += `</div>`;
+  } else {
+    h += `<div class="lock-banner">
+      <div class="lock-emoji">🔒</div>
+      <div class="lock-title">Etapa 2 no abierta aún</div>
+      <div class="lock-text">El admin abrirá las eliminatorias cuando termine la fase de grupos. Por ahora solo verás el leaderboard de Etapa 1.</div>
+    </div>`;
+  }
+
+  content.innerHTML = h;
+}
+
+function matchRowDash(m, adm) {
+  const myPick = getMyV2Pick(m.rnd, m.mi);
+  const pts = adm ? calcMatchV2Points(myPick, adm) : null;
+  const scoreHtml = adm ?
+    `<div class="dmrow-score">${adm.a}–${adm.b}${adm.a === adm.b && adm.pen ? ` <span class="dmrow-pen">pen ${abbr(adm.pen)}</span>` : ''}</div>` :
+    `<div class="dmrow-when">📅 ${m.info.d} · ⏰ ${m.info.t}</div>`;
+  const myHtml = myPick && myPick.a != null && myPick.b != null ?
+    `<div class="dmrow-pick">Tu pick: ${myPick.a}–${myPick.b}${myPick.a === myPick.b && myPick.pen ? ` (pen ${abbr(myPick.pen)})` : ''}${adm ? ` · <b>${pts} pts</b>` : ''}</div>` :
+    `<div class="dmrow-pick muted">${adm ? 'Sin pick' : 'Aún sin pick'}</div>`;
+  return `<div class="dmrow">
+    <div class="dmrow-head">
+      <span class="dmrow-rnd">${rndLabel(m.rnd)} · M${m.info.m}</span>
+      <span class="dmrow-place">📍 ${m.info.c}</span>
+    </div>
+    <div class="dmrow-teams">
+      <span><span class="flag">${flag(m.t1)}</span>${esc(m.t1)}</span>
+      <span class="dmrow-vs">vs</span>
+      <span><span class="flag">${flag(m.t2)}</span>${esc(m.t2)}</span>
+    </div>
+    ${scoreHtml}
+    ${myHtml}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MIS PICKS DE GRUPOS (read-only)
+// ═══════════════════════════════════════════════════════════════
+function renderGruposReadonly() {
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  const myG = (S.picks[ME.uid] && S.picks[ME.uid].grupos) || {};
+  const adminG = (S.adminR && S.adminR.grupos) || {};
+
+  // Resumen global
+  let totalPts = 0, captured = 0, filled = 0;
+  for (const g of GKEYS) {
+    const myArr = (myG[g] && myG[g].matches) || [];
+    const adArr = (adminG[g] && adminG[g].matches) || [];
+    for (let mi = 0; mi < 6; mi++) {
+      if (myArr[mi] && myArr[mi].a != null && myArr[mi].b != null) filled++;
+      if (adArr[mi] && adArr[mi].a != null && adArr[mi].b != null) {
+        captured++;
+        totalPts += calcMatchE1Points(myArr[mi], adArr[mi]);
+      }
+    }
+  }
+
+  let h = `<div class="banner-beta">
+    <span class="banner-beta-icon">🌎</span>
+    <div><strong>Tus picks de fase de grupos.</strong> Vista de solo lectura — tus 72 marcadores siguen sellados en blockchain. Para editar usa el index principal mientras no esté cerrada Etapa 1.</div>
+  </div>`;
+
+  h += `<div class="res-summary">
+    <div>Picks llenados: <b>${filled}/72</b></div>
+    <div>Partidos jugados: <b>${captured}/72</b></div>
+    <div>Total Etapa 1: <b>${totalPts} pts</b></div>
+  </div>`;
+
+  // Por grupo
+  for (const g of GKEYS) {
+    const teams = GRP[g];
+    const myArr = (myG[g] && myG[g].matches) || [];
+    const adArr = (adminG[g] && adminG[g].matches) || [];
+
+    let gPts = 0;
+    let gFilled = 0;
+    let matchesH = '';
+    GROUP_MATCH_PAIRS.forEach(([i, j], mi) => {
+      const t1 = teams[i], t2 = teams[j];
+      const mp = myArr[mi];
+      const ad = adArr[mi];
+      const hasPick = mp && mp.a != null && mp.b != null;
+      const hasReal = ad && ad.a != null && ad.b != null;
+      const pts = hasReal && hasPick ? calcMatchE1Points(mp, ad) : 0;
+      if (hasPick) gFilled++;
+      if (hasReal) gPts += pts;
+      const pickStr = hasPick ? `${mp.a}–${mp.b}` : '—';
+      const realStr = hasReal ? `${ad.a}–${ad.b}` : '<span class="g-pending">pendiente</span>';
+      const ptsHtml = hasReal ? `<div class="g-pts${pts > 0 ? ' got' : ''}">${pts}<small>pts</small></div>` : '<div class="g-pts muted">—</div>';
+      matchesH += `<div class="g-mrow${pts > 0 ? ' got' : ''}">
+        <div class="g-teams"><span class="flag">${flag(t1)}</span>${abbr(t1)} <span class="g-vs">vs</span> <span class="flag">${flag(t2)}</span>${abbr(t2)}</div>
+        <div class="g-cols">
+          <span>Real: <b>${realStr}</b></span>
+          <span>Yo: <b>${pickStr}</b></span>
+        </div>
+        ${ptsHtml}
+      </div>`;
+    });
+
+    // Tabla calculada desde MIS picks
+    const myTable = calcGroupTable(g, myG[g] || null);
+    let tableH = `<div class="g-table">
+      <div class="g-table-head">Mi tabla calculada</div>
+      <table>
+        <thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>Pts</th><th>DG</th></tr></thead>
+        <tbody>`;
+    myTable.forEach((t, idx) => {
+      tableH += `<tr class="${idx < 2 ? 'top' : ''}"><td>${idx + 1}</td><td><span class="flag">${flag(t.name)}</span>${esc(t.name)}</td><td>${t.pj}</td><td><b>${t.pts}</b></td><td>${t.gd > 0 ? '+' + t.gd : t.gd}</td></tr>`;
+    });
+    tableH += '</tbody></table></div>';
+
+    h += `<div class="g-card">
+      <div class="g-head">
+        <div class="g-letter">Grupo ${g}</div>
+        <div class="g-meta">Llenados: <b>${gFilled}/6</b> · Pts: <b>${gPts}</b></div>
+      </div>
+      <div class="g-matches">${matchesH}</div>
+      ${tableH}
+    </div>`;
+  }
+
+  content.innerHTML = h;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODALES — Mis Resultados E2 + Mis Picks E2
+// ═══════════════════════════════════════════════════════════════
+function openModal(title, bodyHtml) {
+  let m = document.getElementById('e2-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'e2-modal';
+    m.className = 'e2-modal';
+    m.innerHTML = `<div class="e2-modal-card">
+      <div class="e2-modal-head"><div class="e2-modal-title" id="e2-modal-title"></div>
+        <button class="e2-modal-x" onclick="closeModal()">×</button></div>
+      <div class="e2-modal-body" id="e2-modal-body"></div>
+    </div>`;
+    document.body.appendChild(m);
+    m.addEventListener('click', (e) => { if (e.target === m) closeModal(); });
+  }
+  document.getElementById('e2-modal-title').textContent = title;
+  document.getElementById('e2-modal-body').innerHTML = bodyHtml;
+  m.classList.add('open');
+}
+window.closeModal = function () {
+  const m = document.getElementById('e2-modal');
+  if (m) m.classList.remove('open');
+};
+
+window.openMyResults = function () {
+  const matches = allBracketMatches();
+  let totalPts = 0, captured = 0;
+  let rows = '';
+  for (const m of matches) {
+    const adm = getAdminPick(m.rnd, m.mi);
+    if (!adm || adm.a == null || adm.b == null) continue;
+    captured++;
+    const pick = getMyV2Pick(m.rnd, m.mi);
+    const pts = calcMatchV2Points(pick, adm);
+    totalPts += pts;
+    const [t1, t2] = getAdminTeams(m.rnd, m.mi);
+    const pickStr = pick && pick.a != null ?
+      `${pick.a}–${pick.b}${pick.a === pick.b && pick.pen ? ` (pen ${abbr(pick.pen)})` : ''}` : 'Sin pick';
+    const realStr = `${adm.a}–${adm.b}${adm.a === adm.b && adm.pen ? ` (pen ${abbr(adm.pen)})` : ''}`;
+    rows += `<div class="res-row${pts > 0 ? ' got' : ''}">
+      <div class="res-rnd">${rndLabel(m.rnd)} · M${m.info.m}</div>
+      <div class="res-teams">${abbr(t1)} vs ${abbr(t2)}</div>
+      <div class="res-cols">
+        <span>Real: <b>${realStr}</b></span>
+        <span>Yo: <b>${pickStr}</b></span>
+      </div>
+      <div class="res-pts">${pts} <small>pts</small></div>
+    </div>`;
+  }
+  const body = `
+    <div class="res-summary">
+      <div>Partidos capturados: <b>${captured}</b></div>
+      <div>Total Etapa 2: <b>${totalPts} pts</b></div>
+    </div>
+    ${captured === 0 ? '<div class="lb-empty">Aún no hay marcadores oficiales del bracket.</div>' : rows}`;
+  openModal('📊 Mis resultados E2', body);
+};
+
+window.openMyPicks = function () {
+  const matches = allBracketMatches();
+  let rows = '';
+  let filled = 0;
+  for (const m of matches) {
+    const pick = getMyV2Pick(m.rnd, m.mi);
+    const [t1, t2] = getAdminTeams(m.rnd, m.mi);
+    const teamsKnown = t1 && t2;
+    const pickStr = pick && pick.a != null ?
+      `${pick.a}–${pick.b}${pick.a === pick.b && pick.pen ? ` (pen ${abbr(pick.pen)})` : ''}` : '—';
+    if (pick && pick.a != null) filled++;
+    rows += `<div class="pk-row${!teamsKnown ? ' future' : ''}">
+      <div class="pk-rnd">${rndLabel(m.rnd)} · M${m.info.m}</div>
+      <div class="pk-teams">${teamsKnown ? `${abbr(t1)} vs ${abbr(t2)}` : 'Equipos por definir'}</div>
+      <div class="pk-pick">${pickStr}</div>
+    </div>`;
+  }
+  const body = `
+    <div class="res-summary">
+      <div>Picks llenados: <b>${filled}/${matches.length}</b></div>
+    </div>
+    ${rows}`;
+  openModal('🔮 Mis picks E2', body);
+};
 
 console.log('%c🏆 indexE2.html cargado','color:#dc2626;font-weight:800;font-size:14px');
 console.log('Whitelist beta:', E2_BETA_COMMUNITY_NAMES);
