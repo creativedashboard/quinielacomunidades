@@ -2067,10 +2067,14 @@ function loadApp(forceAdmin){
         // New community-admins start with empty results
         db.ref('admin').once('value').then(s=>{
           S.adminR=mergeAdm(s.val()||{});
+          // Beta Test Com: sobreponer bracketE2 desde localStorage
+          if(isBetaTestCom()&&cid){const le=_readLocalAdminE2(cid);if(le)S.adminR.bracketE2=le;}
           safeRender();
         });
         return;
       }else{S.adminR=mergeAdm({});}
+      // Beta Test Com: sobreponer bracketE2 desde localStorage
+      if(isBetaTestCom()&&cid){const le=_readLocalAdminE2(cid);if(le)S.adminR.bracketE2=le;}
       safeRender();
     }},
     {path:cid?'community_thirds_bracket/'+cid:'thirds_bracket', handler:snap=>{
@@ -2195,6 +2199,9 @@ function _writeLocalPicks(uid,p){try{localStorage.setItem(_localPicksKey(uid),JS
 function _localBracketE2Key(uid){return 'BETA_TEST_BRACKETE2_'+uid;}
 function _readLocalBracketE2(uid){try{const r=localStorage.getItem(_localBracketE2Key(uid));return r?JSON.parse(r):null;}catch(e){return null;}}
 function _writeLocalBracketE2(uid,p){try{localStorage.setItem(_localBracketE2Key(uid),JSON.stringify(p));}catch(e){console.warn('local bracketE2 save fail',e);}}
+function _localAdminE2Key(cid){return 'BETA_TEST_ADMIN_E2_'+cid;}
+function _readLocalAdminE2(cid){try{const r=localStorage.getItem(_localAdminE2Key(cid));return r?JSON.parse(r):null;}catch(e){return null;}}
+function _writeLocalAdminE2(cid,p){try{localStorage.setItem(_localAdminE2Key(cid),JSON.stringify(p));}catch(e){console.warn('local admin E2 save fail',e);}}
 
 // Get MY picks (or empty if not set) — Beta Test Com lee de localStorage primero
 function myPicks(){
@@ -2594,7 +2601,11 @@ async function saveMyBracketV2(){
   if(isBetaTestCom()){_writeLocalBracketE2(ME.uid,MY_BRACKET);return;}
   try{await db.ref('picks/'+ME.uid+'/bracketE2').set(MY_BRACKET);}catch(e){console.warn('save my bracket V2:',e);}
 }
-async function saveAdminBracketV2(){if(!ME.communityId||!S.adminR)return;try{await db.ref('community_results/'+ME.communityId+'/bracketE2').set(S.adminR.bracketE2||{});}catch(e){console.warn('save admin V2:',e);}}
+async function saveAdminBracketV2(){
+  if(!ME.communityId||!S.adminR)return;
+  if(isBetaTestCom()){_writeLocalAdminE2(ME.communityId,S.adminR.bracketE2||{});return;}
+  try{await db.ref('community_results/'+ME.communityId+'/bracketE2').set(S.adminR.bracketE2||{});}catch(e){console.warn('save admin V2:',e);}
+}
 
 window.setMcV2Score=async function(rk,mi,side,val,adm){
   if(adm&&!ME.isAdmin)return;
@@ -3382,10 +3393,13 @@ function rAdminT8(){
 
 
 function rViewToggle(){
+  // En indexE2 (bracket V2 con marcadores+penales) solo tiene sentido Vista Tarjetas.
+  // La Vista Bracket de árbol no encaja con el UI de score+penales.
+  S.bracketView='cards';
   return `<div style="display:flex;justify-content:center;margin-bottom:16px">
     <div class="br-view-toggle" style="box-shadow:0 2px 8px rgba(0,0,0,.06)">
-      <button class="${S.bracketView==='cards'?'active':''}" onclick="S.bracketView='cards';render()">📋 Vista Tarjetas</button>
-      <button class="${S.bracketView==='bracket'?'active':''}" onclick="S.bracketView='bracket';render()">🏆 Vista Bracket</button>
+      <button class="active">📋 Vista Tarjetas</button>
+      <button disabled style="opacity:.45;cursor:not-allowed" title="Vista Bracket no disponible en Etapa 2 (V2)">🏆 Vista Bracket</button>
     </div>
   </div>`;
 }
