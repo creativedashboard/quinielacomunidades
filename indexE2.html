@@ -1081,6 +1081,28 @@ function isBracketLockedByDate(){
   return new Date()>=R32_START;
 }
 
+// ─── Deadline 24h del bracket V2 ───
+// El admin abre Etapa 2 → se guarda stage2OpenedAt. Los users tienen 24h desde ese momento.
+// Después: locked. Se calcula client-side (visual) y también lo enforza Firebase rules.
+const STAGE2_DEADLINE_MS=24*60*60*1000; // 24 horas
+function bracketDeadlineInfo(){
+  try{
+    const c=S.communities&&S.communities[ME.communityId];
+    if(!c||c.mode!=='tournament'||c.stage2Unlocked!==true)return null;
+    const opened=c.stage2OpenedAt;
+    if(!opened)return null; // Etapa 2 abierta antes de este cambio (sin timestamp): sin deadline
+    const deadline=opened+STAGE2_DEADLINE_MS;
+    const now=Date.now();
+    return {opened,deadline,now,msLeft:deadline-now,passed:now>=deadline};
+  }catch(e){return null;}
+}
+function isBracketDeadlinePassed(){
+  // Beta Test Com bypass para testing
+  try{const c=S.communities[ME.communityId];if(c&&(c.name||'').toLowerCase().trim()==='beta test com')return false;}catch(e){}
+  const info=bracketDeadlineInfo();
+  return info?info.passed:false;
+}
+
 // ══════════════════════════════════════════════════════
 // DATA
 // ══════════════════════════════════════════════════════
@@ -1668,7 +1690,10 @@ auth.onAuthStateChanged(async user=>{
     // ═══════ WHITELIST GATE — indexE2.html (Etapa 2 BETA) ═══════
     // Solo activo cuando BETA_TEST_MODE_ENABLED=true
     if(typeof BETA_TEST_MODE_ENABLED!=='undefined'&&BETA_TEST_MODE_ENABLED&&!ME.isSuperAdmin){
-      const E2_BETA_NAMES=['Beta Test Com'];
+      // ⚠️ Whitelist de comunidades autorizadas para usar indexE2 (Etapa 2 V2)
+      // Para agregar otra: añade el nombre exacto al array (case-insensitive). Si se vuelve
+      // production-wide, cambia BETA_TEST_MODE_ENABLED a false (elimina el gate).
+      const E2_BETA_NAMES=['Beta Test Com','QUINIELA DOGGY','Zebrows'];
       try{
         const cs=await db.ref('communities/'+profile.communityId).once('value');
         const cn=(cs.val()||{}).name||'';
@@ -2467,8 +2492,11 @@ function bracketSetterLockReason(){
   if(isBracketLockedByDate())return 'r32started';
   // Tournament Mode Stage 1: bracket is locked until admin opens Stage 2
   if(isTournamentBracketLocked())return 'tournament';
-  // Tournament Mode Stage 2 OPEN: bracket editable even after Mundial started
-  if(useOfficialForBracket())return null;
+  // Tournament Mode Stage 2 OPEN: chequear si pasó el deadline de 24h
+  if(useOfficialForBracket()){
+    if(isBracketDeadlinePassed())return 'deadline24h';
+    return null;
+  }
   // Normal mode: lock after Mundial starts (11 jun)
   if(isLocked())return 'locked';
   return null;
@@ -2477,6 +2505,7 @@ function showBracketLocked(reason){
   if(reason==='r32started')alert('🔒 Los 16avos de final ya empezaron. El bracket está bloqueado.');
   else if(reason==='tournament')showTournamentLocked();
   else if(reason==='locked')showLocked();
+  else if(reason==='deadline24h')alert('⏰ Plazo expirado\n\nTenías 24 horas desde que tu admin abrió la Etapa 2 para llenar el bracket. Lo que dejaste, queda.');
 }
 
 function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
@@ -2657,17 +2686,44 @@ async function saveAdminBracketV2(){
   try{await db.ref('community_results/'+ME.communityId+'/bracketE2').set(S.adminR.bracketE2||{});}catch(e){console.warn('save admin V2:',e);}
 }
 
+// ─── Cascada de borrado V2 ───
+// Cuando cambia el ganador (o se vacía un marcador) de un partido upstream,
+// las picks downstream que dependían de ese ganador quedan inválidas.
+// Esta función limpia recursivamente esos partidos.
+function clrChainV2(rk,mi,adm){
+  const root=adm?(S.adminR&&S.adminR.bracketE2):MY_BRACKET;
+  if(!root)return;
+  function reset(rkD,miD){
+    const empty={a:null,b:null,w:'',pen:''};
+    if(rkD==='fin'){if(root.finV2)root.finV2=empty;return;}
+    if(rkD==='thr'){if(root.thrV2)root.thrV2=empty;return;}
+    const arr=root[rkD+'V2'];
+    if(arr&&arr[miD])arr[miD]=empty;
+  }
+  function cascade(rkD,miD){reset(rkD,miD);clrChainV2(rkD,miD,adm);}
+  if(rk==='r32'){for(let i=0;i<R16B.length;i++)if(R16B[i].includes(mi))cascade('r16',i);}
+  else if(rk==='r16'){for(let i=0;i<QFB.length;i++)if(QFB[i].includes(mi))cascade('qf',i);}
+  else if(rk==='qf'){for(let i=0;i<SFB.length;i++)if(SFB[i].includes(mi))cascade('sf',i);}
+  else if(rk==='sf'){cascade('fin',0);cascade('thr',0);}
+}
+
 window.setMcV2Score=async function(rk,mi,side,val,adm){
   if(adm&&!ME.isAdmin)return;
   if(!adm){const r=bracketSetterLockReason&&bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
   const pk=adm?getOrInitAdminPickV2(rk,mi):getOrInitPickV2(rk,mi);
+  const oldW=pk.w;
   pk[side]=val===''?null:parseInt(val);
   if(pk.a!=null&&pk.b!=null&&!isNaN(pk.a)&&!isNaN(pk.b)){
     const [t1,t2]=getMatchTeamsV2(rk,mi,adm);
     if(pk.a>pk.b)pk.w=t1;
     else if(pk.b>pk.a)pk.w=t2;
     else pk.w=pk.pen||'';
+  }else{
+    // Marcador incompleto → no hay ganador definido
+    pk.w='';
   }
+  // Si cambió el ganador, cascada-limpia downstream
+  if(pk.w!==oldW)clrChainV2(rk,mi,adm);
   if(adm)saveAdminBracketV2();else saveMyBracketV2();
   render();
 };
@@ -2675,8 +2731,11 @@ window.setMcV2Pen=async function(rk,mi,team,adm){
   if(adm&&!ME.isAdmin)return;
   if(!adm){const r=bracketSetterLockReason&&bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
   const pk=adm?getOrInitAdminPickV2(rk,mi):getOrInitPickV2(rk,mi);
+  const oldW=pk.w;
   pk.pen=team;
   if(pk.a!=null&&pk.b!=null&&pk.a===pk.b)pk.w=team;
+  // Si cambió el ganador (porque era empate), cascada-limpia downstream
+  if(pk.w!==oldW)clrChainV2(rk,mi,adm);
   if(adm)saveAdminBracketV2();else saveMyBracketV2();
   render();
 };
@@ -2685,22 +2744,38 @@ function getMatchTeamsV2(rk,mi,adm){
   if(rk==='r32'){
     const teamSrc=(!adm&&useOfficialForBracket&&useOfficialForBracket()&&S.adminR)?S.adminR:(adm?S.adminR:myPicks());
     if(!teamSrc)return ['',''];
+    // ─── SAFETY: solo devuelve un equipo si su grupo está 100% completo ───
+    // (todos los 6 partidos del grupo capturados). Esto previene que se "filtren"
+    // equipos basados en standings parciales que podrían cambiar.
+    function groupFullyComplete(g){
+      const ms=(teamSrc.grupos||{})[g]&&teamSrc.grupos[g].matches;
+      return !!(ms&&ms.length===6&&ms.every(x=>x&&x.a!=null&&x.b!=null&&x.a!==''&&x.b!==''));
+    }
+    function rcSafe(code){
+      const grp=code[1];
+      if(!groupFullyComplete(grp))return '';
+      return rc(code,teamSrc);
+    }
     const fx=R32_FIXED.find(x=>x.i===mi);
-    if(fx)return [rc(fx.c1,teamSrc),rc(fx.c2,teamSrc)];
+    if(fx)return [rcSafe(fx.c1),rcSafe(fx.c2)];
     const th=R32_THIRDS.findIndex(x=>x.i===mi);
     if(th>=0){
-      const t1=rc(R32_THIRDS[th].c1,teamSrc)||'';
+      const t1=rcSafe(R32_THIRDS[th].c1);
+      // Para terceros: t2 requiere TODOS los 12 grupos completos para calcular los 8 mejores
+      const allGroupsComplete=GKEYS.every(groupFullyComplete);
       let t2='';
-      try{
-        const ranking=calcAllThirds(teamSrc.grupos||{});
-        const top8=ranking.slice(0,8).map(t=>t.group).sort();
-        const key=top8.length===8?top8.map(g=>'3'+g).join('-'):null;
-        const ax=key?ANNEX_C_TABLE[key]:null;
-        if(ax){
-          const t3code=ax[R32_THIRDS[th].c1];
-          if(t3code){const gl=t3code.slice(-1);const tbl=calcGroupTable(gl,(teamSrc.grupos||{})[gl]);if(tbl[2])t2=tbl[2].name;}
-        }else t2=(teamSrc.t8||[])[th]||'';
-      }catch(e){t2=(teamSrc.t8||[])[th]||'';}
+      if(allGroupsComplete){
+        try{
+          const ranking=calcAllThirds(teamSrc.grupos||{});
+          const top8=ranking.slice(0,8).map(t=>t.group).sort();
+          const key=top8.length===8?top8.map(g=>'3'+g).join('-'):null;
+          const ax=key?ANNEX_C_TABLE[key]:null;
+          if(ax){
+            const t3code=ax[R32_THIRDS[th].c1];
+            if(t3code){const gl=t3code.slice(-1);const tbl=calcGroupTable(gl,(teamSrc.grupos||{})[gl]);if(tbl[2])t2=tbl[2].name;}
+          }else t2=(teamSrc.t8||[])[th]||'';
+        }catch(e){t2=(teamSrc.t8||[])[th]||'';}
+      }
       return [t1,t2];
     }
     return ['',''];
@@ -3443,8 +3518,25 @@ function rAdminT8(){
 
 
 function rViewToggle(){
-  // En indexE2 V2: Vista Tarjetas es editable, Vista Bracket es read-only (resumen visual del árbol)
-  return `<div style="display:flex;justify-content:center;margin-bottom:16px">
+  // Countdown del deadline 24h (si aplica) — visible arriba del toggle
+  let deadlineBanner='';
+  const info=bracketDeadlineInfo&&bracketDeadlineInfo();
+  if(info&&!info.passed){
+    const h=Math.floor(info.msLeft/3600000);
+    const m=Math.floor((info.msLeft%3600000)/60000);
+    const txt=h>0?`${h}h ${String(m).padStart(2,'0')}m`:`${m} minutos`;
+    const urgent=info.msLeft<3600000*2; // <2h
+    deadlineBanner=`<div style="background:${urgent?'linear-gradient(135deg,#fee2e2,#fecaca)':'linear-gradient(135deg,#fef3c7,#fde68a)'};border:1.5px solid ${urgent?'#dc2626':'#d97706'};border-radius:10px;padding:9px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:${urgent?'#991b1b':'#78350f'}">
+      <span style="font-size:18px">⏰</span>
+      <div style="flex:1"><strong>${urgent?'¡Última oportunidad!':'Plazo para llenar tu bracket:'}</strong> ${txt} restantes. Después se bloquea.</div>
+    </div>`;
+  }else if(info&&info.passed){
+    deadlineBanner=`<div style="background:linear-gradient(135deg,#e5e7eb,#d1d5db);border:1.5px solid #6b7280;border-radius:10px;padding:9px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:#374151">
+      <span style="font-size:18px">🔒</span>
+      <div style="flex:1"><strong>Bracket bloqueado.</strong> El plazo de 24h ya expiró. Solo consulta.</div>
+    </div>`;
+  }
+  return deadlineBanner+`<div style="display:flex;justify-content:center;margin-bottom:16px">
     <div class="br-view-toggle" style="box-shadow:0 2px 8px rgba(0,0,0,.06)">
       <button class="${S.bracketView==='cards'?'active':''}" onclick="S.bracketView='cards';render()">📋 Vista Tarjetas</button>
       <button class="${S.bracketView==='bracket'?'active':''}" onclick="S.bracketView='bracket';render()" title="Vista de árbol · solo lectura">🏆 Vista Bracket</button>
@@ -5448,8 +5540,13 @@ async function openStage2(cid,commName){
     okText:'Sí, abrir Etapa 2',
     onOk:async()=>{
       try{
-        await db.ref('communities/'+cid+'/stage2Unlocked').set(true);
-        alert(`✅ ¡Etapa 2 abierta!\n\nLos participantes de "${commName}" ya pueden llenar su bracket de eliminatorias.`);
+        // Guarda el flag + timestamp del momento de apertura.
+        // Los participantes tendrán 24h desde este momento para llenar el bracket.
+        await db.ref('communities/'+cid).update({
+          stage2Unlocked:true,
+          stage2OpenedAt:firebase.database.ServerValue.TIMESTAMP
+        });
+        alert(`✅ ¡Etapa 2 abierta!\n\nLos participantes de "${commName}" tienen 24 horas para llenar su bracket de eliminatorias.`);
         render();
       }catch(e){alert('Error: '+(e.message||e));}
     }
@@ -7525,8 +7622,18 @@ window.toggleStage2E2=async function(){
   if(!ME.isSuperAdmin)return;
   const c=S.communities[ME.communityId];if(!c)return;
   const next=!(c.stage2Unlocked===true);
-  try{await db.ref('communities/'+ME.communityId+'/stage2Unlocked').set(next);}
-  catch(e){alert('Error: '+(e.message||e));}
+  try{
+    if(next){
+      // Abriendo: graba flag + timestamp (24h countdown desde aquí)
+      await db.ref('communities/'+ME.communityId).update({
+        stage2Unlocked:true,
+        stage2OpenedAt:firebase.database.ServerValue.TIMESTAMP
+      });
+    }else{
+      // Cerrando: solo flag (no tocamos timestamp por si se reabre)
+      await db.ref('communities/'+ME.communityId+'/stage2Unlocked').set(false);
+    }
+  }catch(e){alert('Error: '+(e.message||e));}
 };
 function _rndScoreE2(){return Math.floor(Math.random()*4);}
 window.genMyTestPicksE2=async function(){

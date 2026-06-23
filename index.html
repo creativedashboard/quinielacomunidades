@@ -4909,8 +4909,12 @@ async function openStage2(cid,commName){
     okText:'Sí, abrir Etapa 2',
     onOk:async()=>{
       try{
-        await db.ref('communities/'+cid+'/stage2Unlocked').set(true);
-        alert(`✅ ¡Etapa 2 abierta!\n\nLos participantes de "${commName}" ya pueden llenar su bracket de eliminatorias.`);
+        // Guarda el flag + timestamp. Los participantes tienen 24h desde este momento.
+        await db.ref('communities/'+cid).update({
+          stage2Unlocked:true,
+          stage2OpenedAt:firebase.database.ServerValue.TIMESTAMP
+        });
+        alert(`✅ ¡Etapa 2 abierta!\n\nLos participantes de "${commName}" tienen 24 horas para llenar su bracket en indexE2.html.`);
         render();
       }catch(e){alert('Error: '+(e.message||e));}
     }
@@ -6890,6 +6894,23 @@ function render(){
   else if(S.tab==='instrucciones') c=rInstrucciones();
   else if(S.tab==='admin'&&ME.isAdmin) c=rAdmin();
   else c=rDashboard();
+  // ─── Banner condicional: Etapa 2 abierta → redirigir a indexE2.html ───
+  // Aparece automáticamente cuando el admin abre Etapa 2 en una comunidad Modo Torneo.
+  // Es solo display, no modifica ninguna lógica existente.
+  try{
+    const _c2=S.communities&&S.communities[ME.communityId];
+    if(_c2&&_c2.mode==='tournament'&&_c2.stage2Unlocked===true){
+      const e2Banner=`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:32px;flex-shrink:0">🔓</span>
+        <div style="flex:1;min-width:200px;color:#78350f;line-height:1.5">
+          <div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;margin-bottom:3px">¡Etapa 2 abierta!</div>
+          <div style="font-size:13px">Para llenar tu bracket de eliminatorias (marcadores + penales), entra a la <strong>nueva URL</strong>. Aquí ya no se llena nada de Etapa 2.</div>
+        </div>
+        <a href="indexE2.html" style="background:#d97706;color:#fff;border:none;border-radius:9px;padding:10px 18px;font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center;gap:6px">🏆 Ir a Etapa 2 →</a>
+      </div>`;
+      c=e2Banner+c;
+    }
+  }catch(e){console.warn('e2 banner:',e);}
   document.getElementById('content-inner').innerHTML=c;
 
   clearInterval(_cdTimer);
