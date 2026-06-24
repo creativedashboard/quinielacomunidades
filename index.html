@@ -5342,11 +5342,22 @@ function showCreateCommunity(){
   // Check no duplicate code
   const existing=Object.values(S.communities).find(c=>c.inviteCode===upper);
   if(existing){alert('Ese código ya existe en otra comunidad');return;}
+  // Elegir modo: Torneo o Normal
+  const isTorneo=confirm(
+    '¿Modo de la comunidad?\n\n'+
+    '✅ ACEPTAR = Modo Torneo (Etapa 1 grupos + Etapa 2 eliminatorias separadas, bracket V2 con marcadores+penales en indexE2)\n\n'+
+    '❌ CANCELAR = Modo Normal (todo se llena de un golpe, bracket V1 clásico en index)'
+  );
+  const mode=isTorneo?'tournament':'normal';
   const cid='c_'+Date.now().toString(36);
   db.ref('communities/'+cid).set({
     name:name.trim(),
     inviteCode:upper,
+    mode:mode,
+    stage2Unlocked:(mode==='normal'), // normal: stage2 siempre "abierta"; tournament: bloqueada hasta apertura manual
     createdAt:firebase.database.ServerValue.TIMESTAMP
+  }).then(()=>{
+    alert(`✅ Comunidad "${name.trim()}" creada en Modo ${isTorneo?'Torneo':'Normal'}.`);
   });
 }
 
