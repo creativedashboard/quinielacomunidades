@@ -1693,23 +1693,20 @@ auth.onAuthStateChanged(async user=>{
     if(profile.name&&profile.displayNameSet){
       ME.name=profile.name;
     }
-    // ═══════ WHITELIST GATE — indexE2.html (Etapa 2 BETA) ═══════
-    // Solo activo cuando BETA_TEST_MODE_ENABLED=true
-    if(typeof BETA_TEST_MODE_ENABLED!=='undefined'&&BETA_TEST_MODE_ENABLED&&!ME.isSuperAdmin){
-      // ⚠️ Whitelist de comunidades autorizadas para usar indexE2 (Etapa 2 V2)
-      // Para agregar otra: añade el nombre exacto al array (case-insensitive). Si se vuelve
-      // production-wide, cambia BETA_TEST_MODE_ENABLED a false (elimina el gate).
-      const E2_BETA_NAMES=['Beta Test Com','QUINIELA DOGGY','Zebrows'];
+    // ═══════ GATE — indexE2.html (solo Modo Torneo) ═══════
+    // Auto-permitir cualquier comunidad en Modo Torneo. Las comunidades en Modo Normal
+    // no usan Etapa 2 separada (su bracket está en index.html bracket V1).
+    // Super-admin pasa siempre (puede testear desde cualquier comunidad).
+    if(!ME.isSuperAdmin){
       try{
         const cs=await db.ref('communities/'+profile.communityId).once('value');
-        const cn=(cs.val()||{}).name||'';
-        const ok=E2_BETA_NAMES.some(n=>n.toLowerCase().trim()===cn.toLowerCase().trim());
-        if(!ok){
-          alert('Esta es la versión BETA de Etapa 2 — solo para la comunidad de prueba. Te llevamos al index principal.');
+        const c=cs.val()||{};
+        if(c.mode!=='tournament'){
+          alert('Esta página es para Etapa 2 (Eliminatorias) del Modo Torneo. Tu comunidad es Modo Normal — usa el index principal.');
           window.location.href='index.html';
           return;
         }
-      }catch(e){console.warn('Whitelist check failed:',e);}
+      }catch(e){console.warn('Gate check failed:',e);}
     }
     // ═══════════════════════════════════════════════════════════
     applyUserColor(ME.color);
