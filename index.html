@@ -2578,12 +2578,19 @@ function rProgStrip(){
     {id:'sf',lbl:'Semis',done:sfDone===2,info:sfDone===2?'✓':`${sfDone}/2`,skip:qfDone<4},
     {id:'final',lbl:'Final',done:finDone===1,info:finDone===1?'✓':'',skip:sfDone<2},
   ];
+  // Si Etapa 2 está abierta en Modo Torneo, los chips del bracket redirigen a indexE2.html
+  const _commPS=S.communities&&S.communities[ME.communityId];
+  const _e2OpenPS=_commPS&&_commPS.mode==='tournament'&&_commPS.stage2Unlocked===true;
   let h='';
   steps.forEach((s,i)=>{
     const isCurr=S.tab===s.id&&!(s.lbl==='Terceros'&&grpFilled<12);
     const cls=s.skip?'skip':s.done?'done':(isCurr?'active':'');
     if(i>0)h+=`<span class="pstrip-arr">›</span>`;
-    const clickStr=s.skip?'':`goTab('${s.id}')`;
+    let clickStr=s.skip?'':`goTab('${s.id}')`;
+    // Override: chips del bracket (r32+) van a indexE2 cuando Etapa 2 está abierta
+    if(!s.skip&&_e2OpenPS&&['r32','r16','qf','sf','final'].includes(s.id)){
+      clickStr=`window.location.href='indexE2.html'`;
+    }
     h+=`<div class="pstrip-step ${cls}" onclick="${clickStr}">
       <div class="pstrip-dot"></div>
       <span>${s.lbl}</span>${s.info?`<span style="font-size:10px;opacity:.7">${s.info}</span>`:''}
@@ -6971,9 +6978,14 @@ function renderFloatNext(){
   const idx=TAB_ORDER.indexOf(S.tab);
   back.style.display=idx>0?'inline-flex':'none';
 
+  // Si la comunidad tiene Etapa 2 abierta (Modo Torneo), redirigir bracket → indexE2
+  const _comm=S.communities&&S.communities[ME.communityId];
+  const _e2Open=_comm&&_comm.mode==='tournament'&&_comm.stage2Unlocked===true;
+  const _goToE2=()=>{window.location.href='indexE2.html';};
   let msg='',btnLbl='',action=null;
   if(S.tab==='grupos'){
     if(grpFilled<12){msg=`⚽ Te faltan <strong>${12-grpFilled}</strong> grupo${12-grpFilled!==1?'s':''} por completar`;}
+    else if(_e2Open){msg='✅ ¡Todos los grupos completos! Tu Etapa 2 está abierta — el bracket se llena en la nueva URL.';btnLbl='Ir a Etapa 2 →';action=_goToE2;}
     else{msg='✅ ¡Todos los grupos completos! Tus 8 terceros se calcularon solos.';btnLbl='Ir a 16avos →';action=()=>{S.tab='r32';render();};}
   }else if(S.tab==='r32'){
     if(t8cnt<8){msg='Primero completa todos los partidos de grupos';}
