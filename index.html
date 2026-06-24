@@ -4766,7 +4766,7 @@ function rDashboard(){
         </div>
         <div class="lbpts" style="${hasR?'':'color:var(--mt);font-size:16px'};display:flex;flex-direction:column;align-items:flex-end;gap:2px">
           ${hasR
-            ?`<div style="display:flex;align-items:baseline;gap:3px">${m.bd.marcadores}<span style="font-size:11px;color:var(--mt);font-weight:500">pts en partidos</span></div>${m.bd.lugares>0?`<span style="font-size:10px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;white-space:nowrap;border:1px solid #fde68a">+ ${m.bd.lugares} pts en clasificación</span>`:''}`
+            ?`<div style="display:flex;align-items:baseline;gap:3px">${m.bd.marcadores}<span style="font-size:11px;color:var(--mt);font-weight:500">pts en partidos</span></div><span style="font-size:10px;font-weight:700;background:${m.bd.lugares>0?'#fef3c7':'#f3f4f6'};color:${m.bd.lugares>0?'#92400e':'#6b7280'};padding:2px 7px;border-radius:5px;white-space:nowrap;border:1px solid ${m.bd.lugares>0?'#fde68a':'#e5e7eb'}">+ ${m.bd.lugares} pts en clasificación</span>`
             :'—'}
         </div>
       </div>`;
@@ -4914,7 +4914,7 @@ async function openStage2(cid,commName){
           stage2Unlocked:true,
           stage2OpenedAt:firebase.database.ServerValue.TIMESTAMP
         });
-        alert(`✅ ¡Etapa 2 abierta!\n\nLos participantes de "${commName}" tienen 24 horas para llenar su bracket en indexE2.html.`);
+        alert(`✅ ¡Etapa 2 abierta!\n\nLos participantes de "${commName}" pueden llenar su bracket en indexE2.html hasta el 28 jun 1pm CDMX (1h antes del primer 16avos).`);
         render();
       }catch(e){alert('Error: '+(e.message||e));}
     }
