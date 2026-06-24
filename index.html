@@ -4898,8 +4898,18 @@ async function openStage2(cid,commName){
       if(groupMissing>0&&!missingGroups.includes(g))missingGroups.push(g);
     }
     if(missing>0){
-      alert(`⚠️ Faltan ${missing} marcador${missing!==1?'es':''} oficiales por llenar.\n\nGrupos incompletos: ${missingGroups.join(', ')}\n\nVe a "RELLENAR RESULTADOS → Grupos" y completa TODOS los marcadores antes de abrir la Etapa 2.`);
-      return;
+      // Antes: bloqueo duro. Ahora: confirmación informativa.
+      // Con el safety check de indexE2, los users solo ven partidos cuyos grupos están 100% capturados;
+      // los demás muestran "Por definir" y no son editables. Es seguro abrir antes.
+      const proceed=confirm(
+        `⚠️ Faltan ${missing} marcador${missing!==1?'es':''} oficiales por llenar.\n\n`+
+        `Grupos incompletos: ${missingGroups.join(', ')}\n\n`+
+        `¿Abrir Etapa 2 ahora?\n\n`+
+        `• Los participantes ya podrán entrar al bracket, PERO solo podrán llenar partidos donde AMBOS grupos estén 100% capturados (los demás aparecerán "Por definir").\n`+
+        `• Conforme captures más grupos, más partidos del bracket se irán desbloqueando automáticamente para ellos.\n\n`+
+        `OK = abrir igual · Cancelar = primero terminar de capturar grupos`
+      );
+      if(!proceed)return;
     }
   }catch(err){
     console.error('Error checking groups:',err);
