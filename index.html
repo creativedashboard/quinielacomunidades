@@ -2400,10 +2400,12 @@ function calcPts(uid){
     }
   }
   // T8 scoring: how many of user's auto-calculated thirds match the real ones
-  // FIX (11 jun 2026): only award t8 points when ALL 8 best thirds are determined
-  // (i.e., all 12 groups complete). Otherwise users get inconsistent points based on
-  // a partial r.t8 that changes as admin enters more results.
-  if(r.t8&&r.t8.length===8){
+  // FIX (22 jun 2026): only award t8 points when ALL 12 groups are fully captured.
+  // Antes solo verificaba r.t8.length===8, pero r.t8 se calcula auto con datos parciales
+  // → daba puntos basados en un t8 PROVISIONAL que cambia conforme admin captura más.
+  // Ahora: solo cuenta t8 cuando los 12 grupos del admin estén 100% completos.
+  const allGroupsComplete=GKEYS.every(g=>groupComplete(r,g));
+  if(r.t8&&r.t8.length===8&&allGroupsComplete){
     const realSet=new Set(r.t8);
     for(const t of(p.t8||[])){if(realSet.has(t)){tot+=PTS.t8;bd.t8+=PTS.t8;bd.lugares+=PTS.t8;}}
   }

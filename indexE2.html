@@ -1064,6 +1064,11 @@ const TOURNAMENT_START=new Date('2026-06-11T16:00:00Z'); // 11 Jun 2026 — lock
 // First R32 (16avos) match: 28 Jun 13:00 Los Angeles (PT) = 28 Jun 20:00 UTC
 // Once R32 begins, ALL bracket picks lock in Tournament Mode (Option B)
 const R32_START=new Date('2026-06-28T20:00:00Z');
+// Deadline para llenar el bracket V2: 1 hora antes del primer R32 (M73).
+// = 28 jun 19:00 UTC = 28 jun 13:00 CDMX = 28 jun 12:00 LA.
+// Admin puede abrir Etapa 2 cuando quiera (idealmente desde el 24 jun cuando empiecen
+// a terminar los primeros grupos); los users tienen hasta este momento para llenar.
+const BRACKET_FILL_DEADLINE=new Date('2026-06-28T19:00:00Z');
 
 function isLocked(){
   // (Bypass de Beta Test Com removido el 2026-06-22 por petición de Cris — sus picks
@@ -1081,26 +1086,27 @@ function isBracketLockedByDate(){
   return new Date()>=R32_START;
 }
 
-// ─── Deadline 24h del bracket V2 ───
-// El admin abre Etapa 2 → se guarda stage2OpenedAt. Los users tienen 24h desde ese momento.
-// Después: locked. Se calcula client-side (visual) y también lo enforza Firebase rules.
-const STAGE2_DEADLINE_MS=24*60*60*1000; // 24 horas
+// ─── Deadline FIJO del bracket V2 ───
+// Los users tienen hasta BRACKET_FILL_DEADLINE (1h antes de M73) para llenar.
+// Admin puede abrir Etapa 2 cuando guste — los users distribuyen su tiempo desde
+// la apertura hasta el deadline fijo. Conforme los grupos terminen, más partidos
+// se desbloquean automáticamente (vía safety check de groupFullyComplete).
 function bracketDeadlineInfo(){
   try{
     const c=S.communities&&S.communities[ME.communityId];
     if(!c||c.mode!=='tournament'||c.stage2Unlocked!==true)return null;
-    const opened=c.stage2OpenedAt;
-    if(!opened)return null; // Etapa 2 abierta antes de este cambio (sin timestamp): sin deadline
-    const deadline=opened+STAGE2_DEADLINE_MS;
+    const deadline=BRACKET_FILL_DEADLINE.getTime();
     const now=Date.now();
-    return {opened,deadline,now,msLeft:deadline-now,passed:now>=deadline};
+    return {deadline,now,msLeft:deadline-now,passed:now>=deadline};
   }catch(e){return null;}
 }
 function isBracketDeadlinePassed(){
   // Beta Test Com bypass para testing
   try{const c=S.communities[ME.communityId];if(c&&(c.name||'').toLowerCase().trim()==='beta test com')return false;}catch(e){}
-  const info=bracketDeadlineInfo();
-  return info?info.passed:false;
+  // Etapa 2 debe estar abierta para que aplique el deadline (si está cerrada, ya hay otro lock)
+  const c=S.communities&&S.communities[ME.communityId];
+  if(!c||c.mode!=='tournament'||c.stage2Unlocked!==true)return false;
+  return Date.now()>=BRACKET_FILL_DEADLINE.getTime();
 }
 
 // ══════════════════════════════════════════════════════
@@ -2492,9 +2498,9 @@ function bracketSetterLockReason(){
   if(isBracketLockedByDate())return 'r32started';
   // Tournament Mode Stage 1: bracket is locked until admin opens Stage 2
   if(isTournamentBracketLocked())return 'tournament';
-  // Tournament Mode Stage 2 OPEN: chequear si pasó el deadline de 24h
+  // Tournament Mode Stage 2 OPEN: chequear si pasó el deadline FIJO (28 jun 1pm CDMX)
   if(useOfficialForBracket()){
-    if(isBracketDeadlinePassed())return 'deadline24h';
+    if(isBracketDeadlinePassed())return 'deadline24h'; // reason code legacy
     return null;
   }
   // Normal mode: lock after Mundial starts (11 jun)
@@ -2505,7 +2511,7 @@ function showBracketLocked(reason){
   if(reason==='r32started')alert('🔒 Los 16avos de final ya empezaron. El bracket está bloqueado.');
   else if(reason==='tournament')showTournamentLocked();
   else if(reason==='locked')showLocked();
-  else if(reason==='deadline24h')alert('⏰ Plazo expirado\n\nTenías 24 horas desde que tu admin abrió la Etapa 2 para llenar el bracket. Lo que dejaste, queda.');
+  else if(reason==='deadline24h')alert('⏰ Plazo expirado\n\nEl plazo para llenar el bracket terminó (28 jun 1pm CDMX, 1h antes del primer partido de 16avos). Lo que dejaste, queda.');
 }
 
 function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
@@ -2569,7 +2575,10 @@ function calcPts(uid){
   // FIX (11 jun 2026): only award t8 points when ALL 8 best thirds are determined
   // (i.e., all 12 groups complete). Otherwise users get inconsistent points based on
   // a partial r.t8 that changes as admin enters more results.
-  if(r.t8&&r.t8.length===8){
+  // FIX (22 jun 2026): t8 solo cuenta cuando los 12 grupos del admin estén 100% completos
+  // (antes daba puntos basados en t8 provisional que cambia conforme admin captura más)
+  const allGroupsComplete=GKEYS.every(g=>groupComplete(r,g));
+  if(r.t8&&r.t8.length===8&&allGroupsComplete){
     const realSet=new Set(r.t8);
     for(const t of(p.t8||[])){if(realSet.has(t)){tot+=PTS.t8;bd.t8+=PTS.t8;bd.lugares+=PTS.t8;}}
   }
@@ -3518,22 +3527,23 @@ function rAdminT8(){
 
 
 function rViewToggle(){
-  // Countdown del deadline 24h (si aplica) — visible arriba del toggle
+  // Countdown hacia BRACKET_FILL_DEADLINE (28 jun ~13:00 CDMX, 1h antes del primer R32)
   let deadlineBanner='';
   const info=bracketDeadlineInfo&&bracketDeadlineInfo();
   if(info&&!info.passed){
-    const h=Math.floor(info.msLeft/3600000);
+    const d=Math.floor(info.msLeft/86400000);
+    const h=Math.floor((info.msLeft%86400000)/3600000);
     const m=Math.floor((info.msLeft%3600000)/60000);
-    const txt=h>0?`${h}h ${String(m).padStart(2,'0')}m`:`${m} minutos`;
+    const txt=d>0?`${d}d ${h}h ${String(m).padStart(2,'0')}m`:(h>0?`${h}h ${String(m).padStart(2,'0')}m`:`${m} minutos`);
     const urgent=info.msLeft<3600000*2; // <2h
     deadlineBanner=`<div style="background:${urgent?'linear-gradient(135deg,#fee2e2,#fecaca)':'linear-gradient(135deg,#fef3c7,#fde68a)'};border:1.5px solid ${urgent?'#dc2626':'#d97706'};border-radius:10px;padding:9px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:${urgent?'#991b1b':'#78350f'}">
       <span style="font-size:18px">⏰</span>
-      <div style="flex:1"><strong>${urgent?'¡Última oportunidad!':'Plazo para llenar tu bracket:'}</strong> ${txt} restantes. Después se bloquea.</div>
+      <div style="flex:1"><strong>${urgent?'¡Última oportunidad!':'Plazo para llenar tu bracket:'}</strong> ${txt} restantes (cierra 28 jun 1pm CDMX, 1h antes del primer 16avos).</div>
     </div>`;
   }else if(info&&info.passed){
     deadlineBanner=`<div style="background:linear-gradient(135deg,#e5e7eb,#d1d5db);border:1.5px solid #6b7280;border-radius:10px;padding:9px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:#374151">
       <span style="font-size:18px">🔒</span>
-      <div style="flex:1"><strong>Bracket bloqueado.</strong> El plazo de 24h ya expiró. Solo consulta.</div>
+      <div style="flex:1"><strong>Bracket bloqueado.</strong> El plazo ya expiró (28 jun 1pm CDMX). Solo consulta.</div>
     </div>`;
   }
   return deadlineBanner+`<div style="display:flex;justify-content:center;margin-bottom:16px">
@@ -5546,7 +5556,7 @@ async function openStage2(cid,commName){
           stage2Unlocked:true,
           stage2OpenedAt:firebase.database.ServerValue.TIMESTAMP
         });
-        alert(`✅ ¡Etapa 2 abierta!\n\nLos participantes de "${commName}" tienen 24 horas para llenar su bracket de eliminatorias.`);
+        alert(`✅ ¡Etapa 2 abierta!\n\nLos participantes de "${commName}" pueden llenar su bracket hasta el 28 jun 1pm CDMX (1h antes del primer 16avos).`);
         render();
       }catch(e){alert('Error: '+(e.message||e));}
     }
