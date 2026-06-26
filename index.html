@@ -3677,7 +3677,7 @@ function _liveMatchDateUTC(g, mi) {
 function _getLiveAndUpcoming() {
   const now = Date.now();
   const MATCH_DURATION = 120 * 60 * 1000; // 2 horas (90 min + medio tiempo + tiempo extra + buffer)
-  let live = null;
+  const live = []; // FIX: en jornadas dobles juegan 2+ partidos simultáneos
   const upcoming = [];
   const all = [];
   for (const g of GKEYS) {
@@ -3691,8 +3691,8 @@ function _getLiveAndUpcoming() {
   for (const m of all) {
     const elapsed = now - m.dt;
     if (elapsed >= 0 && elapsed < MATCH_DURATION) {
-      // En vivo
-      if (!live) live = m;
+      // En vivo — todos los simultáneos (jornada 3 de grupos tiene 2 a la vez)
+      live.push(m);
     } else if (elapsed < 0) {
       // Futuro
       upcoming.push(m);
@@ -3800,9 +3800,9 @@ function rPendingResults() {
 // Render de la sección "En vivo / próximos"
 function rLiveUpcoming(members) {
   const { live, upcoming } = _getLiveAndUpcoming();
-  if (!live && upcoming.length === 0) return ''; // No hay nada que mostrar
+  if (live.length === 0 && upcoming.length === 0) return ''; // No hay nada que mostrar
   let h = `<div class="rm-section-header">
-    <div class="rm-section-title">${live ? '🔴 En vivo y próximos' : '📅 Próximos partidos'}</div>
+    <div class="rm-section-title">${live.length > 0 ? '🔴 En vivo y próximos' : '📅 Próximos partidos'}</div>
   </div>
   <div class="rm-cards-row">`;
 
@@ -3866,7 +3866,7 @@ function rLiveUpcoming(members) {
     </div>`;
   }
 
-  if (live) h += renderCard(live, true);
+  for (const m of live) h += renderCard(m, true);
   for (const m of upcoming) h += renderCard(m, false);
   h += '</div>';
   return h;
