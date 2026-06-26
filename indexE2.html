@@ -4023,7 +4023,8 @@ function rR32(adm){
   if(!adm&&S.bracketView==='bracket'){return rParticipants()+rViewToggle()+rEditableBracket();}
   h+=`<div class="phase"><div class="phdr">Partidos de grupos <span class="ptag">${PTS.r32} pts c/u</span></div><div class="mgrid">`;
   for(const{i,c1,c2}of R32_FIXED){
-    const t1=rc(c1,teamSrc)||'',t2=rc(c2,teamSrc)||'';
+    // Usa getMatchTeamsV2 que tiene el safety check (solo devuelve teams si los grupos están 100% capturados)
+    const [t1,t2]=getMatchTeamsV2('r32',i,adm);
     const pickObj=adm?getAdminPickV2('r32',i):getMyPickV2('r32',i);
     h+=mcV2({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rk:'r32',mi:i,adm});
   }
@@ -4058,7 +4059,8 @@ function rR32(adm){
       h+='<div class="mgrid">';
       for(let ti=0;ti<8;ti++){
         const{i,c1}=R32_THIRDS[ti];
-        const t1=rc(c1,teamSrc)||'',t2=t8[ti]||'';
+        // Usa safety check: t1 solo si su grupo completo, t2 solo si LOS 12 grupos completos
+        const [t1,t2]=getMatchTeamsV2('r32',i,false);
         const t3code=annexMatchups?annexMatchups[c1]:null;
         const lbl=t3code?`${c1} vs ${t3code}`:`${c1} vs 3ro #${ti+1}`;
         const pickObj=getMyPickV2('r32',i);
@@ -4087,8 +4089,8 @@ function rR32(adm){
     h+='<div class="mgrid">';
     for(let ti=0;ti<8;ti++){
       const{i,c1}=R32_THIRDS[ti];
-      const t1=rc(c1,p)||'';
-      const t2=p.t8[ti]||'';
+      // Usa safety check: t1 solo si su grupo completo, t2 solo si LOS 12 grupos completos
+      const [t1,t2]=getMatchTeamsV2('r32',i,true);
       const t3code=annexMatchups?annexMatchups[c1]:null;
       const lbl=t3code?`${c1} vs ${t3code}`:`${c1} vs 3ro (Annex C)`;
       const pickObj=getAdminPickV2('r32',i);
