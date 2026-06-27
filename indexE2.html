@@ -3582,20 +3582,30 @@ function buildBracketV2ReadOnly(uid){
     if(rk==='r32'){
       const teamSrc=(useOfficialForBracket()&&S.adminR)?S.adminR:(isOther?userPicks(uid):myPicks());
       if(!teamSrc)return ['',''];
+      // SAFETY: solo devuelve un equipo si su grupo está 100% completo (igual que getMatchTeamsV2)
+      function groupFullyComplete(g){
+        const ms=(teamSrc.grupos||{})[g]&&teamSrc.grupos[g].matches;
+        return !!(ms&&ms.length===6&&ms.every(x=>x&&x.a!=null&&x.b!=null&&x.a!==''&&x.b!==''));
+      }
+      function rcSafe(code){const grp=code[1];return groupFullyComplete(grp)?rc(code,teamSrc):'';}
       const fx=R32_FIXED.find(x=>x.i===mi);
-      if(fx)return [rc(fx.c1,teamSrc),rc(fx.c2,teamSrc)];
+      if(fx)return [rcSafe(fx.c1),rcSafe(fx.c2)];
       const th=R32_THIRDS.findIndex(x=>x.i===mi);
       if(th>=0){
-        const t1=rc(R32_THIRDS[th].c1,teamSrc)||'';
+        const t1=rcSafe(R32_THIRDS[th].c1);
+        // Mejores 3eros: t2 requiere TODOS los 12 grupos completos
+        const allGroupsComplete=GKEYS.every(groupFullyComplete);
         let t2='';
-        try{
-          const ranking=calcAllThirds(teamSrc.grupos||{});
-          const top8=ranking.slice(0,8).map(t=>t.group).sort();
-          const key=top8.length===8?top8.map(g=>'3'+g).join('-'):null;
-          const ax=key?ANNEX_C_TABLE[key]:null;
-          if(ax){const t3=ax[R32_THIRDS[th].c1];if(t3){const gl=t3.slice(-1);const tbl=calcGroupTable(gl,(teamSrc.grupos||{})[gl]);if(tbl[2])t2=tbl[2].name;}}
-          else t2=(teamSrc.t8||[])[th]||'';
-        }catch(e){t2=(teamSrc.t8||[])[th]||'';}
+        if(allGroupsComplete){
+          try{
+            const ranking=calcAllThirds(teamSrc.grupos||{});
+            const top8=ranking.slice(0,8).map(t=>t.group).sort();
+            const key=top8.length===8?top8.map(g=>'3'+g).join('-'):null;
+            const ax=key?ANNEX_C_TABLE[key]:null;
+            if(ax){const t3=ax[R32_THIRDS[th].c1];if(t3){const gl=t3.slice(-1);const tbl=calcGroupTable(gl,(teamSrc.grupos||{})[gl]);if(tbl[2])t2=tbl[2].name;}}
+            else t2=(teamSrc.t8||[])[th]||'';
+          }catch(e){t2=(teamSrc.t8||[])[th]||'';}
+        }
         return [t1,t2];
       }
       return ['',''];
@@ -4021,14 +4031,14 @@ function rR32(adm){
   let h=rParticipants();
   if(!adm)h+=rViewToggle();
   if(!adm&&S.bracketView==='bracket'){return rParticipants()+rViewToggle()+rEditableBracket();}
-  h+=`<div class="phase"><div class="phdr">Partidos de grupos <span class="ptag">${PTS.r32} pts c/u</span></div><div class="mgrid">`;
+  h+=`<div class="phase"><div class="phdr">Partidos de grupos <span class="ptag">hasta 5 pts c/u</span></div><div class="mgrid">`;
   for(const{i,c1,c2}of R32_FIXED){
     // Usa getMatchTeamsV2 que tiene el safety check (solo devuelve teams si los grupos están 100% capturados)
     const [t1,t2]=getMatchTeamsV2('r32',i,adm);
     const pickObj=adm?getAdminPickV2('r32',i):getMyPickV2('r32',i);
     h+=mcV2({lbl:`${c1} vs ${c2}`,t1:t1||c1,t2:t2||c2,pickObj,dis:!t1||!t2,info:MATCH_INFO.r32[i],rk:'r32',mi:i,adm});
   }
-  h+=`</div></div><div class="phase"><div class="phdr">Mejores Terceros <span class="ptag">${PTS.r32} pts c/u</span></div>`;
+  h+=`</div></div><div class="phase"><div class="phdr">Mejores Terceros <span class="ptag">hasta 5 pts c/u</span></div>`;
   if(!adm){
     // ⚠️ Important disclaimer about Annex C / FIFA emparejamientos
     h+=`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:11.5px;color:#78350f;line-height:1.5">
