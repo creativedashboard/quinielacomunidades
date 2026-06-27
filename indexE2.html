@@ -4631,6 +4631,206 @@ function rRecentMatches(members){
   h+='</div>';
   return h;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD ETAPA 2 — Próximos partidos del bracket + Últimos resultados
+// ═══════════════════════════════════════════════════════════════
+function _allBracketMatches(){
+  const out=[];
+  for(let i=0;i<16;i++)out.push({rk:'r32',mi:i,info:MATCH_INFO.r32[i]});
+  for(let i=0;i<8;i++) out.push({rk:'r16',mi:i,info:MATCH_INFO.r16[i]});
+  for(let i=0;i<4;i++) out.push({rk:'qf', mi:i,info:MATCH_INFO.qf[i]});
+  for(let i=0;i<2;i++) out.push({rk:'sf', mi:i,info:MATCH_INFO.sf[i]});
+  out.push({rk:'thr',mi:0,info:MATCH_INFO.thr});
+  out.push({rk:'fin',mi:0,info:MATCH_INFO.fin});
+  return out;
+}
+function _bracketRoundLabel(rk){
+  return {r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',fin:'🏆 Final',thr:'🥉 3er Lugar'}[rk]||rk;
+}
+function _userPickV2For(uid,rk,mi){
+  const p=(S.picks&&S.picks[uid]&&S.picks[uid].bracketE2)||null;
+  if(!p)return null;
+  if(rk==='fin')return p.finV2||null;
+  if(rk==='thr')return p.thrV2||null;
+  const arr=p[rk+'V2']||[];
+  // Maneja arrays y sparse objects
+  return Array.isArray(arr)?arr[mi]:(arr[mi]||arr[String(mi)]||null);
+}
+
+// Próximos partidos del bracket (los que aún NO tienen marcador oficial)
+function rBracketE2Upcoming(members){
+  const matches=_allBracketMatches();
+  const upcoming=[];
+  for(const m of matches){
+    const admPick=getAdminPickV2(m.rk,m.mi);
+    if(admPick&&admPick.a!=null&&admPick.b!=null)continue; // ya capturado, va en "recientes"
+    const[t1,t2]=getMatchTeamsV2(m.rk,m.mi,false);
+    upcoming.push({...m,t1,t2});
+  }
+  // Ordena por número de partido (cronológico)
+  upcoming.sort((a,b)=>a.info.m-b.info.m);
+  if(upcoming.length===0)return '';
+  // Solo los próximos 6 para no saturar
+  const show=upcoming.slice(0,6);
+  let h=`<div class="rm-section-header" style="margin-top:18px">
+    <div class="rm-section-title">🏆 Próximos partidos del bracket</div>
+    <div style="font-size:11px;color:var(--mt);margin-top:3px">Eliminatorias · ${upcoming.length} partidos pendientes</div>
+  </div>
+  <div class="rm-cards-row">`;
+  for(const m of show){
+    const tName1=m.t1||'Por definir';
+    const tName2=m.t2||'Por definir';
+    const t1Empty=!m.t1, t2Empty=!m.t2;
+    // Cuenta predicciones de la comunidad
+    let predCount=0;
+    for(const mem of members){
+      const pk=_userPickV2For(mem.uid,m.rk,m.mi);
+      if(pk&&pk.a!=null&&pk.b!=null)predCount++;
+    }
+    h+=`<div class="rm-card lv-card" onclick="openBracketMatchPredictions('${js(m.rk)}',${m.mi})">
+      <div class="lv-card-status">
+        <span class="lv-upcoming-badge" style="background:#fef3c7;color:#92400e">🏆 ${_bracketRoundLabel(m.rk)}</span>
+        <span class="lv-countdown">M${m.info.m}</span>
+      </div>
+      <div class="rm-card-date">
+        <span class="rm-card-group" style="background:#fef3c7;color:#92400e">BRACKET</span>
+        <span>📅 ${m.info.d} · ⏰ ${m.info.t} · 📍 ${m.info.c}</span>
+      </div>
+      <div class="rm-card-teams">
+        <div class="rm-card-team" style="${t1Empty?'opacity:.5':''}">
+          <span class="flag">${m.t1?flag(m.t1):'❓'}</span>
+          <span class="rm-card-team-name">${esc(tName1)}</span>
+          <span class="rm-card-team-score" style="opacity:.4">?</span>
+        </div>
+        <div class="rm-card-team" style="${t2Empty?'opacity:.5':''}">
+          <span class="flag">${m.t2?flag(m.t2):'❓'}</span>
+          <span class="rm-card-team-name">${esc(tName2)}</span>
+          <span class="rm-card-team-score" style="opacity:.4">?</span>
+        </div>
+      </div>
+      <div class="rm-card-stats">
+        <span class="rm-card-pred-count">📊 ${predCount}/${members.length} predicciones</span>
+      </div>
+    </div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// Últimos resultados del bracket (los que YA tienen marcador oficial)
+function rBracketE2Recent(members){
+  const matches=_allBracketMatches();
+  const recent=[];
+  for(const m of matches){
+    const admPick=getAdminPickV2(m.rk,m.mi);
+    if(!admPick||admPick.a==null||admPick.b==null)continue;
+    const[t1,t2]=getMatchTeamsV2(m.rk,m.mi,true); // adm=true para consistencia
+    recent.push({...m,t1,t2,admPick});
+  }
+  if(recent.length===0)return '';
+  // Ordena por número de partido descendente (los más recientes primero)
+  recent.sort((a,b)=>b.info.m-a.info.m);
+  const show=recent.slice(0,6);
+  let h=`<div class="rm-section-header" style="margin-top:18px">
+    <div class="rm-section-title">🔥 Últimos resultados del bracket</div>
+    <div style="font-size:11px;color:var(--mt);margin-top:3px">Eliminatorias · ${recent.length} partidos jugados</div>
+  </div>
+  <div class="rm-cards-row">`;
+  for(const m of show){
+    const ra=m.admPick.a, rb=m.admPick.b;
+    const realWinner=m.admPick.w||'';
+    const isTie=ra===rb;
+    // Cuenta exactos
+    let exactCount=0;
+    for(const mem of members){
+      const pk=_userPickV2For(mem.uid,m.rk,m.mi);
+      if(!pk)continue;
+      if(pk.a===ra&&pk.b===rb)exactCount++;
+    }
+    h+=`<div class="rm-card" onclick="openBracketMatchPredictions('${js(m.rk)}',${m.mi})">
+      <div class="rm-card-date">
+        <span class="rm-card-group" style="background:#fef3c7;color:#92400e">${_bracketRoundLabel(m.rk)} · M${m.info.m}</span>
+        <span>${m.info.d}${m.info.c?' · '+esc(m.info.c):''}</span>
+      </div>
+      <div class="rm-card-teams">
+        <div class="rm-card-team${realWinner===m.t1?' rm-winner':''}">
+          <span class="flag">${flag(m.t1)}</span>
+          <span class="rm-card-team-name">${esc(m.t1||'?')}</span>
+          <span class="rm-card-team-score">${ra}</span>
+        </div>
+        <div class="rm-card-team${realWinner===m.t2?' rm-winner':''}">
+          <span class="flag">${flag(m.t2)}</span>
+          <span class="rm-card-team-name">${esc(m.t2||'?')}</span>
+          <span class="rm-card-team-score">${rb}</span>
+        </div>
+      </div>
+      ${isTie&&m.admPick.pen?`<div style="font-size:10.5px;color:var(--mt);margin-top:4px">⚽ Penales: <strong>${esc(abbr(m.admPick.pen))}</strong></div>`:''}
+      <div class="rm-card-stats">
+        <span class="rm-card-exact-count">🎯 ${exactCount}/${members.length} acertaron exacto</span>
+      </div>
+    </div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// Modal: predicciones de la comunidad para un partido específico del bracket
+window.openBracketMatchPredictions=function(rk,mi){
+  const info=rk==='fin'?MATCH_INFO.fin:(rk==='thr'?MATCH_INFO.thr:MATCH_INFO[rk][mi]);
+  const[t1,t2]=getMatchTeamsV2(rk,mi,true);
+  const admPick=getAdminPickV2(rk,mi);
+  const hasResult=admPick&&admPick.a!=null&&admPick.b!=null;
+  const members=myCommunityMembers();
+  // Header con info del partido
+  let h=`<div style="padding:14px 16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-bottom:1.5px solid #d97706;font-family:'Outfit',sans-serif">
+    <div style="font-size:11px;font-weight:700;color:#78350f;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${_bracketRoundLabel(rk)} · M${info.m}</div>
+    <div style="font-size:14px;font-weight:800;color:#78350f">${flag(t1)||''} ${esc(t1||'?')} vs ${esc(t2||'?')} ${flag(t2)||''}</div>
+    <div style="font-size:11px;color:#92400e;margin-top:3px">📅 ${info.d} · ⏰ ${info.t}${info.c?' · 📍 '+esc(info.c):''}</div>
+    ${hasResult?`<div style="margin-top:8px;padding:6px 10px;background:#fff;border-radius:6px;font-size:12px;color:#1e40af;font-weight:700">📊 Marcador real: ${admPick.a}–${admPick.b}${admPick.a===admPick.b&&admPick.pen?` (pen ${esc(abbr(admPick.pen))})`:''}</div>`:''}
+  </div>`;
+  // Lista de predicciones ordenada (exactos primero, luego ganador, luego fail)
+  const rows=[];
+  for(const m of members){
+    const pk=_userPickV2For(m.uid,rk,mi);
+    if(!pk||pk.a==null||pk.b==null){rows.push({m,pk:null,pts:0,status:'sin pick'});continue;}
+    let pts=0, status='❌ erró';
+    if(hasResult){
+      pts=calcMatchV2Points(pk,admPick);
+      if(pts>=3)status='🎯 exacto';
+      else if(pts===1)status='✓ ganador';
+      else if(pts===2)status='⚽ pen';
+    }else{status='⏳ pendiente';}
+    rows.push({m,pk,pts,status});
+  }
+  rows.sort((a,b)=>b.pts-a.pts||(a.m.name||'').localeCompare(b.m.name||''));
+  h+=`<div style="padding:8px 12px;max-height:60vh;overflow:auto">
+    <div style="font-size:11px;color:var(--mt);font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:8px 4px">${rows.length} participantes</div>`;
+  for(const r of rows){
+    const u=r.m;
+    const initial=(u.name||'?')[0].toUpperCase();
+    const pkStr=r.pk?`${r.pk.a}–${r.pk.b}${r.pk.a===r.pk.b&&r.pk.pen?` (pen ${esc(abbr(r.pk.pen))})`:''}`:'—';
+    h+=`<div style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--bd)">
+      <div style="width:30px;height:30px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0">${esc(initial)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(u.name||'?')}</div>
+        <div style="font-size:11px;color:var(--mt)">${r.status}${hasResult&&r.pk?` · ${r.pts} pt${r.pts!==1?'s':''}`:''}</div>
+      </div>
+      <div style="font-family:'Outfit',sans-serif;font-weight:800;font-size:14px;color:${r.pts>=3?'#047857':(r.pts>0?'#1e40af':'var(--mt)')};white-space:nowrap">${pkStr}</div>
+    </div>`;
+  }
+  h+=`</div>`;
+  // Mostrar en el overlay (reusa el mismo overlay del bracket)
+  const ov=document.getElementById('bracket-overlay');
+  if(!ov){alert('Error: overlay no encontrado');return;}
+  ov.innerHTML=`<div class="br-topbar">
+    <div class="br-name-wrap"><div class="br-name">Predicciones del partido</div></div>
+    <button class="br-close" onclick="closeBracket()">✕ Cerrar</button>
+  </div>${h}`;
+  ov.classList.add('on');
+  parseTwemoji(ov);
+};
+
 // Abre el modal de detalle de un partido
 function openMatchDetail(g,mi){
   const matches=(S.adminR&&S.adminR.grupos&&S.adminR.grupos[g]&&S.adminR.grupos[g].matches)||[];
@@ -5260,6 +5460,11 @@ function rDashboard(){
   const members=myCommunityMembers();
   // Sección admin: marcadores pendientes (solo visible para admins)
   h+=rPendingResults();
+  // ─── Sección bracket E2 (solo si Etapa 2 está abierta) ───
+  if(_c&&_c.mode==='tournament'&&_c.stage2Unlocked===true){
+    try{h+=rBracketE2Upcoming(members);}catch(e){console.warn('rBracketE2Upcoming:',e);}
+    try{h+=rBracketE2Recent(members);}catch(e){console.warn('rBracketE2Recent:',e);}
+  }
   // Sección: en vivo / próximos partidos (con predicciones de la comunidad)
   h+=rLiveUpcoming(members);
   // Sección: últimos resultados (solo si hay marcadores oficiales)
@@ -5820,7 +6025,10 @@ function rAdmCommunities(){
           tournamentBanner=`<div style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);border:1.5px solid #16a34a;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:11.5px;color:#14532d;line-height:1.5">
             <div style="font-weight:800;margin-bottom:4px;font-family:'Outfit',sans-serif;font-size:12.5px">🏆 Modo Torneo · Etapa 2 abierta ✅</div>
             <div>Los participantes ya pueden llenar su bracket de eliminatorias basado en los equipos reales que pasaron.</div>
-            ${ME.isSuperAdmin?`<button onclick="resetStage2('${js(cid)}','${js(c.name)}')" style="margin-top:10px;padding:6px 12px;background:#fff;border:1.5px solid #16a34a;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#14532d;font-family:'DM Sans',sans-serif">🔄 Resetear Etapa 2 (super-admin)</button>`:''}
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+              <button onclick="resetStage2('${js(cid)}','${js(c.name)}')" style="padding:6px 12px;background:#fff;border:1.5px solid #16a34a;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#14532d;font-family:'DM Sans',sans-serif">🔒 Cerrar Etapa 2</button>
+              <button onclick="downloadPicksE2('${js(cid)}','${js(c.name)}')" style="padding:6px 12px;background:#fff;border:1.5px solid #2563eb;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#1e40af;font-family:'DM Sans',sans-serif">📥 Descargar picks E2 (JSON)</button>
+            </div>
           </div>`;
         }else{
           tournamentBanner=`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:10px;padding:14px;margin-bottom:14px;color:#78350f;line-height:1.5">
@@ -7735,6 +7943,63 @@ window.clearOfficialResultsE2=async function(){
   if(!confirm('Borrar TODOS los marcadores oficiales de la comunidad?'))return;
   try{await db.ref('community_results/'+ME.communityId).remove();alert('✅ Borrados');}
   catch(e){alert('Error: '+(e.message||e));}
+};
+
+// ═══════════════════════════════════════════════════════════════
+// DESCARGA DE PICKS DE ETAPA 2 (JSON) — útil para backup / blockchain
+// ═══════════════════════════════════════════════════════════════
+window.downloadPicksE2=async function(cid,commName){
+  // Solo admin de esta comunidad o super-admin
+  const isCommAdm=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdm){alert('Solo el admin de esta comunidad puede descargar picks.');return;}
+  try{
+    // Recopila datos
+    const c=S.communities[cid]||{};
+    const adminE2=(S.adminR&&S.adminR.bracketE2)||null;
+    // Picks de cada participante en la comunidad
+    const participants=[];
+    for(const uid in S.users){
+      const u=S.users[uid];
+      if(!u||u.communityId!==cid)continue;
+      const userPicksRaw=(S.picks&&S.picks[uid])||{};
+      const bracketE2=userPicksRaw.bracketE2||null;
+      // Calcular puntos E1+E2 para incluir en el reporte
+      let pointsBd=null;
+      try{const r=calcPts(uid);pointsBd=r.bd;}catch(e){}
+      participants.push({
+        uid,
+        name:u.name||'',
+        color:u.color||'',
+        bracketE2,
+        points:pointsBd
+      });
+    }
+    // Ordena por nombre para consistencia
+    participants.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    const payload={
+      meta:{
+        community:{cid,name:c.name||'',mode:c.mode||'',stage2OpenedAt:c.stage2OpenedAt||null,stage2Unlocked:c.stage2Unlocked===true},
+        deadline:BRACKET_FILL_DEADLINE.toISOString(),
+        exportedAt:new Date().toISOString(),
+        exportedBy:{uid:ME.uid,name:ME.name||'',email:ME.email||''},
+        participantsCount:participants.length,
+        scoringSystem:'Forma C — 3 exacto / 1 ganador / +2 penales / 5 combo max'
+      },
+      officialResults:{bracketE2:adminE2},
+      participants
+    };
+    const json=JSON.stringify(payload,null,2);
+    const blob=new Blob([json],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const safeName=(commName||c.name||'comunidad').replace(/[^a-zA-Z0-9-_]/g,'_');
+    const ts=new Date().toISOString().slice(0,19).replace(/:/g,'-');
+    a.href=url;
+    a.download=`picksE2_${safeName}_${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},100);
+  }catch(e){alert('Error generando el JSON: '+(e.message||e));}
 };
 </script>
 </body>
