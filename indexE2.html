@@ -5206,11 +5206,19 @@ function rDashboard(){
   const _c=S.communities[ME.communityId];
   if(_c&&_c.mode==='tournament'&&_c.stage2Unlocked===true){
     // Cuenta cuántos partidos del bracket lleva el user llenados (de los 32 totales)
+    // FIX: Firebase puede guardar arrays sparse como objetos. Usar Object.values() para iterar
+    // tanto arrays como objetos sin tirar TypeError.
     const e2=(typeof MY_BRACKET!=='undefined'&&MY_BRACKET)||{};
     let filled=0;
-    for(const arr of[e2.r32V2,e2.r16V2,e2.qfV2,e2.sfV2]){if(arr)for(const p of arr)if(p&&p.w)filled++;}
-    if(e2.finV2&&e2.finV2.w)filled++;
-    if(e2.thrV2&&e2.thrV2.w)filled++;
+    try{
+      for(const arr of[e2.r32V2,e2.r16V2,e2.qfV2,e2.sfV2]){
+        if(!arr)continue;
+        const items=Array.isArray(arr)?arr:Object.values(arr);
+        for(const p of items)if(p&&p.w)filled++;
+      }
+      if(e2.finV2&&e2.finV2.w)filled++;
+      if(e2.thrV2&&e2.thrV2.w)filled++;
+    }catch(err){console.warn('count filled error:',err);}
     const total=32;
     const isFull=filled>=total;
     if(!isFull){

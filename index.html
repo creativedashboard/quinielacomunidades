@@ -4942,16 +4942,18 @@ async function openStage2(cid,commName){
 
 // SUPER-ADMIN ONLY: Reset Stage 2 (re-lock it)
 async function resetStage2(cid,commName){
-  if(!ME.isSuperAdmin){alert('Solo super-admin puede resetear Etapa 2.');return;}
+  // Permitir tanto super-admin como community-admin de esa comunidad
+  const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede cerrar Etapa 2.');return;}
   showConfirm({
-    title:'🔄 Resetear Etapa 2',
-    msg:`¿Volver a BLOQUEAR la Etapa 2 en "${commName}"?\n\nLos participantes NO podrán seguir llenando su bracket hasta que vuelvas a abrir la etapa. Sus picks actuales NO se borran.\n\nÚtil si el admin de comunidad presionó el botón por error.`,
-    okText:'Sí, resetear',
+    title:'🔒 Cerrar Etapa 2',
+    msg:`¿Volver a BLOQUEAR la Etapa 2 en "${commName}"?\n\nLos participantes NO podrán seguir llenando su bracket hasta que vuelvas a abrirla. Sus picks actuales NO se borran — se quedan guardados.\n\nPuedes volver a abrirla cuando quieras.`,
+    okText:'Sí, cerrar',
     danger:true,
     onOk:async()=>{
       try{
         await db.ref('communities/'+cid+'/stage2Unlocked').set(false);
-        alert(`✅ Etapa 2 resetada en "${commName}".\n\nEl admin de la comunidad puede volver a abrirla cuando quiera.`);
+        alert(`✅ Etapa 2 cerrada en "${commName}".\n\nLos picks de los users siguen guardados. Puedes reabrir cuando quieras.`);
         render();
       }catch(e){alert('Error: '+(e.message||e));}
     }
@@ -5180,14 +5182,14 @@ function rAdmCommunities(){
           tournamentBanner=`<div style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);border:1.5px solid #16a34a;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:11.5px;color:#14532d;line-height:1.5">
             <div style="font-weight:800;margin-bottom:4px;font-family:'Outfit',sans-serif;font-size:12.5px">🏆 Modo Torneo · Etapa 2 abierta ✅</div>
             <div>Los participantes ya pueden llenar su bracket de eliminatorias basado en los equipos reales que pasaron.</div>
-            ${ME.isSuperAdmin?`<button onclick="resetStage2('${js(cid)}','${js(c.name)}')" style="margin-top:10px;padding:6px 12px;background:#fff;border:1.5px solid #16a34a;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#14532d;font-family:'DM Sans',sans-serif">🔄 Resetear Etapa 2 (super-admin)</button>`:''}
+            <button onclick="resetStage2('${js(cid)}','${js(c.name)}')" style="margin-top:10px;padding:6px 12px;background:#fff;border:1.5px solid #16a34a;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#14532d;font-family:'DM Sans',sans-serif">🔒 Cerrar Etapa 2</button>
           </div>`;
         }else{
           tournamentBanner=`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:10px;padding:14px;margin-bottom:14px;color:#78350f;line-height:1.5">
             <div style="font-weight:800;margin-bottom:6px;font-family:'Outfit',sans-serif;font-size:13px">🏆 Modo Torneo · Etapa 2 BLOQUEADA 🔒</div>
             <div style="font-size:11.5px;margin-bottom:10px">Los participantes solo pueden llenar la Fase de Grupos. Cuando termine la fase de grupos del Mundial real y tengas metidos TODOS los marcadores oficiales aquí, abre la Etapa 2 para que llenen su bracket basado en los 32 equipos REALES que pasaron.</div>
             <button onclick="openStage2('${js(cid)}','${js(c.name)}')" style="padding:9px 14px;background:#92400e;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif">🔓 Abrir Etapa 2: Eliminatorias</button>
-            <div style="font-size:10px;color:#a16207;margin-top:8px">⚠️ Una vez abierta, no se puede volver a cerrar.</div>
+            <div style="font-size:10px;color:#a16207;margin-top:8px">💡 Puedes cerrar y reabrir cuando quieras desde aquí.</div>
           </div>`;
         }
       }else if(c.mode==='normal'&&canManage){
