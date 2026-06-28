@@ -5343,8 +5343,60 @@ function rMyPicksContent(uid,u){
       </div>`;
     }
   }
-  h+=`</div>
-    <div class="mrm-foot">
+  h+=`</div>`;
+  // ─── Sección Etapa 2 (bracket V2) — solo si stage2 está abierta ───
+  try{
+    if(comm&&comm.mode==='tournament'&&comm.stage2Unlocked===true){
+      const e2Matches=_allBracketMatches();
+      const e2Upcoming=[];
+      for(const em of e2Matches){
+        const adm=getAdminPickV2(em.rk,em.mi);
+        if(adm&&adm.a!=null&&adm.b!=null)continue; // ya capturado, no es "próximo"
+        const[t1,t2]=getMatchTeamsV2(em.rk,em.mi,false);
+        const pk=_userPickV2For(uid,em.rk,em.mi);
+        e2Upcoming.push({...em,t1,t2,pk});
+      }
+      e2Upcoming.sort((a,b)=>a.info.m-b.info.m);
+      const e2WithPick=e2Upcoming.filter(m=>m.pk&&m.pk.a!=null&&m.pk.b!=null).length;
+      h+=`<div class="mrm-list" style="margin-top:14px;border-top:1.5px dashed #fde68a;padding-top:14px">
+        <div class="mrm-list-title">🏆 Mis picks de eliminatorias <span style="font-size:11px;color:#92400e;background:#fef3c7;padding:2px 7px;border-radius:5px;font-weight:700;margin-left:6px">${e2WithPick}/${e2Upcoming.length}</span></div>`;
+      if(e2Upcoming.length===0){
+        h+=`<div style="padding:24px 12px;text-align:center;color:#94a3b8;font-size:13px">No hay partidos próximos del bracket.</div>`;
+      }else{
+        // Mostrar máximo 8 para no saturar (los más próximos cronológicamente por número de partido)
+        const showCount=Math.min(8,e2Upcoming.length);
+        for(let idx=0;idx<showCount;idx++){
+          const m=e2Upcoming[idx];
+          const fTeam=(typeof flag==='function')?flag:(()=>'');
+          const tName1=m.t1||'Por definir';
+          const tName2=m.t2||'Por definir';
+          const pkStr=m.pk&&m.pk.a!=null&&m.pk.b!=null
+            ?`${m.pk.a}-${m.pk.b}${m.pk.a===m.pk.b&&m.pk.pen?` (pen ${esc(abbr(m.pk.pen))})`:''}`
+            :null;
+          const pickHtml=pkStr
+            ?`<span class="mrm-pick-status done">${pkStr}</span>`
+            :`<span class="mrm-pick-status empty">sin pick</span>`;
+          h+=`<div class="mrm-match">
+            <div class="mrm-match-info">
+              <div class="mrm-match-teams">
+                <span style="font-size:14px">${m.t1?fTeam(m.t1):'❓'}</span>${esc(tName1)}
+                <span style="color:#94a3b8;font-weight:600">vs</span>
+                <span style="font-size:14px">${m.t2?fTeam(m.t2):'❓'}</span>${esc(tName2)}
+                <span style="display:inline-block;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.5px;margin-left:6px;vertical-align:middle">${_bracketRoundLabel(m.rk)}</span>
+              </div>
+              <div class="mrm-match-scores">📅 ${esc(m.info.d)} · ${esc(m.info.t)}${m.info.c?' · 📍 '+esc(m.info.c):''}</div>
+            </div>
+            ${pickHtml}
+          </div>`;
+        }
+        if(e2Upcoming.length>showCount){
+          h+=`<div style="padding:8px 12px;text-align:center;color:#94a3b8;font-size:11px;font-style:italic">+ ${e2Upcoming.length-showCount} partidos más en el bracket</div>`;
+        }
+      }
+      h+=`</div>`;
+    }
+  }catch(e){console.warn('Mis picks E2 section:',e);}
+  h+=`<div class="mrm-foot">
       <div class="mrm-foot-brand">⚽ Quiniela Chida · Mundial 2026</div>
       <div class="mrm-foot-url">app.quinielachida.com</div>
     </div>
@@ -5557,13 +5609,12 @@ function rDashboard(){
       }
       let chips='Esperando resultados...';
       if(hasR){
-        // Decisión del grupo: el puntaje grande es bd.marcadores. El chip de Etapa 1 muestra
-        // el total (grp+t8) limpio, sin desglose textual — porque el desglose ya va arriba
-        // junto al puntaje principal con el badge "+ X pts en clasificación".
         if(isTournament){
+          // Modo Torneo: las totales (E1 y E2) ahora van en la columna derecha completa;
+          // los chips bajo el nombre quedan solo como atajo visual rápido.
           const stage1=m.bd.grp+m.bd.t8;
           const stage2=m.bd.r32+m.bd.r16+m.bd.qf+m.bd.sf+m.bd.fin+m.bd.thr;
-          chips=`<span style="display:inline-flex;gap:4px;align-items:center;background:#fef3c7;color:#78350f;padding:2px 7px;border-radius:5px;font-weight:700;margin-right:5px">🥇 Etapa 1: ${stage1}</span><span style="display:inline-flex;gap:4px;align-items:center;background:#dbeafe;color:#1e3a8a;padding:2px 7px;border-radius:5px;font-weight:700">🏆 Etapa 2: ${stage2}</span>`;
+          chips=`<span style="display:inline-flex;gap:4px;align-items:center;background:#fef3c7;color:#78350f;padding:2px 7px;border-radius:5px;font-weight:700;margin-right:5px">🥇 E1: ${stage1}</span><span style="display:inline-flex;gap:4px;align-items:center;background:#dbeafe;color:#1e3a8a;padding:2px 7px;border-radius:5px;font-weight:700">🏆 E2: ${stage2}</span>`;
         }else{
           // Normal Mode: chips por fase del bracket (sin grpChip — esa info ya va arriba)
           chips=[m.bd.r32?`16avos:${m.bd.r32}`:null,m.bd.r16?`Oct:${m.bd.r16}`:null,m.bd.qf?`1/4:${m.bd.qf}`:null,m.bd.sf?`SF:${m.bd.sf}`:null,m.bd.fin?`Final:${m.bd.fin}`:null].filter(Boolean).join(' · ')||'';
@@ -5610,10 +5661,18 @@ function rDashboard(){
           <div class="lbnm">${esc(m.name)}${isMe?' <span style="font-size:10px;opacity:.6">(tú)</span>':''}${completionBadge}${tieChip}</div>
           <div class="lbdet">${chips}</div>
         </div>
-        <div class="lbpts" style="${hasR?'':'color:var(--mt);font-size:16px'};display:flex;flex-direction:column;align-items:flex-end;gap:2px">
-          ${hasR
-            ?`<div style="display:flex;align-items:baseline;gap:3px">${m.bd.marcadores}<span style="font-size:11px;color:var(--mt);font-weight:500">pts en partidos</span></div>${m.bd.lugares>0?`<span style="font-size:10px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;white-space:nowrap;border:1px solid #fde68a">+ ${m.bd.lugares} pts en clasificación</span>`:''}`
-            :'—'}
+        <div class="lbpts" style="${hasR?'':'color:var(--mt);font-size:16px'};display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:160px">
+          ${hasR?(isTournament?(()=>{
+            const stage1=m.bd.grp+m.bd.t8;
+            const stage2=m.bd.r32+m.bd.r16+m.bd.qf+m.bd.sf+m.bd.fin+m.bd.thr;
+            return `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;background:#fef3c7;border:1px solid #fde68a;border-radius:7px;padding:5px 9px;width:100%">
+              <div style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:#78350f">🥇 Etapa 1: ${stage1} <span style="font-size:10.5px;font-weight:500;color:#92400e">pts</span></div>
+              <div style="font-size:10px;color:#92400e;font-weight:600">${m.bd.marcadores} partidos · ${m.bd.lugares} posiciones</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;background:#dbeafe;border:1px solid #bfdbfe;border-radius:7px;padding:5px 9px;width:100%">
+              <div style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:#1e3a8a">🏆 Etapa 2: ${stage2} <span style="font-size:10.5px;font-weight:500;color:#1e40af">pts</span></div>
+            </div>`;
+          })():`<div style="display:flex;align-items:baseline;gap:3px">${m.bd.marcadores}<span style="font-size:11px;color:var(--mt);font-weight:500">pts en partidos</span></div><span style="font-size:10px;font-weight:700;background:${m.bd.lugares>0?'#fef3c7':'#f3f4f6'};color:${m.bd.lugares>0?'#92400e':'#6b7280'};padding:2px 7px;border-radius:5px;white-space:nowrap;border:1px solid ${m.bd.lugares>0?'#fde68a':'#e5e7eb'}">+ ${m.bd.lugares} pts en clasificación</span>`):'—'}
         </div>
       </div>`;
     });
