@@ -5650,10 +5650,32 @@ function rDashboard(){
         const complete=groupMatchesFilled===72;
         const pct=Math.round((groupMatchesFilled/72)*100);
         completionBadge=complete
-          ?`<span title="Quiniela de grupos completa" style="display:inline-flex;align-items:center;gap:3px;background:#dcfce7;color:#166534;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">✓ Lista</span>`
+          ?`<span title="Quiniela de grupos completa" style="display:inline-flex;align-items:center;gap:3px;background:#dcfce7;color:#166534;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">✓ E1</span>`
           :groupMatchesFilled===0
-            ?`<span title="Sin empezar" style="display:inline-flex;align-items:center;gap:3px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⚠ Sin empezar</span>`
-            :`<span title="${groupMatchesFilled}/72 partidos (${pct}%)" style="display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⏳ ${pct}%</span>`;
+            ?`<span title="Sin empezar grupos" style="display:inline-flex;align-items:center;gap:3px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⚠ E1 sin empezar</span>`
+            :`<span title="Grupos: ${groupMatchesFilled}/72 partidos (${pct}%)" style="display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:6px">⏳ E1 ${pct}%</span>`;
+        // ─── Badge adicional para Etapa 2 (bracket V2) si stage2 está abierta ───
+        if(comm&&comm.stage2Unlocked===true){
+          const e2=(S.picks&&S.picks[m.uid]&&S.picks[m.uid].bracketE2)||{};
+          let bracketFilled=0;
+          try{
+            for(const arr of[e2.r32V2,e2.r16V2,e2.qfV2,e2.sfV2]){
+              if(!arr)continue;
+              const items=Array.isArray(arr)?arr:Object.values(arr);
+              for(const p of items)if(p&&p.w)bracketFilled++;
+            }
+            if(e2.finV2&&e2.finV2.w)bracketFilled++;
+            if(e2.thrV2&&e2.thrV2.w)bracketFilled++;
+          }catch(err){}
+          const e2Complete=bracketFilled===32;
+          const e2Pct=Math.round((bracketFilled/32)*100);
+          const e2Badge=e2Complete
+            ?`<span title="Bracket completo: 32/32" style="display:inline-flex;align-items:center;gap:3px;background:#dcfce7;color:#166534;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:4px">✓ E2</span>`
+            :bracketFilled===0
+              ?`<span title="Bracket sin empezar" style="display:inline-flex;align-items:center;gap:3px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:4px">⚠ E2 sin empezar</span>`
+              :`<span title="Bracket: ${bracketFilled}/32 partidos (${e2Pct}%)" style="display:inline-flex;align-items:center;gap:3px;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;margin-left:4px">⏳ E2 ${e2Pct}%</span>`;
+          completionBadge+=e2Badge;
+        }
       }else{
         // Modo Normal: completo = grupos + bracket completo
         const mProg=calcProgress(mPicks);
