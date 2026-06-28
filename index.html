@@ -1604,6 +1604,21 @@ auth.onAuthStateChanged(async user=>{
     if(profile.name&&profile.displayNameSet){
       ME.name=profile.name;
     }
+    // ─── Auto-redirect a indexE2 si la comunidad tiene Etapa 2 abierta ───
+    // Solo aplica si: Modo Torneo + stage2Unlocked=true + no es super-admin (super-admin se queda para gestionar)
+    // El user puede regresar a index.html manualmente desde el banner de indexE2 si quiere.
+    try{
+      const commSnap2=await db.ref('communities/'+profile.communityId).once('value');
+      const comm2=commSnap2.val()||{};
+      if(comm2.mode==='tournament'&&comm2.stage2Unlocked===true&&!ME.isSuperAdmin){
+        // Si el user no llegó aquí desde un return_to=index intencional, lo mandamos a indexE2
+        const params=new URLSearchParams(window.location.search);
+        if(params.get('stay')!=='1'){
+          window.location.href='indexE2.html';
+          return;
+        }
+      }
+    }catch(e){console.warn('redirect check failed:',e);}
     applyUserColor(ME.color);
     loadApp(ME.isSuperAdmin);
   }catch(e){
