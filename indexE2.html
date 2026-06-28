@@ -5529,11 +5529,11 @@ function rDashboard(){
   })||(S.adminR&&((S.adminR.r32||[]).some(Boolean)||(S.adminR.r16||[]).some(Boolean)||(S.adminR.qf||[]).some(Boolean)||(S.adminR.sf||[]).some(Boolean)||S.adminR.fin||S.adminR.thr));
 
   // Community leaderboard
-  // Por decisión del grupo (encuesta 2026-06-16): se ordena por PUNTOS EN PARTIDOS (bd.marcadores).
-  // Los puntos de clasificación (1°/2°/3eros) se muestran como badge "+ X pts en clasificación".
-  // Desempates (en orden): 1) más pts en partidos, 2) más marcadores exactos,
-  // 3) más 1° de grupo correctos, 4) menor distancia en diferencia de goles
+  // Cambio (2026-06-XX): ahora se ordena por TOTAL (E1+E2) como decidió el grupo.
+  // Desempates (en orden): 1) total mayor, 2) más pts en partidos, 3) más marcadores exactos,
+  // 4) más 1° de grupo correctos, 5) menor distancia en diferencia de goles
   const ranked=members.map(m=>{const{tot,bd}=calcPts(m.uid);return{...m,tot,bd};}).sort((a,b)=>{
+    if(b.tot!==a.tot)return b.tot-a.tot;
     if(b.bd.marcadores!==a.bd.marcadores)return b.bd.marcadores-a.bd.marcadores;
     if(b.bd.exact!==a.bd.exact)return b.bd.exact-a.bd.exact;
     if(b.bd.group1!==a.bd.group1)return b.bd.group1-a.bd.group1;
@@ -5661,16 +5661,22 @@ function rDashboard(){
           <div class="lbnm">${esc(m.name)}${isMe?' <span style="font-size:10px;opacity:.6">(tú)</span>':''}${completionBadge}${tieChip}</div>
           <div class="lbdet">${chips}</div>
         </div>
-        <div class="lbpts" style="${hasR?'':'color:var(--mt);font-size:16px'};display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:160px">
+        <div class="lbpts" style="${hasR?'':'color:var(--mt);font-size:16px'};display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:175px">
           ${hasR?(isTournament?(()=>{
             const stage1=m.bd.grp+m.bd.t8;
             const stage2=m.bd.r32+m.bd.r16+m.bd.qf+m.bd.sf+m.bd.fin+m.bd.thr;
-            return `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;background:#fef3c7;border:1px solid #fde68a;border-radius:7px;padding:5px 9px;width:100%">
-              <div style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:#78350f">🥇 Etapa 1: ${stage1} <span style="font-size:10.5px;font-weight:500;color:#92400e">pts</span></div>
-              <div style="font-size:10px;color:#92400e;font-weight:600">${m.bd.marcadores} partidos · ${m.bd.lugares} posiciones</div>
+            const total=stage1+stage2;
+            return `<div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;background:linear-gradient(135deg,#dc2626,#991b1b);border:1.5px solid #7f1d1d;border-radius:8px;padding:6px 11px;width:100%;color:#fff;box-shadow:0 2px 8px rgba(220,38,38,.25)">
+              <span style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.9">Total</span>
+              <span style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;line-height:1">${total}</span>
+              <span style="font-size:10.5px;font-weight:600;opacity:.85">pts</span>
             </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;background:#dbeafe;border:1px solid #bfdbfe;border-radius:7px;padding:5px 9px;width:100%">
-              <div style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:#1e3a8a">🏆 Etapa 2: ${stage2} <span style="font-size:10.5px;font-weight:500;color:#1e40af">pts</span></div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;background:#fef3c7;border:1px solid #fde68a;border-radius:7px;padding:5px 9px;width:100%">
+              <div style="font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:800;color:#78350f">🥇 Etapa 1: ${stage1} <span style="font-size:10px;font-weight:500;color:#92400e">pts</span></div>
+              <div style="font-size:9.5px;color:#92400e;font-weight:600">${m.bd.marcadores} partidos · ${m.bd.lugares} posiciones</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:flex-end;background:#dbeafe;border:1px solid #bfdbfe;border-radius:7px;padding:5px 9px;width:100%">
+              <div style="font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:800;color:#1e3a8a">🏆 Etapa 2: ${stage2} <span style="font-size:10px;font-weight:500;color:#1e40af">pts</span></div>
             </div>`;
           })():`<div style="display:flex;align-items:baseline;gap:3px">${m.bd.marcadores}<span style="font-size:11px;color:var(--mt);font-weight:500">pts en partidos</span></div><span style="font-size:10px;font-weight:700;background:${m.bd.lugares>0?'#fef3c7':'#f3f4f6'};color:${m.bd.lugares>0?'#92400e':'#6b7280'};padding:2px 7px;border-radius:5px;white-space:nowrap;border:1px solid ${m.bd.lugares>0?'#fde68a':'#e5e7eb'}">+ ${m.bd.lugares} pts en clasificación</span>`):'—'}
         </div>
@@ -6325,14 +6331,21 @@ function openBracket(uid){
   const ov=document.getElementById('bracket-overlay');
   const col=UCOLORS.find(c=>c.id===u.color);
   if(col){ov.style.setProperty('--uc',col.ac);ov.style.setProperty('--uc-l',col.acl);}
-  // Vista por defecto: en Modo Torneo Etapa 1 (bracket bloqueado) → 'groups';
-  // en cualquier otro caso → 'bracket' (lo que ya hacía antes).
+  // Vista por defecto: si terminó la fase de grupos → 'desglose' (los puntos son lo más interesante);
+  // si Modo Torneo Etapa 1 (bracket bloqueado) → 'groups'; en cualquier otro caso → 'bracket'.
   if(!S.overlayView){
-    S.overlayView=isTournamentBracketLocked()?'groups':'bracket';
+    const allGroupsDone=GKEYS.every(g=>{
+      const ms=S.adminR&&S.adminR.grupos&&S.adminR.grupos[g]&&S.adminR.grupos[g].matches;
+      return ms&&[0,1,2,3,4,5].every(i=>ms[i]&&ms[i].a!=null&&ms[i].b!=null);
+    });
+    if(allGroupsDone)S.overlayView='desglose';
+    else S.overlayView=isTournamentBracketLocked()?'groups':'bracket';
   }
   // Guardar contexto para el toggle (poder re-renderizar)
   S._overlayUid=uid;S._overlayU=u;S._overlayCol=col;
-  ov.innerHTML=(S.overlayView==='groups')?buildGroupsView(uid,u,col):buildBracket(uid,u,col);
+  if(S.overlayView==='desglose')ov.innerHTML=buildDesgloseView(uid,u,col);
+  else if(S.overlayView==='groups')ov.innerHTML=buildGroupsView(uid,u,col);
+  else ov.innerHTML=buildBracket(uid,u,col);
   ov.classList.add('on');
   parseTwemoji(ov);
 }
@@ -6344,8 +6357,168 @@ function switchOverlayView(view){
   S.overlayView=view;
   const ov=document.getElementById('bracket-overlay');
   if(!ov||!S._overlayUid)return;
-  ov.innerHTML=(view==='groups')?buildGroupsView(S._overlayUid,S._overlayU,S._overlayCol):buildBracket(S._overlayUid,S._overlayU,S._overlayCol);
+  if(view==='groups')ov.innerHTML=buildGroupsView(S._overlayUid,S._overlayU,S._overlayCol);
+  else if(view==='desglose')ov.innerHTML=buildDesgloseView(S._overlayUid,S._overlayU,S._overlayCol);
+  else ov.innerHTML=buildBracket(S._overlayUid,S._overlayU,S._overlayCol);
   parseTwemoji(ov);
+}
+
+// Build the desglose view: 1°s, 2°s, mejores 3eros y marcadores correctos por user
+function buildDesgloseView(uid,u,col){
+  const p=userPicks(uid);
+  const r=S.adminR||{};
+  const ac=col?col.ac:'#2563eb';
+  const initial=(u.name[0]||'?').toUpperCase();
+  const avatarInner=u.photo
+    ? `<img src="${esc(u.photo)}" alt="${esc(initial)}" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;color:#fff;font-weight:800">${esc(initial)}</span>`
+    : `<span style="display:flex;width:100%;height:100%;align-items:center;justify-content:center;color:#fff;font-weight:800">${esc(initial)}</span>`;
+  const bracketLocked=isTournamentBracketLocked();
+  // ─── Análisis grupo por grupo ───
+  const correct1=[],wrong1=[],correct2=[],wrong2=[];
+  function groupComplete(pp,g){
+    const m=pp.grupos&&pp.grupos[g]&&pp.grupos[g].matches;
+    return !!(m&&[0,1,2,3,4,5].every(i=>m[i]&&m[i].a!=null&&m[i].b!=null&&m[i].a!==''&&m[i].b!==''));
+  }
+  for(const g of GKEYS){
+    if(!groupComplete(p,g)||!groupComplete(r,g))continue;
+    const mt=calcGroupTable(g,p.grupos[g]);
+    const at=calcGroupTable(g,r.grupos[g]);
+    if(mt[0]&&at[0]){
+      if(mt[0].name===at[0].name)correct1.push({g,team:at[0].name});
+      else wrong1.push({g,predicted:mt[0].name,real:at[0].name});
+    }
+    if(mt[1]&&at[1]){
+      if(mt[1].name===at[1].name)correct2.push({g,team:at[1].name});
+      else wrong2.push({g,predicted:mt[1].name,real:at[1].name});
+    }
+  }
+  // Mejores 3eros
+  const correct3=[],wrong3=[];
+  const allGroupsComplete=GKEYS.every(g=>groupComplete(r,g));
+  if(r.t8&&r.t8.length===8&&allGroupsComplete){
+    const realSet=new Set(r.t8);
+    const userT8=p.t8||[];
+    for(const t of userT8){
+      if(realSet.has(t))correct3.push(t);
+      else wrong3.push(t);
+    }
+  }
+  // Marcadores: contar exactos y solo-ganador con detalle
+  const exactMatches=[],winnerMatches=[],failMatches=[];
+  for(const g of GKEYS){
+    const myMs=(p.grupos[g]&&p.grupos[g].matches)||[];
+    const admMs=(r.grupos[g]&&r.grupos[g].matches)||[];
+    for(let mi=0;mi<6;mi++){
+      const my=myMs[mi],adm=admMs[mi];
+      if(!my||!adm)continue;
+      if(my.a==null||my.b==null||adm.a==null||adm.b==null)continue;
+      const ma=parseInt(my.a),mb=parseInt(my.b),aa=parseInt(adm.a),ab=parseInt(adm.b);
+      if(isNaN(ma)||isNaN(mb)||isNaN(aa)||isNaN(ab))continue;
+      const teams=GRP[g]||[];
+      const pair=GROUP_MATCH_PAIRS[mi]||[0,1];
+      const t1=teams[pair[0]],t2=teams[pair[1]];
+      const matchInfo={g,mi,t1,t2,myA:ma,myB:mb,realA:aa,realB:ab};
+      if(ma===aa&&mb===ab)exactMatches.push(matchInfo);
+      else{
+        const myDiff=Math.sign(ma-mb),admDiff=Math.sign(aa-ab);
+        if(myDiff===admDiff)winnerMatches.push(matchInfo);
+        else failMatches.push(matchInfo);
+      }
+    }
+  }
+  // Calcular puntos
+  const pts1=correct1.length*PTS.p1;
+  const pts2=correct2.length*PTS.p2;
+  const pts3=correct3.length*PTS.t8;
+  const ptsExact=exactMatches.length*3;
+  const ptsWinner=winnerMatches.length*1;
+  const totalE1=pts1+pts2+pts3+ptsExact+ptsWinner;
+  // ─── Render ───
+  let h=`<div class="br-topbar">
+    <div class="br-avatar" style="background:${ac};overflow:hidden;display:flex;align-items:center;justify-content:center">${avatarInner}</div>
+    <div class="br-name-wrap">
+      <div class="br-name">${esc(u.name)}</div>
+      <div class="br-subtitle">📊 Desglose de puntos · Etapa 1</div>
+    </div>
+    <div class="br-view-toggle" style="margin-right:8px">
+      <button onclick="switchOverlayView('groups')">📊 Grupos</button>
+      <button class="active" onclick="switchOverlayView('desglose')">🔍 Desglose</button>
+      ${bracketLocked?'':`<button onclick="switchOverlayView('bracket')">🏆 Bracket</button>`}
+    </div>
+    <button class="br-close" onclick="closeBracket()">✕ Cerrar</button>
+  </div>
+  <div class="br-scroll" style="padding:18px 16px;background:#f8fafc">
+    <div style="max-width:800px;margin:0 auto">`;
+  // ─── Resumen total grande ───
+  h+=`<div style="background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;border-radius:14px;padding:18px 22px;margin-bottom:18px;box-shadow:0 4px 14px rgba(220,38,38,.25);text-align:center">
+    <div style="font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;opacity:.9;margin-bottom:5px">🥇 Total Etapa 1</div>
+    <div style="font-family:'Outfit',sans-serif;font-size:38px;font-weight:800;line-height:1">${totalE1} <span style="font-size:16px;font-weight:600;opacity:.85">pts</span></div>
+  </div>`;
+  // ─── Tabla de desglose ───
+  h+=`<div style="background:#fff;border:1.5px solid #fde68a;border-radius:12px;overflow:hidden;margin-bottom:18px">
+    <div style="background:#fef3c7;padding:10px 14px;font-family:'Outfit',sans-serif;font-weight:800;color:#78350f;font-size:13px;border-bottom:1px solid #fde68a">🔢 Desglose del cálculo</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead style="background:#fffbeb">
+        <tr>
+          <th style="text-align:left;padding:8px 12px;color:#92400e;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #fde68a">Concepto</th>
+          <th style="text-align:center;padding:8px 12px;color:#92400e;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #fde68a">Acertados</th>
+          <th style="text-align:center;padding:8px 12px;color:#92400e;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #fde68a">Pts c/u</th>
+          <th style="text-align:right;padding:8px 12px;color:#92400e;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #fde68a">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #fef3c7"><td style="padding:9px 12px;color:#0f172a;font-weight:600">🎯 Marcadores exactos</td><td style="text-align:center;font-family:'Outfit';font-weight:700">${exactMatches.length} de 72</td><td style="text-align:center;color:#64748b;font-size:12px">×3</td><td style="text-align:right;font-family:'Outfit';font-weight:800;color:#0f172a">${ptsExact}</td></tr>
+        <tr style="border-bottom:1px solid #fef3c7"><td style="padding:9px 12px;color:#0f172a;font-weight:600">✓ Solo ganador</td><td style="text-align:center;font-family:'Outfit';font-weight:700">${winnerMatches.length}</td><td style="text-align:center;color:#64748b;font-size:12px">×1</td><td style="text-align:right;font-family:'Outfit';font-weight:800;color:#0f172a">${ptsWinner}</td></tr>
+        <tr style="border-bottom:1px solid #fef3c7"><td style="padding:9px 12px;color:#0f172a;font-weight:600">🥇 1° de grupo</td><td style="text-align:center;font-family:'Outfit';font-weight:700">${correct1.length} de 12</td><td style="text-align:center;color:#64748b;font-size:12px">×${PTS.p1}</td><td style="text-align:right;font-family:'Outfit';font-weight:800;color:#0f172a">${pts1}</td></tr>
+        <tr style="border-bottom:1px solid #fef3c7"><td style="padding:9px 12px;color:#0f172a;font-weight:600">🥈 2° de grupo</td><td style="text-align:center;font-family:'Outfit';font-weight:700">${correct2.length} de 12</td><td style="text-align:center;color:#64748b;font-size:12px">×${PTS.p2}</td><td style="text-align:right;font-family:'Outfit';font-weight:800;color:#0f172a">${pts2}</td></tr>
+        <tr><td style="padding:9px 12px;color:#0f172a;font-weight:600">🥉 Mejores 3eros</td><td style="text-align:center;font-family:'Outfit';font-weight:700">${correct3.length} de 8</td><td style="text-align:center;color:#64748b;font-size:12px">×${PTS.t8}</td><td style="text-align:right;font-family:'Outfit';font-weight:800;color:#0f172a">${pts3}</td></tr>
+      </tbody>
+      <tfoot style="background:#fef3c7">
+        <tr><td colspan="3" style="padding:10px 12px;font-family:'Outfit';font-weight:800;color:#78350f">TOTAL ETAPA 1</td><td style="text-align:right;padding:10px 12px;font-family:'Outfit';font-weight:800;color:#78350f;font-size:16px">${totalE1} pts</td></tr>
+      </tfoot>
+    </table>
+  </div>`;
+  // ─── Listas detalladas ───
+  function listSection(title,icon,color,bgcolor,items,emptyMsg,formatter){
+    let body='';
+    if(items.length===0){
+      body=`<div style="padding:14px;color:#94a3b8;font-style:italic;text-align:center;font-size:12.5px">${emptyMsg}</div>`;
+    }else{
+      body=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;padding:10px">${items.map(formatter).join('')}</div>`;
+    }
+    return `<div style="background:#fff;border:1.5px solid ${color};border-radius:10px;overflow:hidden;margin-bottom:12px">
+      <div style="background:${bgcolor};padding:9px 14px;font-family:'Outfit',sans-serif;font-weight:800;font-size:12.5px;color:${color};border-bottom:1px solid ${color}">${icon} ${title} (${items.length})</div>
+      ${body}
+    </div>`;
+  }
+  // 1°s acertados
+  h+=listSection('1°s de grupo acertados','🥇','#92400e','#fef3c7',correct1,'Sin 1°s acertados',it=>{
+    const fTeam=(typeof flag==='function')?flag:(()=>'');
+    return `<div style="display:flex;align-items:center;gap:6px;padding:6px 9px;background:#fffbeb;border-radius:7px;font-size:12px"><span style="font-family:'Outfit';font-weight:700;color:#92400e;font-size:10.5px;background:#fef3c7;padding:1px 6px;border-radius:4px">Grupo ${it.g}</span><span style="font-size:13px">${fTeam(it.team)}</span><span style="font-weight:700;color:#0f172a">${esc(it.team)}</span></div>`;
+  });
+  // 2°s acertados
+  h+=listSection('2°s de grupo acertados','🥈','#1e40af','#dbeafe',correct2,'Sin 2°s acertados',it=>{
+    const fTeam=(typeof flag==='function')?flag:(()=>'');
+    return `<div style="display:flex;align-items:center;gap:6px;padding:6px 9px;background:#eff6ff;border-radius:7px;font-size:12px"><span style="font-family:'Outfit';font-weight:700;color:#1e40af;font-size:10.5px;background:#dbeafe;padding:1px 6px;border-radius:4px">Grupo ${it.g}</span><span style="font-size:13px">${fTeam(it.team)}</span><span style="font-weight:700;color:#0f172a">${esc(it.team)}</span></div>`;
+  });
+  // Mejores 3eros acertados
+  h+=listSection('Mejores 3eros acertados','🥉','#9a3412','#fed7aa',correct3.map(t=>({team:t})),allGroupsComplete?'Sin 3eros acertados':'Mejores 3eros se calculan al terminar los 12 grupos',it=>{
+    const fTeam=(typeof flag==='function')?flag:(()=>'');
+    return `<div style="display:flex;align-items:center;gap:6px;padding:6px 9px;background:#fff7ed;border-radius:7px;font-size:12px"><span style="font-size:13px">${fTeam(it.team)}</span><span style="font-weight:700;color:#0f172a">${esc(it.team)}</span></div>`;
+  });
+  // Marcadores exactos
+  h+=listSection('Marcadores exactos','🎯','#065f46','#d1fae5',exactMatches,'Sin marcadores exactos',it=>{
+    const fTeam=(typeof flag==='function')?flag:(()=>'');
+    return `<div style="display:flex;align-items:center;gap:5px;padding:6px 9px;background:#ecfdf5;border-radius:7px;font-size:11.5px"><span style="font-family:'Outfit';font-weight:700;color:#065f46;font-size:10px;background:#a7f3d0;padding:1px 5px;border-radius:4px">G.${it.g}</span><span>${fTeam(it.t1)} ${esc(abbr(it.t1))}</span><span style="font-family:'Outfit';font-weight:800;color:#065f46">${it.realA}-${it.realB}</span><span>${esc(abbr(it.t2))} ${fTeam(it.t2)}</span></div>`;
+  });
+  // Solo ganador (lista colapsada si son muchos)
+  const winnerSlice=winnerMatches.slice(0,20);
+  h+=listSection(`Solo ganador acertado${winnerMatches.length>20?` (mostrando 20)`:''}`,'✓','#0369a1','#e0f2fe',winnerSlice,'Sin "solo ganador" acertados',it=>{
+    const fTeam=(typeof flag==='function')?flag:(()=>'');
+    return `<div style="display:flex;align-items:center;gap:5px;padding:5px 8px;background:#f0f9ff;border-radius:6px;font-size:11px"><span style="font-family:'Outfit';font-weight:700;color:#0369a1;font-size:9.5px;background:#bae6fd;padding:1px 5px;border-radius:4px">G.${it.g}</span><span>${fTeam(it.t1)}${esc(abbr(it.t1))}</span><span style="color:#64748b">${it.myA}-${it.myB}</span><span style="color:#94a3b8">vs real ${it.realA}-${it.realB}</span></div>`;
+  });
+  h+=`</div></div>`;
+  return h;
 }
 
 // Build the groups view (read-only) for any participant
@@ -6365,6 +6538,7 @@ function buildGroupsView(uid,u,col){
     </div>
     <div class="br-view-toggle" style="margin-right:8px">
       <button class="active" onclick="switchOverlayView('groups')">📊 Grupos</button>
+      <button onclick="switchOverlayView('desglose')">🔍 Desglose</button>
       ${bracketLocked?'':`<button onclick="switchOverlayView('bracket')">🏆 Bracket</button>`}
     </div>
     <button class="br-close" onclick="closeBracket()">✕ Cerrar</button>
@@ -7414,6 +7588,7 @@ function buildBracket(uid,u,col){
     </div>
     <div class="br-view-toggle" style="margin-right:8px">
       <button onclick="switchOverlayView('groups')">📊 Grupos</button>
+      <button onclick="switchOverlayView('desglose')">🔍 Desglose</button>
       <button class="active" onclick="switchOverlayView('bracket')">🏆 Bracket</button>
     </div>
     <button class="br-action" onclick="captureBracket('${js(uid)}')" title="Descargar bracket como imagen">📸 Capturar</button>
