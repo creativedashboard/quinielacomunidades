@@ -5563,8 +5563,21 @@ function rDashboard(){
       </div>
       <div style="font-size:16px;font-weight:700">→</div>
     </div>`;
+    // Botón "Mi bracket" — solo si Etapa 2 está abierta (modo Torneo)
+    const _commForBr=S.communities&&S.communities[ME.communityId];
+    const _showMyBracket=_commForBr&&_commForBr.mode==='tournament'&&_commForBr.stage2Unlocked===true;
+    const cardBracket=_showMyBracket?`<div onclick="S.overlayView='bracket';openBracket('${js(ME.uid)}')" style="background:linear-gradient(135deg,#d97706,#b45309);color:#fff;border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 4px 14px rgba(217,119,6,.25);transition:transform .15s,box-shadow .15s;flex:1" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(217,119,6,.35)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(217,119,6,.25)'">
+      <div style="font-size:20px">🏆</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:800;letter-spacing:-.2px">Mi bracket</div>
+        <div style="font-size:10px;opacity:.9;font-weight:600;margin-top:1px">Vista de árbol</div>
+      </div>
+      <div style="font-size:16px;font-weight:700">→</div>
+    </div>`:'';
     if(hasR){
-      h+=`<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">${cardResults}${cardPicks}</div>`;
+      h+=`<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">${cardResults}${cardBracket}${cardPicks}</div>`;
+    }else if(cardBracket){
+      h+=`<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">${cardBracket}${cardPicks}</div>`;
     }else{
       h+=`<div style="margin-bottom:14px">${cardPicks}</div>`;
     }
