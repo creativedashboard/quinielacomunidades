@@ -6511,12 +6511,35 @@ function buildDesgloseView(uid,u,col){
     const fTeam=(typeof flag==='function')?flag:(()=>'');
     return `<div style="display:flex;align-items:center;gap:5px;padding:6px 9px;background:#ecfdf5;border-radius:7px;font-size:11.5px"><span style="font-family:'Outfit';font-weight:700;color:#065f46;font-size:10px;background:#a7f3d0;padding:1px 5px;border-radius:4px">G.${it.g}</span><span>${fTeam(it.t1)} ${esc(abbr(it.t1))}</span><span style="font-family:'Outfit';font-weight:800;color:#065f46">${it.realA}-${it.realB}</span><span>${esc(abbr(it.t2))} ${fTeam(it.t2)}</span></div>`;
   });
-  // Solo ganador (lista colapsada si son muchos)
-  const winnerSlice=winnerMatches.slice(0,20);
-  h+=listSection(`Solo ganador acertado${winnerMatches.length>20?` (mostrando 20)`:''}`,'✓','#0369a1','#e0f2fe',winnerSlice,'Sin "solo ganador" acertados',it=>{
+  // Solo ganador — todos
+  h+=listSection('Solo ganador acertado','✓','#0369a1','#e0f2fe',winnerMatches,'Sin "solo ganador" acertados',it=>{
     const fTeam=(typeof flag==='function')?flag:(()=>'');
     return `<div style="display:flex;align-items:center;gap:5px;padding:5px 8px;background:#f0f9ff;border-radius:6px;font-size:11px"><span style="font-family:'Outfit';font-weight:700;color:#0369a1;font-size:9.5px;background:#bae6fd;padding:1px 5px;border-radius:4px">G.${it.g}</span><span>${fTeam(it.t1)}${esc(abbr(it.t1))}</span><span style="color:#64748b">${it.myA}-${it.myB}</span><span style="color:#94a3b8">vs real ${it.realA}-${it.realB}</span></div>`;
   });
+  // Marcadores fallados (ni exacto ni ganador) — todos
+  h+=listSection('Marcadores fallados','❌','#991b1b','#fee2e2',failMatches,'Sin fallos — ¡todos acertados!',it=>{
+    const fTeam=(typeof flag==='function')?flag:(()=>'');
+    return `<div style="display:flex;align-items:center;gap:5px;padding:5px 8px;background:#fef2f2;border-radius:6px;font-size:11px"><span style="font-family:'Outfit';font-weight:700;color:#991b1b;font-size:9.5px;background:#fecaca;padding:1px 5px;border-radius:4px">G.${it.g}</span><span>${fTeam(it.t1)}${esc(abbr(it.t1))}</span><span style="color:#64748b">${it.myA}-${it.myB}</span><span style="color:#94a3b8">vs real ${it.realA}-${it.realB}</span></div>`;
+  });
+  // 1°s fallados (predicción vs real)
+  h+=listSection('1°s de grupo NO acertados','✗','#991b1b','#fee2e2',wrong1,'Sin 1°s fallados',it=>{
+    const fTeam=(typeof flag==='function')?flag:(()=>'');
+    return `<div style="display:flex;flex-direction:column;gap:2px;padding:6px 9px;background:#fef2f2;border-radius:7px;font-size:11.5px"><span style="font-family:'Outfit';font-weight:700;color:#991b1b;font-size:10.5px;background:#fecaca;padding:1px 6px;border-radius:4px;align-self:flex-start">Grupo ${it.g}</span><span style="color:#0f172a">Predijo: ${fTeam(it.predicted)} ${esc(it.predicted)}</span><span style="color:#64748b">Real: ${fTeam(it.real)} ${esc(it.real)}</span></div>`;
+  });
+  // 2°s fallados
+  h+=listSection('2°s de grupo NO acertados','✗','#991b1b','#fee2e2',wrong2,'Sin 2°s fallados',it=>{
+    const fTeam=(typeof flag==='function')?flag:(()=>'');
+    return `<div style="display:flex;flex-direction:column;gap:2px;padding:6px 9px;background:#fef2f2;border-radius:7px;font-size:11.5px"><span style="font-family:'Outfit';font-weight:700;color:#991b1b;font-size:10.5px;background:#fecaca;padding:1px 6px;border-radius:4px;align-self:flex-start">Grupo ${it.g}</span><span style="color:#0f172a">Predijo: ${fTeam(it.predicted)} ${esc(it.predicted)}</span><span style="color:#64748b">Real: ${fTeam(it.real)} ${esc(it.real)}</span></div>`;
+  });
+  // 3eros NO acertados
+  if(allGroupsComplete){
+    const realT8=new Set(r.t8||[]);
+    const wrongT8=(p.t8||[]).filter(t=>!realT8.has(t));
+    h+=listSection('Mejores 3eros NO acertados','✗','#991b1b','#fee2e2',wrongT8.map(t=>({team:t})),'Todos los 3eros predichos están en el top 8',it=>{
+      const fTeam=(typeof flag==='function')?flag:(()=>'');
+      return `<div style="display:flex;align-items:center;gap:6px;padding:6px 9px;background:#fef2f2;border-radius:7px;font-size:12px"><span style="font-size:13px">${fTeam(it.team)}</span><span style="color:#0f172a">${esc(it.team)}</span></div>`;
+    });
+  }
   h+=`</div></div>`;
   return h;
 }
