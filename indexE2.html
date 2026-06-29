@@ -154,8 +154,8 @@ html[data-ucolor] .sb-btn.on{background:var(--uc-l);color:var(--uc)}
 .pstrip-step{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;cursor:pointer;transition:background .15s var(--ease-out),border-color .15s var(--ease-out),color .15s var(--ease-out);font-size:12px;font-weight:600;color:var(--mt);border:1px solid transparent}
 @media (hover:hover) and (pointer:fine){.pstrip-step:hover:not(.skip){background:var(--bg);border-color:var(--bd);color:var(--tx)}}
 .pstrip-step.done{color:var(--gnd)}
-.pstrip-step.active{background:var(--acl);color:var(--ac);border-color:var(--ac)}
-html[data-ucolor] .pstrip-step.active{background:var(--uc-l);color:var(--uc);border-color:var(--uc)}
+.pstrip-step.active{background:var(--acl);color:var(--ac);border-color:var(--ac);border-width:2px;font-weight:800;font-size:13px;padding:7px 14px;box-shadow:0 2px 8px rgba(59,130,246,.25);transform:scale(1.04)}
+html[data-ucolor] .pstrip-step.active{background:var(--uc-l);color:var(--uc);border-color:var(--uc);box-shadow:0 2px 8px var(--uc-l)}
 .pstrip-step.skip{opacity:.35;cursor:default}
 .pstrip-dot{width:7px;height:7px;border-radius:50%;background:var(--bd2)}
 .pstrip-step.done .pstrip-dot{background:var(--gnd)}
@@ -2062,8 +2062,9 @@ function showAdminUnlock(){
 function loadApp(forceAdmin){
   showScreen('app');
   if(forceAdmin)S.tab='admin';
-  // indexE2: usuarios aterrizan directo en 16avos (Etapa 2 es el foco aquí)
-  else S.tab='r32';
+  // indexE2: usuarios aterrizan en Dashboard (panorama general). Para llenar quiniela
+  // clican "Mi Quiniela" en sidebar y caen directo en 16avos (ronda activa).
+  else S.tab='dashboard';
 
   // Check if user has accepted terms — show modal if not
   setTimeout(()=>{
@@ -2512,8 +2513,11 @@ function getRoundState(rk){
   if(rk==='r32'){
     if(!useOfficialForBracket())return 'pending';
     // OVERRIDE EMERGENCIA: si admin abrió R32 manualmente y deadline sigue futuro → open
+    // Si openedForUid está seteado, solo aplica al user específico
     const rc=getRoundConfig('r32');
-    if(rc&&rc.state==='open'&&rc.deadline&&Date.now()<rc.deadline)return 'open';
+    if(rc&&rc.state==='open'&&rc.deadline&&Date.now()<rc.deadline){
+      if(!rc.openedForUid||rc.openedForUid===ME.uid)return 'open';
+    }
     if(isBracketLockedByDate())return 'captured';
     if(isBracketDeadlinePassed())return 'locked';
     return 'open';
@@ -2550,10 +2554,13 @@ function bracketSetterLockReason(rk){
   // R32 conserva lógica original + check de override de emergencia
   if(rk==='r32'){
     // OVERRIDE EMERGENCIA: admin reabrió R32 con bracketRounds.r32 → permitir si deadline futuro
+    // Si openedForUid está seteado, solo el user específico puede editar
     const rcR32=getRoundConfig('r32');
     if(rcR32&&rcR32.state==='open'&&rcR32.deadline&&Date.now()<rcR32.deadline){
-      if(isTournamentBracketLocked())return 'tournament';
-      return null;
+      if(!rcR32.openedForUid||rcR32.openedForUid===ME.uid){
+        if(isTournamentBracketLocked())return 'tournament';
+        return null;
+      }
     }
     if(isBracketLockedByDate())return 'r32started';
     if(isTournamentBracketLocked())return 'tournament';
@@ -2932,7 +2939,7 @@ function rSidebar(){
   const inBracket=TAB_ORDER.includes(S.tab);
   const items=[
     {id:'dashboard',lbl:'Dashboard',ico:'📊',cls:'dash'},
-    {id:'grupos',lbl:'Mi Quiniela',ico:'🌎',active:inBracket||S.tab==='grupos',cls:''},
+    {id:'r32',lbl:'Mi Quiniela',ico:'🌎',active:inBracket||S.tab==='grupos',cls:''},
     {id:'instrucciones',lbl:'Instrucciones',ico:'📖',cls:'ins'},
   ];
   if(ME.isAdmin)items.push({id:'admin',lbl:'Admin',ico:'⚙',cls:'adm'});
@@ -6233,32 +6240,101 @@ window.changeRoundDeadlineV2=async function(cid,commName,rk){
   }catch(e){alert('Error: '+(e.message||e));}
 };
 
-// ─── EMERGENCIA: Reabrir 16avos (R32) por X minutos para un user atrasado ───
+// ─── EMERGENCIA: Reabrir 16avos (R32) por X minutos ───
+// Soporta apertura PARA TODOS o SOLO PARA UN USUARIO específico (más seguro).
 window.reopenR32EmergencyV2=async function(cid,commName){
   const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
   if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede reabrir 16avos.');return;}
   const c=S.communities[cid];
   if(!c){alert('Comunidad no encontrada.');return;}
   if(c.stage2Unlocked!==true){alert('Primero debes abrir la Etapa 2.');return;}
-  const minStr=prompt('🆘 Reabrir 16avos por emergencia\n\n¿Cuántos MINUTOS quieres abrirlos?\n\n(Sugerencia: 5–10 minutos. Avísale al user para que entre AHORA y llene.)','5');
-  if(!minStr)return;
-  const mins=parseInt(minStr,10);
-  if(!mins||mins<1||mins>1440){alert('Ingresa un número entre 1 y 1440 (24h máx).');return;}
-  const deadline=Date.now()+mins*60*1000;
-  showConfirm({
-    title:'🆘 Reabrir 16avos',
-    msg:`¿Reabrir 16avos en "${commName}" por ${mins} minuto${mins!==1?'s':''}?\n\nDurante este lapso, CUALQUIER user de la comunidad podrá editar sus picks de 16avos. Avisa al user específico para que entre ya.\n\nCierra automáticamente: ${fmtDeadlineCDMX(deadline)} (CDMX)`,
-    okText:'Sí, reabrir',
-    onOk:async()=>{
-      try{
-        await db.ref('communities/'+cid+'/bracketRounds/r32').set({
-          state:'open',openedAt:Date.now(),closedAt:null,deadline
-        });
-        alert(`✅ 16avos reabiertos por ${mins} min en "${commName}".\n\nCierre automático: ${fmtDeadlineCDMX(deadline)} (CDMX)\n\n💡 Avísale al user para que llene AHORA.`);
-        render();
-      }catch(e){alert('Error: '+(e.message||e));}
-    }
-  });
+  // Listar miembros de la comunidad con progreso de R32
+  const members=Object.entries(S.users||{}).filter(([uid,u])=>u&&u.communityId===cid).map(([uid,u])=>{
+    let filled=0;
+    try{
+      const arr=(S.picks&&S.picks[uid]&&S.picks[uid].bracketE2&&S.picks[uid].bracketE2.r32V2);
+      if(arr){const items=Array.isArray(arr)?arr:Object.values(arr);for(const p of items)if(p&&p.w)filled++;}
+    }catch(e){}
+    return{uid,name:u.name||'?',color:u.color,photo:u.photo,filled};
+  }).sort((a,b)=>a.filled-b.filled||a.name.localeCompare(b.name)); // incompletos arriba
+  // Construir picker en overlay
+  let listHTML='';
+  for(const m of members){
+    const pic=userPic({name:m.name,photo:m.photo,color:m.color},36).replace('class="lbpic"','class="r32em-avatar"');
+    const isFull=m.filled>=16;
+    const progColor=isFull?'#16a34a':(m.filled===0?'#dc2626':'#d97706');
+    const progLbl=isFull?'✓ 16/16':`${m.filled}/16`;
+    listHTML+=`<div class="r32em-row" onclick="_pickedR32EmUid('${js(m.uid)}','${js(m.name)}')" data-uid="${js(m.uid)}">
+      ${pic}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.name)}</div>
+        <div style="font-size:11px;color:${progColor};font-weight:700">${progLbl} partidos</div>
+      </div>
+      <div style="font-size:18px;color:#94a3b8">›</div>
+    </div>`;
+  }
+  // CSS inline mínimo (idempotente)
+  if(!document.getElementById('r32em-style')){
+    const st=document.createElement('style');st.id='r32em-style';
+    st.textContent=`
+      #r32em-modal{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:920;display:none;align-items:center;justify-content:center;padding:18px;transition:background .22s}
+      #r32em-modal.on{display:flex;background:rgba(0,0,0,.55)}
+      .r32em-box{background:var(--card);border-radius:16px;max-width:480px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+      .r32em-hdr{padding:14px 16px;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;display:flex;justify-content:space-between;align-items:center}
+      .r32em-hdr-ttl{font-family:'Outfit',sans-serif;font-weight:800;font-size:14px}
+      .r32em-close{background:rgba(255,255,255,.22);border:none;color:#fff;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:15px;font-weight:700}
+      .r32em-sub{padding:10px 16px;background:#fef2f2;border-bottom:1px solid #fecaca;font-size:11.5px;color:#7f1d1d;line-height:1.5}
+      .r32em-body{flex:1;overflow-y:auto;padding:6px 8px}
+      .r32em-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background .12s}
+      .r32em-row:hover{background:#fef2f2}
+      .r32em-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;font-family:'Outfit',sans-serif;flex-shrink:0;background-size:cover;background-position:center}
+      .r32em-all{padding:11px 12px;background:linear-gradient(135deg,#fee2e2,#fecaca);border:1.5px dashed #dc2626;border-radius:9px;margin:8px;cursor:pointer;font-weight:800;color:#7f1d1d;font-size:13px;text-align:center;font-family:'Outfit',sans-serif}
+      .r32em-all:hover{background:linear-gradient(135deg,#fecaca,#fca5a5)}
+      .r32em-divider{font-size:10.5px;font-weight:800;color:var(--mt);letter-spacing:.6px;text-transform:uppercase;padding:10px 10px 4px}
+    `;document.head.appendChild(st);
+  }
+  // Inject modal
+  let mod=document.getElementById('r32em-modal');
+  if(!mod){mod=document.createElement('div');mod.id='r32em-modal';document.body.appendChild(mod);}
+  mod.innerHTML=`<div class="r32em-box">
+    <div class="r32em-hdr">
+      <div class="r32em-hdr-ttl">🆘 Reabrir 16avos · ${esc(commName)}</div>
+      <button class="r32em-close" onclick="document.getElementById('r32em-modal').classList.remove('on')">✕</button>
+    </div>
+    <div class="r32em-sub">⚠️ Úsalo solo para emergencias (user que no alcanzó a llenar). Elige <b>UN solo usuario</b> para abrirle a él específicamente — más controlado que abrir para todos.</div>
+    <div class="r32em-body">
+      <div class="r32em-divider">— Usuarios de la comunidad —</div>
+      ${listHTML}
+      <div class="r32em-divider">— O bien —</div>
+      <div class="r32em-all" onclick="_pickedR32EmUid('','TODOS')">🌐 Abrir para TODOS los usuarios</div>
+    </div>
+  </div>`;
+  // Picker callback (definido en scope por closure)
+  window._pickedR32EmUid=function(uid,uname){
+    document.getElementById('r32em-modal').classList.remove('on');
+    const targetLbl=uid?`SOLO PARA "${uname}"`:'PARA TODOS los usuarios';
+    const minStr=prompt(`🆘 Reabrir 16avos · ${targetLbl}\n\n¿Cuántos MINUTOS abrir?\n\n(Sugerencia: 5–15 min. Avísale al user para que entre AHORA y llene.)`,'10');
+    if(!minStr)return;
+    const mins=parseInt(minStr,10);
+    if(!mins||mins<1||mins>1440){alert('Ingresa un número entre 1 y 1440 (24h máx).');return;}
+    const deadline=Date.now()+mins*60*1000;
+    showConfirm({
+      title:'🆘 Reabrir 16avos',
+      msg:`¿Reabrir 16avos en "${commName}" por ${mins} minuto${mins!==1?'s':''} ${targetLbl}?\n\nCierre automático: ${fmtDeadlineCDMX(deadline)} (CDMX)`,
+      okText:'Sí, reabrir',
+      onOk:async()=>{
+        try{
+          const payload={state:'open',openedAt:Date.now(),closedAt:null,deadline};
+          if(uid)payload.openedForUid=uid;
+          await db.ref('communities/'+cid+'/bracketRounds/r32').set(payload);
+          alert(`✅ 16avos reabiertos por ${mins} min · ${targetLbl}\n\nCierre automático: ${fmtDeadlineCDMX(deadline)} (CDMX)\n\n💡 Avísale al user para que llene AHORA.`);
+          render();
+        }catch(e){alert('Error: '+(e.message||e));}
+      }
+    });
+  };
+  // Show modal
+  setTimeout(()=>{mod.classList.add('on');if(typeof parseTwemoji==='function')parseTwemoji(mod);},10);
 };
 
 window.closeR32EmergencyV2=async function(cid,commName){
@@ -6544,7 +6620,12 @@ function rAdmCommunities(){
             const r32Bd=r32IsEmergencyOpen?'#dc2626':'#d1d5db';
             const r32Color=r32IsEmergencyOpen?'#7f1d1d':'#6b7280';
             const r32Icon=r32IsEmergencyOpen?'🆘':'🔒';
-            const r32Label=r32IsEmergencyOpen?`Reabierto por emergencia · cierra ${fmtDeadlineCDMX(r32cfg.deadline)}`:'Cerrados (deadline pasó)';
+            let r32ForLabel='para TODOS';
+            if(r32IsEmergencyOpen&&r32cfg.openedForUid){
+              const tu=S.users&&S.users[r32cfg.openedForUid];
+              r32ForLabel=tu?`solo para "${esc(tu.name||'?')}"`:'solo para 1 user';
+            }
+            const r32Label=r32IsEmergencyOpen?`Reabierto ${r32ForLabel} · cierra ${fmtDeadlineCDMX(r32cfg.deadline)}`:'Cerrados (deadline pasó)';
             let r32Btns='';
             if(r32IsEmergencyOpen){
               r32Btns+=`<button onclick="closeR32EmergencyV2('${js(cid)}','${js(c.name)}')" style="padding:5px 10px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:700;font-family:'DM Sans',sans-serif">🔐 Cerrar ya</button>`;
@@ -6557,7 +6638,7 @@ function rAdmCommunities(){
                 <div style="font-weight:800;font-size:11.5px;color:${r32Color};font-family:'Outfit',sans-serif">${r32Icon} 16avos (R32)</div>
                 <div style="font-size:10px;color:${r32Color};font-weight:700">${esc(r32Label)}</div>
               </div>
-              <div style="font-size:10px;color:${r32Color};margin-bottom:6px;line-height:1.4">⚠️ Úsalo solo si un participante no alcanzó a llenar. Durante el lapso TODOS pueden editar — avisa solo al user atrasado.</div>
+              <div style="font-size:10px;color:${r32Color};margin-bottom:6px;line-height:1.4">⚠️ Úsalo solo si un participante no alcanzó a llenar. Puedes abrir <b>solo para 1 user</b> (recomendado) o para todos.</div>
               <div style="display:flex;flex-wrap:wrap;gap:5px">${r32Btns}</div>
             </div>`;
           }
