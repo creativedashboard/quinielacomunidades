@@ -2225,6 +2225,10 @@ function mergeAdm(v){
     if(v[k])_iterIndexed(v[k],b[k].length,(i,x)=>{b[k][i]=x||'';});
   }
   if(v.fin)b.fin=v.fin;if(v.thr)b.thr=v.thr;
+  // ─── FIX (2026-06-28): preservar bracketE2 (datos V2 con marcadores+penales). ───
+  // Antes faltaba esta línea → cuando admin guardaba un marcador, el listener
+  // reconstruía S.adminR SIN bracketE2 y los inputs se vaciaban en pantalla.
+  if(v.bracketE2)b.bracketE2=v.bracketE2;
   return b;
 }
 
@@ -2488,39 +2492,98 @@ function showTournamentLocked(){
   alert('🔒 Etapa 2: Eliminatorias\n\nEsta sección está bloqueada porque tu quiniela está en modo torneo. Tu admin abrirá esta etapa cuando termine la fase de Grupos.');
 }
 
-// Helper: should bracket setters be locked for non-admin user?
-// Returns lock reason ('locked' | 'tournament' | 'r32started' | null)
-function bracketSetterLockReason(){
-  // R32 started → no edits anywhere
-  if(isBracketLockedByDate())return 'r32started';
-  // Tournament Mode Stage 1: bracket is locked until admin opens Stage 2
-  if(isTournamentBracketLocked())return 'tournament';
-  // Tournament Mode Stage 2 OPEN: chequear si pasó el deadline FIJO (28 jun 1pm CDMX)
-  if(useOfficialForBracket()){
-    if(isBracketDeadlinePassed())return 'deadline24h'; // reason code legacy
-    return null;
+// ─── Round-by-round state (R16/QF/SF/Final) ───
+// Cada ronda tiene su propio estado independiente: pending|open|locked|captured
+// R32 (16avos) sigue su flow legacy (stage2Unlocked + BRACKET_FILL_DEADLINE).
+// "thr" (3er lugar) comparte el estado con "fin".
+function getCommunityBracketRounds(){
+  const c=S.communities&&S.communities[ME.communityId];
+  if(!c)return null;
+  return c.bracketRounds||null;
+}
+function getRoundConfig(rk){
+  if(rk==='thr')rk='fin';
+  const br=getCommunityBracketRounds();
+  if(!br)return null;
+  return br[rk]||null;
+}
+function getRoundState(rk){
+  // R32 → lógica legacy
+  if(rk==='r32'){
+    if(!useOfficialForBracket())return 'pending';
+    if(isBracketLockedByDate())return 'captured';
+    if(isBracketDeadlinePassed())return 'locked';
+    return 'open';
   }
-  // Normal mode: lock after Mundial starts (11 jun)
-  if(isLocked())return 'locked';
+  // R16/QF/SF/Final/thr → community.bracketRounds
+  const rc=getRoundConfig(rk);
+  if(!rc)return 'pending';
+  // Auto-lock cuando pasa deadline aunque admin no haya cerrado manualmente
+  if(rc.state==='open'&&rc.deadline&&Date.now()>=rc.deadline)return 'locked';
+  return rc.state||'pending';
+}
+function isRoundFillingOpen(rk){return getRoundState(rk)==='open';}
+function roundDeadlineMs(rk){
+  if(rk==='thr')rk='fin';
+  const rc=getRoundConfig(rk);
+  if(!rc||!rc.deadline)return null;
+  return rc.deadline;
+}
+// Returns the round currently active for users to fill (or null)
+function activeRoundV2(){
+  for(const rk of ['r16','qf','sf','fin']){
+    if(isRoundFillingOpen(rk))return rk;
+  }
   return null;
 }
-function showBracketLocked(reason){
+function roundLabel(rk){
+  return ({r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semifinales',fin:'Final',thr:'3er lugar'})[rk]||rk;
+}
+
+// Helper: should bracket setters be locked for non-admin user?
+// Returns lock reason or null. rk indica qué ronda se está editando.
+function bracketSetterLockReason(rk){
+  if(!rk)rk='r32'; // default: legacy R32 behavior
+  // R32 conserva lógica original
+  if(rk==='r32'){
+    if(isBracketLockedByDate())return 'r32started';
+    if(isTournamentBracketLocked())return 'tournament';
+    if(useOfficialForBracket()){
+      if(isBracketDeadlinePassed())return 'deadline24h';
+      return null;
+    }
+    if(isLocked())return 'locked';
+    return null;
+  }
+  // R16/QF/SF/Final/thr → estado per-ronda
+  if(isTournamentBracketLocked())return 'tournament';
+  const st=getRoundState(rk);
+  if(st==='pending')return 'round_pending';
+  if(st==='locked')return 'round_locked';
+  if(st==='captured')return 'round_captured';
+  return null;
+}
+function showBracketLocked(reason,rk){
+  const rl=rk?roundLabel(rk):'esta ronda';
   if(reason==='r32started')alert('🔒 Los 16avos de final ya empezaron. El bracket está bloqueado.');
   else if(reason==='tournament')showTournamentLocked();
   else if(reason==='locked')showLocked();
   else if(reason==='deadline24h')alert('⏰ Plazo expirado\n\nEl plazo para llenar el bracket terminó (28 jun 1pm CDMX, 1h antes del primer partido de 16avos). Lo que dejaste, queda.');
+  else if(reason==='round_pending')alert('🔒 '+rl+' aún no se abre.\n\nEspera a que tu admin la abra una vez que se hayan capturado los resultados de la ronda anterior.');
+  else if(reason==='round_locked')alert('⏰ '+rl+' ya cerró.\n\nEl plazo para llenar esta ronda terminó. Lo que dejaste, queda.');
+  else if(reason==='round_captured')alert('🔒 '+rl+' ya tiene resultados oficiales y no se puede editar.');
 }
 
-function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setR16(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
+function setR32(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason('r32');if(r){showBracketLocked(r,'r32');return;}}const p=adm?S.adminR:myPicks();p.r32[mi]=w;clrChain(p,'r16',R32_TO_R16[mi]);if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setR16(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason('r16');if(r){showBracketLocked(r,'r16');return;}}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.r32done<16)return;}const p=adm?S.adminR:myPicks();p.r16[mi]=w;clrChain(p,'qf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setQF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
+function setQF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason('qf');if(r){showBracketLocked(r,'qf');return;}}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.r16done<8)return;}const p=adm?S.adminR:myPicks();p.qf[mi]=w;clrChain(p,'sf',Math.floor(mi/2));if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setSF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
+function setSF(mi,w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason('sf');if(r){showBracketLocked(r,'sf');return;}}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.qfDone<4)return;}const p=adm?S.adminR:myPicks();p.sf[mi]=w;p.fin='';p.thr='';if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setFin(w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
+function setFin(w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason('fin');if(r){showBracketLocked(r,'fin');return;}}
   if(!adm){const p2=myPicks();const pr=calcProgress(p2);if(pr.sfDone<2)return;}const p=adm?S.adminR:myPicks();p.fin=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
-function setThr(w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason();if(r){showBracketLocked(r);return;}}const p=adm?S.adminR:myPicks();p.thr=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
+function setThr(w,adm){if(adm&&!ME.isAdmin)return;if(!adm){const r=bracketSetterLockReason('thr');if(r){showBracketLocked(r,'thr');return;}}const p=adm?S.adminR:myPicks();p.thr=w;if(adm)saveAdminResults();else{S.picks[ME.uid]=p;scheduleSavePicks(p);}render();}
 function setT3(mi,v){if(!ME.isAdmin)return;S.thirds_bracket[mi]=v;const ridx=R32_THIRDS[mi].i;S.adminR.r32[ridx]='';clrChain(S.adminR,'r16',R32_TO_R16[ridx]);saveAdminResults();render();}
 
 // ══════════════════════════════════════════════════════
@@ -2715,7 +2778,7 @@ function clrChainV2(rk,mi,adm){
 
 window.setMcV2Score=async function(rk,mi,side,val,adm){
   if(adm&&!ME.isAdmin)return;
-  if(!adm){const r=bracketSetterLockReason&&bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
+  if(!adm){const r=bracketSetterLockReason&&bracketSetterLockReason(rk);if(r){showBracketLocked(r,rk);return;}}
   const pk=adm?getOrInitAdminPickV2(rk,mi):getOrInitPickV2(rk,mi);
   const oldW=pk.w;
   pk[side]=val===''?null:parseInt(val);
@@ -2735,7 +2798,7 @@ window.setMcV2Score=async function(rk,mi,side,val,adm){
 };
 window.setMcV2Pen=async function(rk,mi,team,adm){
   if(adm&&!ME.isAdmin)return;
-  if(!adm){const r=bracketSetterLockReason&&bracketSetterLockReason();if(r){showBracketLocked(r);return;}}
+  if(!adm){const r=bracketSetterLockReason&&bracketSetterLockReason(rk);if(r){showBracketLocked(r,rk);return;}}
   const pk=adm?getOrInitAdminPickV2(rk,mi):getOrInitPickV2(rk,mi);
   const oldW=pk.w;
   pk.pen=team;
@@ -2786,13 +2849,17 @@ function getMatchTeamsV2(rk,mi,adm){
     }
     return ['',''];
   }
-  if(rk==='r16'){const[a,b]=R16B[mi];return [winnerOfV2('r32',a,adm),winnerOfV2('r32',b,adm)];}
-  if(rk==='qf') {const[a,b]=QFB[mi]; return [winnerOfV2('r16',a,adm),winnerOfV2('r16',b,adm)];}
-  if(rk==='sf') {const[a,b]=SFB[mi]; return [winnerOfV2('qf',a,adm), winnerOfV2('qf',b,adm)];}
-  if(rk==='fin')return [winnerOfV2('sf',0,adm),winnerOfV2('sf',1,adm)];
+  // ─── ROUND-BY-ROUND: para R16+, el ganador de la ronda padre SIEMPRE viene del admin ───
+  // Esto garantiza que los users predicen sobre los teams REALES que avanzaron,
+  // no sobre su cascada de predicciones. Si admin aún no capturó la ronda padre,
+  // los teams aparecen vacíos (la ronda hija no debería estar abierta aún).
+  if(rk==='r16'){const[a,b]=R16B[mi];return [winnerOfV2('r32',a,true),winnerOfV2('r32',b,true)];}
+  if(rk==='qf') {const[a,b]=QFB[mi]; return [winnerOfV2('r16',a,true),winnerOfV2('r16',b,true)];}
+  if(rk==='sf') {const[a,b]=SFB[mi]; return [winnerOfV2('qf',a,true), winnerOfV2('qf',b,true)];}
+  if(rk==='fin')return [winnerOfV2('sf',0,true),winnerOfV2('sf',1,true)];
   if(rk==='thr'){
-    const sf0=getMatchTeamsV2('sf',0,adm),sf1=getMatchTeamsV2('sf',1,adm);
-    const w0=winnerOfV2('sf',0,adm),w1=winnerOfV2('sf',1,adm);
+    const sf0=getMatchTeamsV2('sf',0,true),sf1=getMatchTeamsV2('sf',1,true);
+    const w0=winnerOfV2('sf',0,true),w1=winnerOfV2('sf',1,true);
     return [sf0.find(t=>t&&t!==w0)||'',sf1.find(t=>t&&t!==w1)||''];
   }
   return ['',''];
@@ -5455,6 +5522,8 @@ async function renderMatchesWidget(){
 }
 
 function rDashboard(){
+  // ROUND-BY-ROUND: auto-reset picks si admin abrió una ronda nueva (fire-and-forget)
+  try{if(typeof autoResetPicksOnRoundOpenV2==='function')autoResetPicksOnRoundOpenV2();}catch(e){}
   const ct=getCountdown();
   let lockedBanner='';
   if(isLocked()&&!ME.isAdmin){
@@ -5464,39 +5533,88 @@ function rDashboard(){
     </div>`;
   }
   // Banner Etapa 2 abierta (Modo Torneo, stage2 desbloqueada, user no-admin)
+  // ─── ROUND-BY-ROUND: si hay una ronda R16+ activa, muestra banner ROJO destacado ───
   let stage2Banner='';
   const _c=S.communities[ME.communityId];
   if(_c&&_c.mode==='tournament'&&_c.stage2Unlocked===true){
-    // Cuenta cuántos partidos del bracket lleva el user llenados (de los 32 totales)
-    // FIX: Firebase puede guardar arrays sparse como objetos. Usar Object.values() para iterar
-    // tanto arrays como objetos sin tirar TypeError.
-    const e2=(typeof MY_BRACKET!=='undefined'&&MY_BRACKET)||{};
-    let filled=0;
-    try{
-      for(const arr of[e2.r32V2,e2.r16V2,e2.qfV2,e2.sfV2]){
-        if(!arr)continue;
-        const items=Array.isArray(arr)?arr:Object.values(arr);
-        for(const p of items)if(p&&p.w)filled++;
+    const _activeRound=(typeof activeRoundV2==='function')?activeRoundV2():null;
+    // Si hay una ronda R16+ activa, banner ROJO con countdown al deadline
+    if(_activeRound){
+      const _rk=_activeRound;
+      const _label=roundLabel(_rk)+(_rk==='fin'?' + 3er lugar':'');
+      const _n=({r16:8,qf:4,sf:2,fin:2})[_rk]||0;
+      // Cuenta cuántos picks lleva el user en ESTA ronda
+      const e2=(typeof MY_BRACKET!=='undefined'&&MY_BRACKET)||{};
+      let _filled=0;
+      try{
+        if(_rk==='fin'){
+          if(e2.finV2&&e2.finV2.w)_filled++;
+          if(e2.thrV2&&e2.thrV2.w)_filled++;
+        }else{
+          const arr=e2[_rk+'V2'];
+          if(arr){const items=Array.isArray(arr)?arr:Object.values(arr);for(const p of items)if(p&&p.w)_filled++;}
+        }
+      }catch(err){}
+      const _dl=(_c.bracketRounds&&_c.bracketRounds[_rk]&&_c.bracketRounds[_rk].deadline)||null;
+      const _msLeft=_dl?_dl-Date.now():null;
+      let _dlTxt='';
+      if(_msLeft!=null&&_msLeft>0){
+        const h=Math.floor(_msLeft/3600000),mins=Math.floor((_msLeft%3600000)/60000);
+        if(_msLeft>86400000){const d=Math.floor(_msLeft/86400000);_dlTxt=`Cierra en ${d}d ${h%24}h`;}
+        else _dlTxt=`Cierra en ${h}h ${mins}m`;
       }
-      if(e2.finV2&&e2.finV2.w)filled++;
-      if(e2.thrV2&&e2.thrV2.w)filled++;
-    }catch(err){console.warn('count filled error:',err);}
-    const total=32;
-    const isFull=filled>=total;
-    if(!isFull){
-      stage2Banner=`<div style="padding:14px 16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <span style="font-size:26px;flex-shrink:0">🔓</span>
-        <div style="flex:1;min-width:200px;font-size:13px;color:#78350f;line-height:1.5">
-          <strong>¡Etapa 2 abierta!</strong> Ya puedes llenar tu bracket de eliminatorias.
-          ${filled>0?`<span style="display:inline-block;background:rgba(217,119,6,.2);padding:2px 8px;border-radius:6px;font-weight:700;margin-left:6px">${filled}/${total} partidos</span>`:'<span style="display:inline-block;background:rgba(220,38,38,.15);padding:2px 8px;border-radius:6px;font-weight:700;margin-left:6px;color:#991b1b">Sin empezar</span>'}
+      const _complete=_filled>=_n;
+      stage2Banner=`<div style="padding:14px 16px;background:linear-gradient(135deg,#fee2e2,#fecaca);border:2px solid #dc2626;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(220,38,38,.2)">
+        <span style="font-size:30px;flex-shrink:0">🔔</span>
+        <div style="flex:1;min-width:200px;font-size:13px;color:#7f1d1d;line-height:1.5">
+          <div style="font-weight:800;font-size:14.5px;margin-bottom:2px;font-family:'Outfit',sans-serif">¡${esc(_label)} abierto!</div>
+          <div style="font-size:11.5px;color:#991b1b">Llena tus picks con los teams REALES que avanzaron. ${_dlTxt?`<b>${esc(_dlTxt)}</b>`:''}</div>
+          <span style="display:inline-block;background:rgba(220,38,38,${_complete?'.15':'.25'});padding:2px 8px;border-radius:6px;font-weight:700;margin-top:5px;font-size:11px">${_complete?'✅ '+_filled+'/'+_n+' completo':'⏳ '+_filled+'/'+_n+' partidos'}</span>
         </div>
-        <button onclick="S.tab='r32';render()" style="background:#d97706;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">🏆 Ir al bracket →</button>
+        <button onclick="S.tab='${_rk==='fin'?'fin':_rk}';render()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">🏆 Llenar ahora →</button>
       </div>`;
     }else{
-      stage2Banner=`<div style="padding:12px 16px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);border:1.5px solid #10b981;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:10px">
-        <span style="font-size:22px">✅</span>
-        <div style="font-size:13px;color:#065f46"><strong>Bracket completo</strong> — Llenaste tus 32 partidos de Etapa 2. Ya solo queda esperar los resultados.</div>
-      </div>`;
+      // Sin ronda R16+ activa: banner clásico de Etapa 2
+      const e2=(typeof MY_BRACKET!=='undefined'&&MY_BRACKET)||{};
+      let filled=0;
+      try{
+        for(const arr of[e2.r32V2,e2.r16V2,e2.qfV2,e2.sfV2]){
+          if(!arr)continue;
+          const items=Array.isArray(arr)?arr:Object.values(arr);
+          for(const p of items)if(p&&p.w)filled++;
+        }
+        if(e2.finV2&&e2.finV2.w)filled++;
+        if(e2.thrV2&&e2.thrV2.w)filled++;
+      }catch(err){console.warn('count filled error:',err);}
+      const total=32;
+      const isFull=filled>=total;
+      // ¿Hay una ronda esperando que admin la abra (todas pending)?
+      const _hasPending=['r16','qf','sf','fin'].some(rk=>{
+        const rc=(_c.bracketRounds&&_c.bracketRounds[rk])||{};
+        return (rc.state||'pending')==='pending';
+      });
+      const _r32State=(typeof getRoundState==='function')?getRoundState('r32'):'open';
+      if(_r32State==='locked'||_r32State==='captured'){
+        // R32 ya cerró, esperando que admin abra la siguiente ronda
+        stage2Banner=`<div style="padding:12px 16px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border:1.5px solid #2563eb;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">⏳</span>
+          <div style="font-size:12.5px;color:#1e3a8a;line-height:1.5"><strong>16avos cerrados.</strong> Tu admin abrirá Octavos en cuanto se capturen los resultados oficiales. Te avisamos aquí.</div>
+        </div>`;
+      }else if(!isFull){
+        stage2Banner=`<div style="padding:14px 16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:26px;flex-shrink:0">🔓</span>
+          <div style="flex:1;min-width:200px;font-size:13px;color:#78350f;line-height:1.5">
+            <strong>¡Etapa 2 abierta!</strong> Ya puedes llenar tu bracket de eliminatorias.
+            ${filled>0?`<span style="display:inline-block;background:rgba(217,119,6,.2);padding:2px 8px;border-radius:6px;font-weight:700;margin-left:6px">${filled}/${total} partidos</span>`:'<span style="display:inline-block;background:rgba(220,38,38,.15);padding:2px 8px;border-radius:6px;font-weight:700;margin-left:6px;color:#991b1b">Sin empezar</span>'}
+          </div>
+          <button onclick="S.tab='r32';render()" style="background:#d97706;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">🏆 Ir al bracket →</button>
+        </div>`;
+      }else{
+        stage2Banner=`<div style="padding:12px 16px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);border:1.5px solid #10b981;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">✅</span>
+          <div style="font-size:13px;color:#065f46"><strong>Bracket completo</strong> — Llenaste tus 32 partidos de Etapa 2. Ya solo queda esperar los resultados.</div>
+        </div>`;
+      }
     }
   }
   const comm=S.communities[ME.communityId];
@@ -5903,6 +6021,213 @@ async function resetStage2(cid,commName){
   });
 }
 
+// ─── ROUND-BY-ROUND: helpers para abrir/cerrar/capturar rondas R16/QF/SF/Final ───
+// Una ronda solo puede abrirse cuando la ronda padre está 100% capturada (admin metió
+// todos los ganadores). Al abrir una ronda, los picks previos de los users para esa
+// ronda se borran (porque ahora juegan con los teams REALES que avanzaron).
+function isRoundFullyCapturedInAdmin(rk,adminBracketE2){
+  if(!adminBracketE2)return false;
+  if(rk==='r32'){
+    const arr=adminBracketE2.r32V2;if(!arr)return false;
+    const items=Array.isArray(arr)?arr:Object.values(arr);
+    if(items.length<16)return false;
+    return items.every(p=>p&&p.w);
+  }
+  if(rk==='r16'){
+    const arr=adminBracketE2.r16V2;if(!arr)return false;
+    const items=Array.isArray(arr)?arr:Object.values(arr);
+    if(items.length<8)return false;
+    return items.every(p=>p&&p.w);
+  }
+  if(rk==='qf'){
+    const arr=adminBracketE2.qfV2;if(!arr)return false;
+    const items=Array.isArray(arr)?arr:Object.values(arr);
+    if(items.length<4)return false;
+    return items.every(p=>p&&p.w);
+  }
+  if(rk==='sf'){
+    const arr=adminBracketE2.sfV2;if(!arr)return false;
+    const items=Array.isArray(arr)?arr:Object.values(arr);
+    if(items.length<2)return false;
+    return items.every(p=>p&&p.w);
+  }
+  if(rk==='fin'){
+    return !!(adminBracketE2.finV2&&adminBracketE2.finV2.w&&adminBracketE2.thrV2&&adminBracketE2.thrV2.w);
+  }
+  return false;
+}
+
+// ─── Auto-reset client-side: cada user limpia sus propios picks cuando detecta
+// que el admin abrió una ronda nueva. Esto evita que el admin tenga que escribir
+// en los picks de otros users (Firebase rules) y funciona en localStorage también.
+// Comparamos community.bracketRounds.<rk>.openedAt con un ack en localStorage.
+async function autoResetPicksOnRoundOpenV2(){
+  if(!ME.uid||!ME.communityId)return;
+  const c=S.communities&&S.communities[ME.communityId];
+  if(!c||!c.bracketRounds)return;
+  if(typeof MY_BRACKET==='undefined'||!MY_BRACKET)return;
+  let changed=false;
+  for(const rk of ['r16','qf','sf','fin']){
+    const rcfg=c.bracketRounds[rk];
+    if(!rcfg||rcfg.state!=='open')continue;
+    const opened=rcfg.openedAt;
+    if(!opened)continue;
+    const ackKey='_brResetAck_'+ME.communityId+'_'+rk;
+    let lastAck=0;
+    try{lastAck=parseInt(localStorage.getItem(ackKey)||'0',10)||0;}catch(e){}
+    if(opened>lastAck){
+      // Reset this round's picks for THIS user
+      const empty={a:null,b:null,w:'',pen:''};
+      if(rk==='fin'){
+        MY_BRACKET.finV2={...empty};
+        MY_BRACKET.thrV2={...empty};
+      }else{
+        const n=({r16:8,qf:4,sf:2})[rk]||0;
+        MY_BRACKET[rk+'V2']=new Array(n).fill(0).map(()=>({...empty}));
+      }
+      try{localStorage.setItem(ackKey,String(opened));}catch(e){}
+      changed=true;
+    }
+  }
+  if(changed){
+    try{await saveMyBracketV2();}catch(e){console.warn('autoReset save:',e);}
+  }
+}
+
+// Convierte un string "YYYY-MM-DD HH:MM" en milisegundos asumiendo zona CDMX (UTC-6).
+function parseDeadlineCDMX(str){
+  if(!str)return null;
+  const s=str.trim().replace(' ','T');
+  // Append CDMX offset
+  const d=new Date(s+':00-06:00');
+  if(isNaN(d.getTime()))return null;
+  return d.getTime();
+}
+function fmtDeadlineCDMX(ms){
+  if(!ms)return '—';
+  try{return new Date(ms).toLocaleString('es-MX',{timeZone:'America/Mexico_City',dateStyle:'medium',timeStyle:'short'});}
+  catch(e){return new Date(ms).toLocaleString();}
+}
+
+window.openRoundV2=async function(cid,commName,rk){
+  const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede abrir rondas.');return;}
+  const c=S.communities[cid];
+  if(!c){alert('Comunidad no encontrada.');return;}
+  if(c.stage2Unlocked!==true){alert('Primero debes abrir la Etapa 2.');return;}
+  const parents={r16:'r32',qf:'r16',sf:'qf',fin:'sf'};
+  const parent=parents[rk];
+  if(!parent){alert('Ronda inválida.');return;}
+  // Get admin's bracketE2 from DB or localStorage (Beta Test Com)
+  let adminBracket=null;
+  try{
+    if((c.name||'').toLowerCase().trim()==='beta test com'){
+      const ls=localStorage.getItem('_adminE2_'+cid);
+      adminBracket=ls?JSON.parse(ls):{};
+    }else{
+      const snap=await db.ref('community_results/'+cid+'/bracketE2').once('value');
+      adminBracket=snap.val()||{};
+    }
+  }catch(e){alert('Error leyendo resultados oficiales: '+(e.message||e));return;}
+  if(!isRoundFullyCapturedInAdmin(parent,adminBracket)){
+    alert(`⚠️ No puedes abrir ${roundLabel(rk)} todavía.\n\nNecesitas capturar TODOS los resultados oficiales de ${roundLabel(parent)} primero.\n\nVe a "Admin · Etapa 2" → "RELLENAR RESULTADOS" y completa marcadores + ganadores de ${roundLabel(parent)}.`);
+    return;
+  }
+  const cur=(c.bracketRounds&&c.bracketRounds[rk])||{};
+  if(cur.state==='open'){alert(`${roundLabel(rk)} ya está abierta.`);return;}
+  // Default deadline: 24h before next round's typical start. Just default to 48h from now.
+  const def=new Date(Date.now()+48*60*60*1000);
+  const defStr=def.toISOString().slice(0,16).replace('T',' ');
+  const dlStr=prompt(`📅 ¿Hasta cuándo pueden llenar ${roundLabel(rk)}?\n\nFormato: YYYY-MM-DD HH:MM (hora CDMX)\n\nEjemplo: ${defStr}`,defStr);
+  if(!dlStr)return;
+  const deadline=parseDeadlineCDMX(dlStr);
+  if(!deadline){alert('Fecha inválida. Usa formato YYYY-MM-DD HH:MM');return;}
+  if(deadline<=Date.now()){alert('La fecha debe ser futura.');return;}
+  showConfirm({
+    title:`🔓 Abrir ${roundLabel(rk)}`,
+    msg:`¿Abrir ${roundLabel(rk)} en "${commName}"?\n\n• Deadline: ${fmtDeadlineCDMX(deadline)} (CDMX)\n• Los participantes verán los teams REALES que pasaron\n• Sus picks anteriores de ${roundLabel(rk)} se borrarán\n\n¿Continuar?`,
+    okText:'Sí, abrir',
+    onOk:async()=>{
+      try{
+        const cfg={state:'open',openedAt:Date.now(),closedAt:null,deadline};
+        await db.ref('communities/'+cid+'/bracketRounds/'+rk).set(cfg);
+        // Si el admin es ALSO user con picks en esta ronda, auto-reset propio
+        try{await autoResetPicksOnRoundOpenV2();}catch(e){}
+        alert(`✅ ${roundLabel(rk)} abierta en "${commName}".\n\nDeadline: ${fmtDeadlineCDMX(deadline)} (CDMX)\n\n💡 Los participantes ven la ronda abierta automáticamente. Sus picks anteriores de esta ronda se reinician en cuanto entren a la app.`);
+        render();
+      }catch(e){alert('Error: '+(e.message||e));}
+    }
+  });
+};
+
+window.closeRoundV2=async function(cid,commName,rk){
+  const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede cerrar rondas.');return;}
+  showConfirm({
+    title:`🔐 Cerrar ${roundLabel(rk)}`,
+    msg:`¿Cerrar ${roundLabel(rk)} en "${commName}" antes del deadline?\n\nLos participantes ya no podrán editar sus picks de esta ronda.`,
+    okText:'Sí, cerrar',
+    danger:true,
+    onOk:async()=>{
+      try{
+        await db.ref('communities/'+cid+'/bracketRounds/'+rk).update({
+          state:'locked',
+          closedAt:Date.now()
+        });
+        alert(`✅ ${roundLabel(rk)} cerrada en "${commName}".`);
+        render();
+      }catch(e){alert('Error: '+(e.message||e));}
+    }
+  });
+};
+
+window.changeRoundDeadlineV2=async function(cid,commName,rk){
+  const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede cambiar deadlines.');return;}
+  const c=S.communities[cid];
+  const cur=(c&&c.bracketRounds&&c.bracketRounds[rk])||{};
+  if(cur.state!=='open'){alert(`${roundLabel(rk)} no está abierta. No puedes cambiar el deadline.`);return;}
+  const curDl=cur.deadline?new Date(cur.deadline).toISOString().slice(0,16).replace('T',' '):'';
+  const dlStr=prompt(`📅 Nuevo deadline para ${roundLabel(rk)} (hora CDMX, formato YYYY-MM-DD HH:MM):`,curDl);
+  if(!dlStr)return;
+  const deadline=parseDeadlineCDMX(dlStr);
+  if(!deadline){alert('Fecha inválida.');return;}
+  if(deadline<=Date.now()){alert('La fecha debe ser futura.');return;}
+  try{
+    await db.ref('communities/'+cid+'/bracketRounds/'+rk+'/deadline').set(deadline);
+    alert(`✅ Deadline de ${roundLabel(rk)} actualizado: ${fmtDeadlineCDMX(deadline)} (CDMX)`);
+    render();
+  }catch(e){alert('Error: '+(e.message||e));}
+};
+
+window.markRoundCapturedV2=async function(cid,commName,rk){
+  const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede marcar rondas como capturadas.');return;}
+  // Verify it's actually fully captured
+  let adminBracket=null;
+  try{
+    const c=S.communities[cid];
+    if(c&&(c.name||'').toLowerCase().trim()==='beta test com'){
+      const ls=localStorage.getItem('_adminE2_'+cid);adminBracket=ls?JSON.parse(ls):{};
+    }else{
+      const snap=await db.ref('community_results/'+cid+'/bracketE2').once('value');
+      adminBracket=snap.val()||{};
+    }
+  }catch(e){alert('Error: '+(e.message||e));return;}
+  if(!isRoundFullyCapturedInAdmin(rk,adminBracket)){
+    alert(`⚠️ ${roundLabel(rk)} aún no está 100% capturada en los resultados oficiales.\n\nMete los marcadores y ganadores faltantes antes de marcarla como capturada.`);
+    return;
+  }
+  try{
+    await db.ref('communities/'+cid+'/bracketRounds/'+rk).update({
+      state:'captured',
+      closedAt:Date.now()
+    });
+    alert(`✅ ${roundLabel(rk)} marcada como capturada en "${commName}".\n\nYa puedes abrir la siguiente ronda.`);
+    render();
+  }catch(e){alert('Error: '+(e.message||e));}
+};
+
 async function adminToggleCommunityAdmin(cid,uid,name,makeAdmin){
   if(!ME.isSuperAdmin){alert('Solo super-admin puede cambiar roles.');return;}
   if(isSuperAdminUid(uid)){alert('No puedes modificar el rol del super-admin.');return;}
@@ -6122,6 +6447,44 @@ function rAdmCommunities(){
       let tournamentBanner='';
       if(c.mode==='tournament'&&canManage){
         if(c.stage2Unlocked===true){
+          // ─── Round-by-round controls section ───
+          const stCfg={
+            pending:{bg:'#f9fafb',bd:'#d1d5db',color:'#6b7280',icon:'⏸️',label:'Pendiente de abrir'},
+            open:{bg:'#dcfce7',bd:'#16a34a',color:'#14532d',icon:'🔓',label:'Abierta para llenar'},
+            locked:{bg:'#fef3c7',bd:'#d97706',color:'#78350f',icon:'⏰',label:'Cerrada · esperando resultados'},
+            captured:{bg:'#dbeafe',bd:'#2563eb',color:'#1e40af',icon:'✅',label:'Capturada · resultados oficiales'}
+          };
+          let rbrHTML='<div style="background:#fff;border:1.5px solid #16a34a;border-radius:10px;padding:12px;margin-top:10px"><div style="font-weight:800;font-size:12px;color:#14532d;margin-bottom:8px;font-family:\'Outfit\',sans-serif">🎯 Control ronda por ronda (R16 → Final)</div><div style="font-size:10.5px;color:#374151;margin-bottom:10px;line-height:1.4">Abre cada ronda manualmente <b>después</b> de capturar los resultados de la ronda anterior. Los users predicen siempre con los teams REALES que avanzaron.</div>';
+          for(const rk of ['r16','qf','sf','fin']){
+            const rcfg=(c.bracketRounds&&c.bracketRounds[rk])||{};
+            let st=rcfg.state||'pending';
+            // auto-derived "locked" if deadline passed
+            if(st==='open'&&rcfg.deadline&&Date.now()>=rcfg.deadline)st='locked';
+            const v=stCfg[st]||stCfg.pending;
+            const dl=rcfg.deadline?fmtDeadlineCDMX(rcfg.deadline):'—';
+            const rlabel=roundLabel(rk)+(rk==='fin'?' + 3er lugar':'');
+            // Determine which buttons to show
+            const canOpen=(st==='pending'||st==='captured');
+            const canClose=(st==='open');
+            const canEditDl=(st==='open');
+            const canCapture=(st==='locked');
+            const canReopen=(st==='locked'||st==='captured');
+            let btns='';
+            if(canOpen)btns+=`<button onclick="openRoundV2('${js(cid)}','${js(c.name)}','${rk}')" style="padding:5px 10px;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:700;font-family:'DM Sans',sans-serif">🔓 Abrir</button>`;
+            if(canClose)btns+=`<button onclick="closeRoundV2('${js(cid)}','${js(c.name)}','${rk}')" style="padding:5px 10px;background:#fff;color:#92400e;border:1.5px solid #d97706;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:700;font-family:'DM Sans',sans-serif">🔐 Cerrar ahora</button>`;
+            if(canEditDl)btns+=`<button onclick="changeRoundDeadlineV2('${js(cid)}','${js(c.name)}','${rk}')" style="padding:5px 10px;background:#fff;color:#1e40af;border:1.5px solid #2563eb;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:700;font-family:'DM Sans',sans-serif">📅 Cambiar deadline</button>`;
+            if(canCapture)btns+=`<button onclick="markRoundCapturedV2('${js(cid)}','${js(c.name)}','${rk}')" style="padding:5px 10px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:700;font-family:'DM Sans',sans-serif">✅ Marcar capturada</button>`;
+            if(canReopen)btns+=`<button onclick="openRoundV2('${js(cid)}','${js(c.name)}','${rk}')" style="padding:5px 10px;background:#fff;color:#14532d;border:1.5px solid #16a34a;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:700;font-family:'DM Sans',sans-serif">🔄 Reabrir (borra picks)</button>`;
+            rbrHTML+=`<div style="background:${v.bg};border:1.5px solid ${v.bd};border-radius:8px;padding:9px 11px;margin-bottom:7px">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+                <div style="font-weight:800;font-size:11.5px;color:${v.color};font-family:'Outfit',sans-serif">${v.icon} ${esc(rlabel)}</div>
+                <div style="font-size:10px;color:${v.color};font-weight:700">${esc(v.label)}</div>
+              </div>
+              <div style="font-size:10px;color:${v.color};margin-bottom:6px">Deadline: <b>${esc(dl)}</b></div>
+              <div style="display:flex;flex-wrap:wrap;gap:5px">${btns}</div>
+            </div>`;
+          }
+          rbrHTML+='</div>';
           tournamentBanner=`<div style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);border:1.5px solid #16a34a;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:11.5px;color:#14532d;line-height:1.5">
             <div style="font-weight:800;margin-bottom:4px;font-family:'Outfit',sans-serif;font-size:12.5px">🏆 Modo Torneo · Etapa 2 abierta ✅</div>
             <div>Los participantes ya pueden llenar su bracket de eliminatorias basado en los equipos reales que pasaron.</div>
@@ -6129,6 +6492,7 @@ function rAdmCommunities(){
               <button onclick="resetStage2('${js(cid)}','${js(c.name)}')" style="padding:6px 12px;background:#fff;border:1.5px solid #16a34a;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#14532d;font-family:'DM Sans',sans-serif">🔒 Cerrar Etapa 2</button>
               <button onclick="downloadPicksE2('${js(cid)}','${js(c.name)}')" style="padding:6px 12px;background:#fff;border:1.5px solid #2563eb;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#1e40af;font-family:'DM Sans',sans-serif">📥 Descargar picks E2 (JSON)</button>
             </div>
+            ${rbrHTML}
           </div>`;
         }else{
           tournamentBanner=`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:10px;padding:14px;margin-bottom:14px;color:#78350f;line-height:1.5">
