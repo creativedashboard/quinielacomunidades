@@ -2508,9 +2508,12 @@ function getRoundConfig(rk){
   return br[rk]||null;
 }
 function getRoundState(rk){
-  // R32 → lógica legacy
+  // R32 → lógica legacy + override de emergencia
   if(rk==='r32'){
     if(!useOfficialForBracket())return 'pending';
+    // OVERRIDE EMERGENCIA: si admin abrió R32 manualmente y deadline sigue futuro → open
+    const rc=getRoundConfig('r32');
+    if(rc&&rc.state==='open'&&rc.deadline&&Date.now()<rc.deadline)return 'open';
     if(isBracketLockedByDate())return 'captured';
     if(isBracketDeadlinePassed())return 'locked';
     return 'open';
@@ -2544,8 +2547,14 @@ function roundLabel(rk){
 // Returns lock reason or null. rk indica qué ronda se está editando.
 function bracketSetterLockReason(rk){
   if(!rk)rk='r32'; // default: legacy R32 behavior
-  // R32 conserva lógica original
+  // R32 conserva lógica original + check de override de emergencia
   if(rk==='r32'){
+    // OVERRIDE EMERGENCIA: admin reabrió R32 con bracketRounds.r32 → permitir si deadline futuro
+    const rcR32=getRoundConfig('r32');
+    if(rcR32&&rcR32.state==='open'&&rcR32.deadline&&Date.now()<rcR32.deadline){
+      if(isTournamentBracketLocked())return 'tournament';
+      return null;
+    }
     if(isBracketLockedByDate())return 'r32started';
     if(isTournamentBracketLocked())return 'tournament';
     if(useOfficialForBracket()){
@@ -4849,53 +4858,77 @@ window.openBracketMatchPredictions=function(rk,mi){
   const admPick=getAdminPickV2(rk,mi);
   const hasResult=admPick&&admPick.a!=null&&admPick.b!=null;
   const members=myCommunityMembers();
-  // Header con info del partido
-  let h=`<div style="padding:14px 16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-bottom:1.5px solid #d97706;font-family:'Outfit',sans-serif">
-    <div style="font-size:11px;font-weight:700;color:#78350f;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${_bracketRoundLabel(rk)} · M${info.m}</div>
-    <div style="font-size:14px;font-weight:800;color:#78350f">${flag(t1)||''} ${esc(t1||'?')} vs ${esc(t2||'?')} ${flag(t2)||''}</div>
-    <div style="font-size:11px;color:#92400e;margin-top:3px">📅 ${info.d} · ⏰ ${info.t}${info.c?' · 📍 '+esc(info.c):''}</div>
-    ${hasResult?`<div style="margin-top:8px;padding:6px 10px;background:#fff;border-radius:6px;font-size:12px;color:#1e40af;font-weight:700">📊 Marcador real: ${admPick.a}–${admPick.b}${admPick.a===admPick.b&&admPick.pen?` (pen ${esc(abbr(admPick.pen))})`:''}</div>`:''}
-  </div>`;
-  // Lista de predicciones ordenada (exactos primero, luego ganador, luego fail)
+  // ── HEADER (estilo modal estandar mdm-*) ──
+  const dateLbl=`${info.d} · ${info.t}${info.c?' · 📍 '+esc(info.c):''}`;
+  const headerInfo=`${_bracketRoundLabel(rk)} · M${info.m} · ${dateLbl}`;
+  let scoreHtml='vs';
+  if(hasResult){
+    const penNote=admPick.a===admPick.b&&admPick.pen?` <span style="font-size:11px;font-weight:700;opacity:.9">(pen ${esc(abbr(admPick.pen))})</span>`:'';
+    scoreHtml=`${admPick.a} - ${admPick.b}${penNote}`;
+  }
+  const headerHTML=`
+    <div class="mdm-header-top">
+      <div class="mdm-header-info">${esc(headerInfo)}</div>
+      <button class="mdm-close" onclick="closeMatchDetail()" title="Cerrar">✕</button>
+    </div>
+    <div class="mdm-match">
+      <div class="mdm-match-team">
+        <span style="font-size:20px">${flag(t1)||''}</span>
+        <span class="mdm-match-team-name">${esc(t1||'?')}</span>
+      </div>
+      <span class="mdm-match-score">${scoreHtml}</span>
+      <div class="mdm-match-team right">
+        <span class="mdm-match-team-name">${esc(t2||'?')}</span>
+        <span style="font-size:20px">${flag(t2)||''}</span>
+      </div>
+    </div>`;
+  // ── BODY (filas estilo mdm-row, secciones mdm-divider) ──
   const rows=[];
   for(const m of members){
     const pk=_userPickV2For(m.uid,rk,mi);
-    if(!pk||pk.a==null||pk.b==null){rows.push({m,pk:null,pts:0,status:'sin pick'});continue;}
-    let pts=0, status='❌ erró';
-    if(hasResult){
-      pts=calcMatchV2Points(pk,admPick);
-      if(pts>=3)status='🎯 exacto';
-      else if(pts===1)status='✓ ganador';
-      else if(pts===2)status='⚽ pen';
-    }else{status='⏳ pendiente';}
-    rows.push({m,pk,pts,status});
+    const hasPick=!!(pk&&pk.a!=null&&pk.b!=null);
+    let pts=0;
+    if(hasResult&&hasPick)pts=calcMatchV2Points(pk,admPick);
+    const pkStr=hasPick?`${pk.a} - ${pk.b}${pk.a===pk.b&&pk.pen?` (pen ${esc(abbr(pk.pen))})`:''}`:'—';
+    rows.push({u:m,pk,hasPick,pts,pkStr});
   }
-  rows.sort((a,b)=>b.pts-a.pts||(a.m.name||'').localeCompare(b.m.name||''));
-  h+=`<div style="padding:8px 12px;max-height:60vh;overflow:auto">
-    <div style="font-size:11px;color:var(--mt);font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:8px 4px">${rows.length} participantes</div>`;
-  for(const r of rows){
-    const u=r.m;
-    const initial=(u.name||'?')[0].toUpperCase();
-    const pkStr=r.pk?`${r.pk.a}–${r.pk.b}${r.pk.a===r.pk.b&&r.pk.pen?` (pen ${esc(abbr(r.pk.pen))})`:''}`:'—';
-    h+=`<div style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--bd)">
-      <div style="width:30px;height:30px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0">${esc(initial)}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(u.name||'?')}</div>
-        <div style="font-size:11px;color:var(--mt)">${r.status}${hasResult&&r.pk?` · ${r.pts} pt${r.pts!==1?'s':''}`:''}</div>
-      </div>
-      <div style="font-family:'Outfit',sans-serif;font-weight:800;font-size:14px;color:${r.pts>=3?'#047857':(r.pts>0?'#1e40af':'var(--mt)')};white-space:nowrap">${pkStr}</div>
-    </div>`;
+  function renderRowMdm(r,cls,lbl){
+    const pic=userPic(r.u,28).replace('class="lbpic"','class="mdm-avatar"');
+    const lblHtml=lbl?`<div class="mdm-pts ${cls}">${lbl}</div>`:'';
+    return `<div class="mdm-row">${pic}<div class="mdm-name">${esc(r.u.name||'?')}</div><div class="mdm-pred">${esc(r.pkStr)}</div>${lblHtml}</div>`;
   }
-  h+=`</div>`;
-  // Mostrar en el overlay (reusa el mismo overlay del bracket)
-  const ov=document.getElementById('bracket-overlay');
-  if(!ov){alert('Error: overlay no encontrado');return;}
-  ov.innerHTML=`<div class="br-topbar">
-    <div class="br-name-wrap"><div class="br-name">Predicciones del partido</div></div>
-    <button class="br-close" onclick="closeBracket()">✕ Cerrar</button>
-  </div>${h}`;
-  ov.classList.add('on');
-  parseTwemoji(ov);
+  let body='';
+  if(hasResult){
+    // Modo resultados: secciones por puntos obtenidos
+    const exact=rows.filter(r=>r.hasPick&&r.pts>=3);
+    const combo=rows.filter(r=>r.hasPick&&r.pts===2);  // empate+penales sin exacto
+    const winner=rows.filter(r=>r.hasPick&&r.pts===1);
+    const zero=rows.filter(r=>r.hasPick&&r.pts===0);
+    const noPred=rows.filter(r=>!r.hasPick);
+    if(exact.length){body+=`<div class="mdm-divider">🎯 Marcador exacto · ${exact.length}</div>`;body+=exact.map(r=>renderRowMdm(r,'mdm-pts-exact','+'+r.pts)).join('');}
+    if(combo.length){body+=`<div class="mdm-divider">⚽ Penales correctos · ${combo.length}</div>`;body+=combo.map(r=>renderRowMdm(r,'mdm-pts-winner','+2')).join('');}
+    if(winner.length){body+=`<div class="mdm-divider">✓ Solo ganador · ${winner.length}</div>`;body+=winner.map(r=>renderRowMdm(r,'mdm-pts-winner','+1')).join('');}
+    if(zero.length){body+=`<div class="mdm-divider">❌ No acertaron · ${zero.length}</div>`;body+=zero.map(r=>renderRowMdm(r,'mdm-pts-zero','0')).join('');}
+    if(noPred.length){body+=`<div class="mdm-divider">— Sin predicción · ${noPred.length}</div>`;body+=noPred.map(r=>renderRowMdm(r,'mdm-pts-none','—')).join('');}
+  }else{
+    // Modo pre-partido: secciones por outcome predicho (gana A / empate / gana B / sin pred)
+    const wins1=rows.filter(r=>r.hasPick&&r.pk.a>r.pk.b);
+    const draws=rows.filter(r=>r.hasPick&&r.pk.a===r.pk.b);
+    const wins2=rows.filter(r=>r.hasPick&&r.pk.b>r.pk.a);
+    const noPred=rows.filter(r=>!r.hasPick);
+    if(wins1.length){body+=`<div class="mdm-divider"><span class="flag" style="font-size:14px">${flag(t1)||''}</span> Gana ${esc(t1||'?')} · ${wins1.length}</div>`;body+=wins1.map(r=>renderRowMdm(r,'','')).join('');}
+    if(draws.length){body+=`<div class="mdm-divider">⚖️ Empate · ${draws.length}</div>`;body+=draws.map(r=>renderRowMdm(r,'','')).join('');}
+    if(wins2.length){body+=`<div class="mdm-divider"><span class="flag" style="font-size:14px">${flag(t2)||''}</span> Gana ${esc(t2||'?')} · ${wins2.length}</div>`;body+=wins2.map(r=>renderRowMdm(r,'','')).join('');}
+    if(noPred.length){body+=`<div class="mdm-divider">— Sin predicción · ${noPred.length}</div>`;body+=noPred.map(r=>renderRowMdm(r,'','')).join('');}
+  }
+  if(!body)body='<div style="padding:20px;text-align:center;color:var(--mt);font-size:13px">Sin participantes en la comunidad.</div>';
+  // Inyecta al modal compartido (mismo que group matches)
+  const modalEl=document.getElementById('match-detail-modal');
+  if(!modalEl){alert('Error: modal no encontrado');return;}
+  document.getElementById('mdm-header').innerHTML=headerHTML;
+  document.getElementById('mdm-body').innerHTML=body;
+  modalEl.classList.add('on');
+  if(typeof parseTwemoji==='function')parseTwemoji(modalEl);
 };
 
 // Abre el modal de detalle de un partido
@@ -6200,6 +6233,54 @@ window.changeRoundDeadlineV2=async function(cid,commName,rk){
   }catch(e){alert('Error: '+(e.message||e));}
 };
 
+// ─── EMERGENCIA: Reabrir 16avos (R32) por X minutos para un user atrasado ───
+window.reopenR32EmergencyV2=async function(cid,commName){
+  const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede reabrir 16avos.');return;}
+  const c=S.communities[cid];
+  if(!c){alert('Comunidad no encontrada.');return;}
+  if(c.stage2Unlocked!==true){alert('Primero debes abrir la Etapa 2.');return;}
+  const minStr=prompt('🆘 Reabrir 16avos por emergencia\n\n¿Cuántos MINUTOS quieres abrirlos?\n\n(Sugerencia: 5–10 minutos. Avísale al user para que entre AHORA y llene.)','5');
+  if(!minStr)return;
+  const mins=parseInt(minStr,10);
+  if(!mins||mins<1||mins>1440){alert('Ingresa un número entre 1 y 1440 (24h máx).');return;}
+  const deadline=Date.now()+mins*60*1000;
+  showConfirm({
+    title:'🆘 Reabrir 16avos',
+    msg:`¿Reabrir 16avos en "${commName}" por ${mins} minuto${mins!==1?'s':''}?\n\nDurante este lapso, CUALQUIER user de la comunidad podrá editar sus picks de 16avos. Avisa al user específico para que entre ya.\n\nCierra automáticamente: ${fmtDeadlineCDMX(deadline)} (CDMX)`,
+    okText:'Sí, reabrir',
+    onOk:async()=>{
+      try{
+        await db.ref('communities/'+cid+'/bracketRounds/r32').set({
+          state:'open',openedAt:Date.now(),closedAt:null,deadline
+        });
+        alert(`✅ 16avos reabiertos por ${mins} min en "${commName}".\n\nCierre automático: ${fmtDeadlineCDMX(deadline)} (CDMX)\n\n💡 Avísale al user para que llene AHORA.`);
+        render();
+      }catch(e){alert('Error: '+(e.message||e));}
+    }
+  });
+};
+
+window.closeR32EmergencyV2=async function(cid,commName){
+  const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede cerrar 16avos.');return;}
+  showConfirm({
+    title:'🔐 Cerrar 16avos ya',
+    msg:`¿Cerrar 16avos en "${commName}" inmediatamente?\n\nLos users ya no podrán editar sus picks de 16avos.`,
+    okText:'Sí, cerrar',
+    danger:true,
+    onOk:async()=>{
+      try{
+        await db.ref('communities/'+cid+'/bracketRounds/r32').update({
+          state:'locked',closedAt:Date.now(),deadline:Date.now()-1
+        });
+        alert(`✅ 16avos cerrados en "${commName}".`);
+        render();
+      }catch(e){alert('Error: '+(e.message||e));}
+    }
+  });
+};
+
 window.markRoundCapturedV2=async function(cid,commName,rk){
   const isCommAdmin=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
   if(!ME.isSuperAdmin&&!isCommAdmin){alert('Solo el admin de esta comunidad puede marcar rondas como capturadas.');return;}
@@ -6454,7 +6535,32 @@ function rAdmCommunities(){
             locked:{bg:'#fef3c7',bd:'#d97706',color:'#78350f',icon:'⏰',label:'Cerrada · esperando resultados'},
             captured:{bg:'#dbeafe',bd:'#2563eb',color:'#1e40af',icon:'✅',label:'Capturada · resultados oficiales'}
           };
-          let rbrHTML='<div style="background:#fff;border:1.5px solid #16a34a;border-radius:10px;padding:12px;margin-top:10px"><div style="font-weight:800;font-size:12px;color:#14532d;margin-bottom:8px;font-family:\'Outfit\',sans-serif">🎯 Control ronda por ronda (R16 → Final)</div><div style="font-size:10.5px;color:#374151;margin-bottom:10px;line-height:1.4">Abre cada ronda manualmente <b>después</b> de capturar los resultados de la ronda anterior. Los users predicen siempre con los teams REALES que avanzaron.</div>';
+          let rbrHTML='<div style="background:#fff;border:1.5px solid #16a34a;border-radius:10px;padding:12px;margin-top:10px"><div style="font-weight:800;font-size:12px;color:#14532d;margin-bottom:8px;font-family:\'Outfit\',sans-serif">🎯 Control ronda por ronda</div><div style="font-size:10.5px;color:#374151;margin-bottom:10px;line-height:1.4">Abre cada ronda manualmente <b>después</b> de capturar los resultados de la ronda anterior. Los users predicen siempre con los teams REALES que avanzaron.</div>';
+          // ─── Fila especial R32 (16avos) con botón de emergencia ───
+          {
+            const r32cfg=(c.bracketRounds&&c.bracketRounds.r32)||{};
+            const r32IsEmergencyOpen=r32cfg.state==='open'&&r32cfg.deadline&&Date.now()<r32cfg.deadline;
+            const r32Bg=r32IsEmergencyOpen?'#fee2e2':'#f9fafb';
+            const r32Bd=r32IsEmergencyOpen?'#dc2626':'#d1d5db';
+            const r32Color=r32IsEmergencyOpen?'#7f1d1d':'#6b7280';
+            const r32Icon=r32IsEmergencyOpen?'🆘':'🔒';
+            const r32Label=r32IsEmergencyOpen?`Reabierto por emergencia · cierra ${fmtDeadlineCDMX(r32cfg.deadline)}`:'Cerrados (deadline pasó)';
+            let r32Btns='';
+            if(r32IsEmergencyOpen){
+              r32Btns+=`<button onclick="closeR32EmergencyV2('${js(cid)}','${js(c.name)}')" style="padding:5px 10px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:700;font-family:'DM Sans',sans-serif">🔐 Cerrar ya</button>`;
+              r32Btns+=`<button onclick="reopenR32EmergencyV2('${js(cid)}','${js(c.name)}')" style="padding:5px 10px;background:#fff;color:#7f1d1d;border:1.5px solid #dc2626;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:700;font-family:'DM Sans',sans-serif">📅 Cambiar tiempo</button>`;
+            }else{
+              r32Btns+=`<button onclick="reopenR32EmergencyV2('${js(cid)}','${js(c.name)}')" style="padding:5px 10px;background:#fff;color:#7f1d1d;border:1.5px solid #dc2626;border-radius:6px;cursor:pointer;font-size:10.5px;font-weight:700;font-family:'DM Sans',sans-serif">🆘 Reabrir (emergencia X min)</button>`;
+            }
+            rbrHTML+=`<div style="background:${r32Bg};border:1.5px solid ${r32Bd};border-radius:8px;padding:9px 11px;margin-bottom:7px">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+                <div style="font-weight:800;font-size:11.5px;color:${r32Color};font-family:'Outfit',sans-serif">${r32Icon} 16avos (R32)</div>
+                <div style="font-size:10px;color:${r32Color};font-weight:700">${esc(r32Label)}</div>
+              </div>
+              <div style="font-size:10px;color:${r32Color};margin-bottom:6px;line-height:1.4">⚠️ Úsalo solo si un participante no alcanzó a llenar. Durante el lapso TODOS pueden editar — avisa solo al user atrasado.</div>
+              <div style="display:flex;flex-wrap:wrap;gap:5px">${r32Btns}</div>
+            </div>`;
+          }
           for(const rk of ['r16','qf','sf','fin']){
             const rcfg=(c.bracketRounds&&c.bracketRounds[rk])||{};
             let st=rcfg.state||'pending';
