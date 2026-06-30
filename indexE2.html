@@ -4943,14 +4943,27 @@ window.openBracketMatchPredictions=function(rk,mi){
     if(buckets.zero.length){body+=`<div class="mdm-divider">❌ No acertaron · ${buckets.zero.length}</div>`;body+=buckets.zero.map(r=>renderRowMdm(r,'mdm-pts-zero','0')).join('');}
     if(buckets.nopred.length){body+=`<div class="mdm-divider">— Sin predicción · ${buckets.nopred.length}</div>`;body+=buckets.nopred.map(r=>renderRowMdm(r,'mdm-pts-none','—')).join('');}
   }else{
-    // Modo pre-partido: secciones por outcome predicho (gana A / empate / gana B / sin pred)
-    const wins1=rows.filter(r=>r.hasPick&&r.pk.a>r.pk.b);
-    const draws=rows.filter(r=>r.hasPick&&r.pk.a===r.pk.b);
-    const wins2=rows.filter(r=>r.hasPick&&r.pk.b>r.pk.a);
+    // Modo pre-partido: secciones por GANADOR FINAL predicho (en eliminatorias el pen cuenta).
+    // Si user predijo "1-1 pen BEL", su ganador final es BEL → va con los que dicen "Gana BEL".
+    function predictedFinalWinner(pk){
+      if(!pk||pk.a==null||pk.b==null)return null;
+      const pa=parseInt(pk.a),pb=parseInt(pk.b);
+      if(isNaN(pa)||isNaN(pb))return null;
+      if(pa>pb)return t1;
+      if(pb>pa)return t2;
+      return pk.pen||null; // empate → ganador via pen
+    }
+    const wins1=rows.filter(r=>r.hasPick&&predictedFinalWinner(r.pk)===t1);
+    const wins2=rows.filter(r=>r.hasPick&&predictedFinalWinner(r.pk)===t2);
+    const drawsNoPen=rows.filter(r=>{
+      if(!r.hasPick)return false;
+      const pa=parseInt(r.pk.a),pb=parseInt(r.pk.b);
+      return pa===pb&&!predictedFinalWinner(r.pk); // empate sin pen pick (predicción incompleta)
+    });
     const noPred=rows.filter(r=>!r.hasPick);
     if(wins1.length){body+=`<div class="mdm-divider"><span class="flag" style="font-size:14px">${flag(t1)||''}</span> Gana ${esc(t1||'?')} · ${wins1.length}</div>`;body+=wins1.map(r=>renderRowMdm(r,'','')).join('');}
-    if(draws.length){body+=`<div class="mdm-divider">⚖️ Empate · ${draws.length}</div>`;body+=draws.map(r=>renderRowMdm(r,'','')).join('');}
     if(wins2.length){body+=`<div class="mdm-divider"><span class="flag" style="font-size:14px">${flag(t2)||''}</span> Gana ${esc(t2||'?')} · ${wins2.length}</div>`;body+=wins2.map(r=>renderRowMdm(r,'','')).join('');}
+    if(drawsNoPen.length){body+=`<div class="mdm-divider">⚖️ Empate sin pen · ${drawsNoPen.length}</div>`;body+=drawsNoPen.map(r=>renderRowMdm(r,'','')).join('');}
     if(noPred.length){body+=`<div class="mdm-divider">— Sin predicción · ${noPred.length}</div>`;body+=noPred.map(r=>renderRowMdm(r,'','')).join('');}
   }
   if(!body)body='<div style="padding:20px;text-align:center;color:var(--mt);font-size:13px">Sin participantes en la comunidad.</div>';
