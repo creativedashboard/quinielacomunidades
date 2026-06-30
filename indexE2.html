@@ -4906,17 +4906,37 @@ window.openBracketMatchPredictions=function(rk,mi){
   }
   let body='';
   if(hasResult){
-    // Modo resultados: secciones por puntos obtenidos
-    const exact=rows.filter(r=>r.hasPick&&r.pts>=3);
-    const combo=rows.filter(r=>r.hasPick&&r.pts===2);  // empate+penales sin exacto
-    const winner=rows.filter(r=>r.hasPick&&r.pts===1);
-    const zero=rows.filter(r=>r.hasPick&&r.pts===0);
-    const noPred=rows.filter(r=>!r.hasPick);
-    if(exact.length){body+=`<div class="mdm-divider">🎯 Marcador exacto · ${exact.length}</div>`;body+=exact.map(r=>renderRowMdm(r,'mdm-pts-exact','+'+r.pts)).join('');}
-    if(combo.length){body+=`<div class="mdm-divider">⚽ Penales correctos · ${combo.length}</div>`;body+=combo.map(r=>renderRowMdm(r,'mdm-pts-winner','+2')).join('');}
-    if(winner.length){body+=`<div class="mdm-divider">✓ Solo ganador · ${winner.length}</div>`;body+=winner.map(r=>renderRowMdm(r,'mdm-pts-winner','+1')).join('');}
-    if(zero.length){body+=`<div class="mdm-divider">❌ No acertaron · ${zero.length}</div>`;body+=zero.map(r=>renderRowMdm(r,'mdm-pts-zero','0')).join('');}
-    if(noPred.length){body+=`<div class="mdm-divider">— Sin predicción · ${noPred.length}</div>`;body+=noPred.map(r=>renderRowMdm(r,'mdm-pts-none','—')).join('');}
+    // Modo resultados: secciones DESGLOSADAS por TIPO de acierto (no solo por pts)
+    // Reglas: 3 pts marcador exacto · 1 pt solo ganador · +2 pen correctos · 5 pts combo
+    const ra=parseInt(admPick.a),rb=parseInt(admPick.b);
+    const realDraw=ra===rb;
+    function classify(r){
+      if(!r.hasPick)return 'nopred';
+      const pa=parseInt(r.pk.a),pb=parseInt(r.pk.b);
+      const exactScore=pa===ra&&pb===rb;
+      const winnerOk=r.pk.w&&admPick.w&&r.pk.w===admPick.w;
+      const penOk=realDraw&&admPick.pen&&r.pk.pen&&r.pk.pen===admPick.pen;
+      // COMBO: marcador exacto en empate + penales correctos = 5 pts
+      if(exactScore&&realDraw&&penOk)return 'combo';
+      // Marcador exacto pero erró el pen (en empate) = 3 pts solamente
+      if(exactScore&&realDraw&&!penOk)return 'exactWrongPen';
+      // Marcador exacto en partido NO empate = 3 pts limpios
+      if(exactScore)return 'exact';
+      // Ganador correcto via pen (empate, acertó pen winner pero no el marcador) = 1+2 = 3 pts
+      if(winnerOk&&realDraw&&penOk)return 'winnerViaPen';
+      // Solo ganador = 1 pt
+      if(winnerOk)return 'winnerOnly';
+      return 'zero';
+    }
+    const buckets={combo:[],exact:[],exactWrongPen:[],winnerViaPen:[],winnerOnly:[],zero:[],nopred:[]};
+    for(const r of rows)buckets[classify(r)].push(r);
+    if(buckets.combo.length){body+=`<div class="mdm-divider">💥 COMBO marcador+penales · ${buckets.combo.length}</div>`;body+=buckets.combo.map(r=>renderRowMdm(r,'mdm-pts-exact','+5')).join('');}
+    if(buckets.exact.length){body+=`<div class="mdm-divider">🎯 Marcador exacto · ${buckets.exact.length}</div>`;body+=buckets.exact.map(r=>renderRowMdm(r,'mdm-pts-exact','+3')).join('');}
+    if(buckets.exactWrongPen.length){body+=`<div class="mdm-divider">🎯 Marcador exacto · pen erróneo · ${buckets.exactWrongPen.length}</div>`;body+=buckets.exactWrongPen.map(r=>renderRowMdm(r,'mdm-pts-exact','+3')).join('');}
+    if(buckets.winnerViaPen.length){body+=`<div class="mdm-divider">⚽ Ganador via penales · ${buckets.winnerViaPen.length}</div>`;body+=buckets.winnerViaPen.map(r=>renderRowMdm(r,'mdm-pts-winner','+3')).join('');}
+    if(buckets.winnerOnly.length){body+=`<div class="mdm-divider">✓ Solo ganador · ${buckets.winnerOnly.length}</div>`;body+=buckets.winnerOnly.map(r=>renderRowMdm(r,'mdm-pts-winner','+1')).join('');}
+    if(buckets.zero.length){body+=`<div class="mdm-divider">❌ No acertaron · ${buckets.zero.length}</div>`;body+=buckets.zero.map(r=>renderRowMdm(r,'mdm-pts-zero','0')).join('');}
+    if(buckets.nopred.length){body+=`<div class="mdm-divider">— Sin predicción · ${buckets.nopred.length}</div>`;body+=buckets.nopred.map(r=>renderRowMdm(r,'mdm-pts-none','—')).join('');}
   }else{
     // Modo pre-partido: secciones por outcome predicho (gana A / empate / gana B / sin pred)
     const wins1=rows.filter(r=>r.hasPick&&r.pk.a>r.pk.b);
