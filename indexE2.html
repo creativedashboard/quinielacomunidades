@@ -2921,10 +2921,15 @@ function calcMatchV2Points(p,r){
   if(!p||!r||p.a==null||p.b==null||r.a==null||r.b==null)return 0;
   const pa=parseInt(p.a),pb=parseInt(p.b),ra=parseInt(r.a),rb=parseInt(r.b);
   if(isNaN(pa)||isNaN(pb)||isNaN(ra)||isNaN(rb))return 0;
+  // ─── REGLA ELIMINATORIAS (2026-06-29): el GANADOR FINAL manda. ───
+  // En partidos que van a penales, el "ganador" = quien pasó la ronda (pen winner).
+  // Si el user predice el ganador final equivocado, 0 pts aunque haya acertado el draw exacto.
+  // p.w y r.w ya consideran pen para empates (set por setMcV2Score/setMcV2Pen).
+  if(r.w&&p.w&&p.w!==r.w)return 0;
   let pts=0;
-  if(pa===ra&&pb===rb)pts+=3;
-  else if(p.w&&r.w&&p.w===r.w)pts+=1;
-  if(ra===rb&&r.pen&&p.pen&&p.pen===r.pen)pts+=2;
+  if(pa===ra&&pb===rb)pts+=3;       // marcador exacto
+  else if(p.w&&r.w&&p.w===r.w)pts+=1; // solo ganador correcto
+  if(ra===rb&&r.pen&&p.pen&&p.pen===r.pen)pts+=2; // +2 bonus por pen correcto en empate
   return pts;
 }
 
@@ -4932,9 +4937,9 @@ window.openBracketMatchPredictions=function(rk,mi){
     for(const r of rows)buckets[classify(r)].push(r);
     if(buckets.combo.length){body+=`<div class="mdm-divider">💥 COMBO marcador+penales · ${buckets.combo.length}</div>`;body+=buckets.combo.map(r=>renderRowMdm(r,'mdm-pts-exact','+5')).join('');}
     if(buckets.exact.length){body+=`<div class="mdm-divider">🎯 Marcador exacto · ${buckets.exact.length}</div>`;body+=buckets.exact.map(r=>renderRowMdm(r,'mdm-pts-exact','+3')).join('');}
-    if(buckets.exactWrongPen.length){body+=`<div class="mdm-divider">🎯 Marcador exacto · pen erróneo · ${buckets.exactWrongPen.length}</div>`;body+=buckets.exactWrongPen.map(r=>renderRowMdm(r,'mdm-pts-exact','+3')).join('');}
     if(buckets.winnerViaPen.length){body+=`<div class="mdm-divider">⚽ Ganador via penales · ${buckets.winnerViaPen.length}</div>`;body+=buckets.winnerViaPen.map(r=>renderRowMdm(r,'mdm-pts-winner','+3')).join('');}
     if(buckets.winnerOnly.length){body+=`<div class="mdm-divider">✓ Solo ganador · ${buckets.winnerOnly.length}</div>`;body+=buckets.winnerOnly.map(r=>renderRowMdm(r,'mdm-pts-winner','+1')).join('');}
+    if(buckets.exactWrongPen.length){body+=`<div class="mdm-divider">😩 Marcador exacto · ganador erróneo via pen · ${buckets.exactWrongPen.length}</div>`;body+=buckets.exactWrongPen.map(r=>renderRowMdm(r,'mdm-pts-zero','0')).join('');}
     if(buckets.zero.length){body+=`<div class="mdm-divider">❌ No acertaron · ${buckets.zero.length}</div>`;body+=buckets.zero.map(r=>renderRowMdm(r,'mdm-pts-zero','0')).join('');}
     if(buckets.nopred.length){body+=`<div class="mdm-divider">— Sin predicción · ${buckets.nopred.length}</div>`;body+=buckets.nopred.map(r=>renderRowMdm(r,'mdm-pts-none','—')).join('');}
   }else{
