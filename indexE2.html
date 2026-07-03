@@ -6295,9 +6295,28 @@ window.openRoundV2=async function(cid,commName,rk){
       adminBracket=snap.val()||{};
     }
   }catch(e){alert('Error leyendo resultados oficiales: '+(e.message||e));return;}
-  if(!isRoundFullyCapturedInAdmin(parent,adminBracket)){
-    alert(`⚠️ No puedes abrir ${roundLabel(rk)} todavía.\n\nNecesitas capturar TODOS los resultados oficiales de ${roundLabel(parent)} primero.\n\nVe a "Admin · Etapa 2" → "RELLENAR RESULTADOS" y completa marcadores + ganadores de ${roundLabel(parent)}.`);
-    return;
+  // Contar cuántos parents están capturados vs total (para mostrar en el warning)
+  const parentInfo=(function(){
+    const raw=adminBracket[parent+'V2'];
+    if(!raw)return{done:0,total:parent==='sf'?2:(parent==='qf'?4:(parent==='r16'?8:16)),missing:'todos'};
+    const items=Array.isArray(raw)?raw:Object.values(raw);
+    const total=parent==='sf'?2:(parent==='qf'?4:(parent==='r16'?8:16));
+    let done=0;const missingNums=[];
+    for(let i=0;i<total;i++){
+      const p=items[i];
+      if(p&&p.w)done++;
+      else{
+        // Intentar sacar el número de match
+        const info=MATCH_INFO[parent]&&MATCH_INFO[parent][i];
+        missingNums.push(info?`M${info.m}`:`#${i+1}`);
+      }
+    }
+    return{done,total,missing:missingNums.join(', ')};
+  })();
+  const partialParent=parentInfo.done<parentInfo.total;
+  if(partialParent){
+    const proceed=confirm(`⚠️ ${roundLabel(parent)} aún NO está capturado al 100%.\n\n• Capturados: ${parentInfo.done}/${parentInfo.total}\n• Faltan: ${parentInfo.missing}\n\n¿Abrir ${roundLabel(rk)} de todos modos?\n\nLos partidos hijos que dependan de los pendientes se verán como "?" y no serán editables hasta que captures esos padres. En cuanto los captures, se desbloquean automáticamente para los users.`);
+    if(!proceed)return;
   }
   const cur=(c.bracketRounds&&c.bracketRounds[rk])||{};
   if(cur.state==='open'){alert(`${roundLabel(rk)} ya está abierta.`);return;}
@@ -6309,9 +6328,10 @@ window.openRoundV2=async function(cid,commName,rk){
   const deadline=parseDeadlineCDMX(dlStr);
   if(!deadline){alert('Fecha inválida. Usa formato YYYY-MM-DD HH:MM');return;}
   if(deadline<=Date.now()){alert('La fecha debe ser futura.');return;}
+  const partialNote=partialParent?`\n\n⚠️ Partidos hijos con teams "por definir": los que dependen de ${parentInfo.missing}. Se desbloquean cuando captures esos R32.`:'';
   showConfirm({
     title:`🔓 Abrir ${roundLabel(rk)}`,
-    msg:`¿Abrir ${roundLabel(rk)} en "${commName}"?\n\n• Deadline: ${fmtDeadlineCDMX(deadline)} (CDMX)\n• Los participantes verán los teams REALES que pasaron\n• Sus picks anteriores de ${roundLabel(rk)} se borrarán\n\n¿Continuar?`,
+    msg:`¿Abrir ${roundLabel(rk)} en "${commName}"?\n\n• Deadline: ${fmtDeadlineCDMX(deadline)} (CDMX)\n• Los participantes verán los teams REALES que pasaron\n• Sus picks anteriores de ${roundLabel(rk)} se borrarán${partialNote}\n\n¿Continuar?`,
     okText:'Sí, abrir',
     onOk:async()=>{
       try{
