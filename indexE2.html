@@ -4819,7 +4819,7 @@ function rBracketE2Recent(members){
   if(recent.length===0)return '';
   // Ordena por número de partido descendente (los más recientes primero)
   recent.sort((a,b)=>b.info.m-a.info.m);
-  const show=recent.slice(0,6);
+  const show=recent; // Muestra todos los partidos jugados del bracket (sin límite)
   let h=`<div class="rm-section-header" style="margin-top:18px">
     <div class="rm-section-title">🔥 Últimos resultados del bracket</div>
     <div style="font-size:11px;color:var(--mt);margin-top:3px">Eliminatorias · ${recent.length} partidos jugados</div>
@@ -4921,11 +4921,15 @@ window.openBracketMatchPredictions=function(rk,mi){
       const exactScore=pa===ra&&pb===rb;
       const winnerOk=r.pk.w&&admPick.w&&r.pk.w===admPick.w;
       const penOk=realDraw&&admPick.pen&&r.pk.pen&&r.pk.pen===admPick.pen;
+      // Si el partido fue empate y el user predijo empate, distinguimos:
+      //   - User PICKEÓ pen: si penOk → COMBO (5); si no → ganador erróneo (0 pts por nueva regla)
+      //   - User NO pickeó pen: marcador exacto vale 3 pts (no apostó al ganador final)
+      const userPickedPen=!!(r.pk.pen);
       // COMBO: marcador exacto en empate + penales correctos = 5 pts
       if(exactScore&&realDraw&&penOk)return 'combo';
-      // Marcador exacto pero erró el pen (en empate) = 3 pts solamente
-      if(exactScore&&realDraw&&!penOk)return 'exactWrongPen';
-      // Marcador exacto en partido NO empate = 3 pts limpios
+      // Marcador exacto en empate, user PICKEÓ pen pero erróneo → 0 pts (predijo ganador final wrong)
+      if(exactScore&&realDraw&&userPickedPen&&!penOk)return 'exactWrongPen';
+      // Marcador exacto (no empate, o empate sin pen pick) = 3 pts limpios
       if(exactScore)return 'exact';
       // Ganador correcto via pen (empate, acertó pen winner pero no el marcador) = 1+2 = 3 pts
       if(winnerOk&&realDraw&&penOk)return 'winnerViaPen';
@@ -5338,9 +5342,63 @@ function rMyResultsContent(uid,u){
   // Invertir orden: el partido MÁS RECIENTE aparece primero en la card
   playedMatches.length=0;
   playedMatches.push(...dedupedMatches.reverse());
+  // ─── Bracket matches (Etapa 2 — eliminatorias jugadas) ───
+  // Recopila partidos del bracket donde admin ya capturó resultado oficial.
+  // Usa calcMatchV2Points para el cálculo (mismas reglas que el leaderboard).
+  const adminE2=(S.adminR&&S.adminR.bracketE2)||{};
+  let userBracket={};
+  try{
+    if(typeof isBetaTestCom==='function'&&isBetaTestCom(uid)){
+      userBracket=(typeof _readLocalBracketE2==='function'&&_readLocalBracketE2(uid))||{};
+    }else{
+      userBracket=(S.picks&&S.picks[uid]&&S.picks[uid].bracketE2)||{};
+    }
+  }catch(e){userBracket={};}
+  const bracketMatches=[];
+  const _bracketRoundOrder=['r32','r16','qf','sf','fin','thr'];
+  for(const rk of _bracketRoundOrder){
+    const isSingle=(rk==='fin'||rk==='thr');
+    const adminRaw=adminE2[rk+'V2'];
+    if(!adminRaw)continue;
+    const adminList=isSingle?[adminRaw]:(Array.isArray(adminRaw)?adminRaw:Object.values(adminRaw));
+    const userRaw=userBracket[rk+'V2'];
+    const userList=isSingle?(userRaw?[userRaw]:[]):(userRaw?(Array.isArray(userRaw)?userRaw:Object.values(userRaw)):[]);
+    for(let mi=0;mi<adminList.length;mi++){
+      const adm=adminList[mi];
+      if(!adm||adm.a==null||adm.b==null)continue;
+      const my=userList[mi];
+      const myHasPick=!!(my&&my.a!=null&&my.b!=null);
+      const pts=myHasPick?calcMatchV2Points(my,adm):0;
+      let type='zero',ico='❌';
+      if(pts>=5){type='exact';ico='💥';}
+      else if(pts===3){type='exact';ico='🎯';}
+      else if(pts===1){type='winner';ico='✅';}
+      else if(!myHasPick){ico='—';}
+      const teams=getMatchTeamsV2(rk,mi,true);
+      const t1=teams[0],t2=teams[1];
+      if(!t1||!t2)continue;
+      const info=isSingle?MATCH_INFO[rk]:(MATCH_INFO[rk]||[])[mi];
+      if(!info)continue;
+      bracketMatches.push({
+        rk,mi,team1:t1,team2:t2,
+        aa:adm.a,ab:adm.b,
+        ma:myHasPick?my.a:null,mb:myHasPick?my.b:null,
+        penReal:adm.pen||'',penUser:(my&&my.pen)||'',
+        myHasPick,pts,type,ico,info,
+        isRealDraw:parseInt(adm.a)===parseInt(adm.b),
+        isUserDraw:myHasPick&&parseInt(my.a)===parseInt(my.b),
+        roundLbl:({r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',fin:'Final',thr:'3er lugar'})[rk]
+      });
+    }
+  }
+  // Más reciente arriba: ordenar por número de match descendente
+  bracketMatches.sort((a,b)=>b.info.m-a.info.m);
+
   // Calcular puntos totales solo de grupos jugados (para mostrar en el header)
   const grpPts=playedMatches.reduce((s,m)=>s+m.pts,0);
-  const exactCount=playedMatches.filter(m=>m.type==='exact').length;
+  const bracketPts=bracketMatches.reduce((s,m)=>s+m.pts,0);
+  const exactCount=playedMatches.filter(m=>m.type==='exact').length
+                  +bracketMatches.filter(m=>m.ico==='🎯'||m.ico==='💥').length;
   // Construir HTML
   const initial=u.name?u.name[0].toUpperCase():'?';
   const picHtml=u.photo
@@ -5358,12 +5416,36 @@ function rMyResultsContent(uid,u){
       </div>
     </div>
     <div class="mrm-list">
-      <div class="mrm-list-title">📊 Partidos jugados (${playedMatches.length})</div>`;
-  if(playedMatches.length===0){
-    h+=`<div style="padding:24px 12px;text-align:center;color:#94a3b8;font-size:13px">Todavía no hay partidos con marcador oficial.</div>`;
-  }else{
+      <div class="mrm-list-title">📊 Partidos jugados (${playedMatches.length+bracketMatches.length})</div>`;
+  const fTeam=(typeof flag==='function')?flag:(()=>'');
+  // ─── Sección bracket (Etapa 2) — primero porque son más recientes ───
+  if(bracketMatches.length){
+    h+=`<div style="font-size:10.5px;font-weight:800;color:#7f1d1d;background:linear-gradient(135deg,#fee2e2,#fecaca);padding:6px 12px;border-radius:6px;margin:8px 0 4px;letter-spacing:.6px;text-transform:uppercase">🏆 Etapa 2 · Eliminatorias (${bracketMatches.length})</div>`;
+    for(const m of bracketMatches){
+      const myPickTxt=m.myHasPick
+        ?`<b>${m.ma}-${m.mb}${m.isUserDraw&&m.penUser?` (pen ${esc(abbr(m.penUser))})`:''}</b>`
+        :`<span style="color:#cbd5e1">sin pick</span>`;
+      const realPenStr=m.isRealDraw&&m.penReal?` (pen ${esc(abbr(m.penReal))})`:'';
+      const roundChip=`<span style="font-size:9px;font-weight:800;color:#7f1d1d;background:#fee2e2;padding:1px 6px;border-radius:4px;letter-spacing:.4px;margin-right:5px">${esc(m.roundLbl)}·M${m.info.m}</span>`;
+      h+=`<div class="mrm-match">
+        <div class="mrm-match-info">
+          <div class="mrm-match-teams">
+            ${roundChip}<span style="font-size:14px">${fTeam(m.team1)||''}</span>${esc(m.team1)}
+            <span style="color:#94a3b8;font-weight:600">vs</span>
+            <span style="font-size:14px">${fTeam(m.team2)||''}</span>${esc(m.team2)}
+          </div>
+          <div class="mrm-match-scores">Real <b>${m.aa}-${m.ab}${realPenStr}</b> · Tu pick ${myPickTxt}</div>
+        </div>
+        <div class="mrm-pts ${m.type}">${m.ico} ${m.pts}</div>
+      </div>`;
+    }
+  }
+  // ─── Sección grupos (Etapa 1) ───
+  if(playedMatches.length){
+    if(bracketMatches.length){
+      h+=`<div style="font-size:10.5px;font-weight:800;color:#14532d;background:linear-gradient(135deg,#dcfce7,#bbf7d0);padding:6px 12px;border-radius:6px;margin:14px 0 4px;letter-spacing:.6px;text-transform:uppercase">⚽ Etapa 1 · Fase de grupos (${playedMatches.length})</div>`;
+    }
     for(const m of playedMatches){
-      const fTeam=(typeof flag==='function')?flag:(()=>'');
       const myPickTxt=m.myHasPick?`<b>${m.ma}-${m.mb}</b>`:`<span style="color:#cbd5e1">sin pick</span>`;
       h+=`<div class="mrm-match">
         <div class="mrm-match-info">
@@ -5378,6 +5460,9 @@ function rMyResultsContent(uid,u){
         <button class="mrm-share-btn" onclick="event.stopPropagation();openMatchShare('${esc(m.g)}',${m.mi},'${js(uid)}')" title="Compartir este partido">📤</button>
       </div>`;
     }
+  }
+  if(playedMatches.length===0&&bracketMatches.length===0){
+    h+=`<div style="padding:24px 12px;text-align:center;color:#94a3b8;font-size:13px">Todavía no hay partidos con marcador oficial.</div>`;
   }
   h+=`</div>
     <div class="mrm-foot">
@@ -5715,8 +5800,11 @@ function rDashboard(){
   }
   // Sección: en vivo / próximos partidos (con predicciones de la comunidad)
   h+=rLiveUpcoming(members);
-  // Sección: últimos resultados (solo si hay marcadores oficiales)
-  h+=rRecentMatches(members);
+  // Sección: últimos resultados de GRUPOS (solo cuando Etapa 2 NO está activa —
+  // durante Etapa 2 el bracket ya cubre esta info y esta sección solo sería ruido).
+  if(!(_c&&_c.mode==='tournament'&&_c.stage2Unlocked===true)){
+    h+=rRecentMatches(members);
+  }
   // hasR = there are official admin results to compare against
   // Check if at least one group has at least one match registered with goals
   const hasR=Object.values(S.adminR?.grupos||{}).some(g=>{
