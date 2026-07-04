@@ -5741,14 +5741,27 @@ function rDashboard(){
         else _dlTxt=`Cierra en ${h}h ${mins}m`;
       }
       const _complete=_filled>=_n;
-      stage2Banner=`<div style="padding:14px 16px;background:linear-gradient(135deg,#fee2e2,#fecaca);border:2px solid #dc2626;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(220,38,38,.2)">
-        <span style="font-size:30px;flex-shrink:0">🔔</span>
-        <div style="flex:1;min-width:200px;font-size:13px;color:#7f1d1d;line-height:1.5">
-          <div style="font-weight:800;font-size:14.5px;margin-bottom:2px;font-family:'Outfit',sans-serif">¡${esc(_label)} abierto!</div>
-          <div style="font-size:11.5px;color:#991b1b">Llena tus picks con los teams REALES que avanzaron. ${_dlTxt?`<b>${esc(_dlTxt)}</b>`:''}</div>
-          <span style="display:inline-block;background:rgba(220,38,38,${_complete?'.15':'.25'});padding:2px 8px;border-radius:6px;font-weight:700;margin-top:5px;font-size:11px">${_complete?'✅ '+_filled+'/'+_n+' completo':'⏳ '+_filled+'/'+_n+' partidos'}</span>
+      // ─── Estilos: ROJO cuando incompleto (urgente), VERDE cuando ya completó (relax) ───
+      const _bg=_complete?'linear-gradient(135deg,#dcfce7,#bbf7d0)':'linear-gradient(135deg,#fee2e2,#fecaca)';
+      const _bd=_complete?'#16a34a':'#dc2626';
+      const _txt=_complete?'#14532d':'#7f1d1d';
+      const _sub=_complete?'#166534':'#991b1b';
+      const _btnBg=_complete?'#16a34a':'#dc2626';
+      const _icon=_complete?'✅':'🔔';
+      const _shadow=_complete?'rgba(22,163,74,.18)':'rgba(220,38,38,.2)';
+      const _chipBg=_complete?'rgba(22,163,74,.18)':'rgba(220,38,38,.25)';
+      const _btnLbl=_complete?'👀 Revisar picks →':'🏆 Llenar ahora →';
+      const _subMsg=_complete
+        ?`Tus picks están listos. ${_dlTxt?`<b>${esc(_dlTxt)}</b>`:''} Puedes revisarlos o esperar al deadline.`
+        :`Llena tus picks con los teams REALES que avanzaron. ${_dlTxt?`<b>${esc(_dlTxt)}</b>`:''}`;
+      stage2Banner=`<div style="padding:14px 16px;background:${_bg};border:2px solid ${_bd};border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 12px ${_shadow}">
+        <span style="font-size:30px;flex-shrink:0">${_icon}</span>
+        <div style="flex:1;min-width:200px;font-size:13px;color:${_txt};line-height:1.5">
+          <div style="font-weight:800;font-size:14.5px;margin-bottom:2px;font-family:'Outfit',sans-serif">${_complete?'✔️':'¡'}${esc(_label)} ${_complete?'completado':'abierto!'}</div>
+          <div style="font-size:11.5px;color:${_sub}">${_subMsg}</div>
+          <span style="display:inline-block;background:${_chipBg};padding:2px 8px;border-radius:6px;font-weight:700;margin-top:5px;font-size:11px">${_complete?'✅ '+_filled+'/'+_n+' completo':'⏳ '+_filled+'/'+_n+' partidos'}</span>
         </div>
-        <button onclick="S.tab='${_rk==='fin'?'fin':_rk}';render()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">🏆 Llenar ahora →</button>
+        <button onclick="S.tab='${_rk==='fin'?'fin':_rk}';render()" style="background:${_btnBg};color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">${_btnLbl}</button>
       </div>`;
     }else{
       // Sin ronda R16+ activa: banner clásico de Etapa 2
