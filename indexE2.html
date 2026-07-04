@@ -5783,12 +5783,35 @@ function rDashboard(){
         const rc=(_c.bracketRounds&&_c.bracketRounds[rk])||{};
         return (rc.state||'pending')==='pending';
       });
-      const _r32State=(typeof getRoundState==='function')?getRoundState('r32'):'open';
-      if(_r32State==='locked'||_r32State==='captured'){
-        // R32 ya cerró, esperando que admin abra la siguiente ronda
+      // ─── Detección dinámica: qué ronda acaba de cerrar y qué ronda esperamos ───
+      // Ordena las rondas y busca el primer "pending" cuyo padre esté locked/captured.
+      const _rlbl={r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',fin:'Final + 3er lugar'};
+      const _rOrder=['r32','r16','qf','sf','fin'];
+      const _rStates=(typeof getRoundState==='function')?{
+        r32:getRoundState('r32'),r16:getRoundState('r16'),qf:getRoundState('qf'),sf:getRoundState('sf'),fin:getRoundState('fin')
+      }:{};
+      // Encuentra la ronda pendiente cuyo padre ya cerró/capturó
+      let _justClosedRk=null,_nextPendingRk=null;
+      for(let i=1;i<_rOrder.length;i++){
+        const parent=_rOrder[i-1],cur=_rOrder[i];
+        const ps=_rStates[parent],cs=_rStates[cur];
+        if((ps==='locked'||ps==='captured')&&(cs==='pending'||!cs)){
+          _justClosedRk=parent;_nextPendingRk=cur;break;
+        }
+      }
+      const _finCaptured=_rStates.fin==='captured';
+      const _r32State=_rStates.r32||'open';
+      if(_finCaptured){
+        // Torneo terminado
+        stage2Banner=`<div style="padding:12px 16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">🏆</span>
+          <div style="font-size:12.5px;color:#78350f;line-height:1.5"><strong>Torneo terminado.</strong> Revisa el leaderboard final. ¡Gracias por participar!</div>
+        </div>`;
+      }else if(_nextPendingRk){
+        // Alguna ronda cerró; esperando que admin abra la siguiente
         stage2Banner=`<div style="padding:12px 16px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border:1.5px solid #2563eb;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:10px">
           <span style="font-size:22px">⏳</span>
-          <div style="font-size:12.5px;color:#1e3a8a;line-height:1.5"><strong>16avos cerrados.</strong> Tu admin abrirá Octavos en cuanto se capturen los resultados oficiales. Te avisamos aquí.</div>
+          <div style="font-size:12.5px;color:#1e3a8a;line-height:1.5"><strong>${esc(_rlbl[_justClosedRk])} cerrados.</strong> Tu admin abrirá ${esc(_rlbl[_nextPendingRk])} en cuanto se capturen los resultados oficiales. Te avisamos aquí.</div>
         </div>`;
       }else if(!isFull){
         stage2Banner=`<div style="padding:14px 16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #d97706;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
