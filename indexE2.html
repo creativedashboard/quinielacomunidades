@@ -3698,13 +3698,27 @@ function buildBracketV2ReadOnly(uid){
       }
       return ['',''];
     }
-    if(rk==='r16'){const[a,b]=R16B[mi];return [winnerFor('r32',a),winnerFor('r32',b)];}
-    if(rk==='qf') {const[a,b]=QFB[mi]; return [winnerFor('r16',a),winnerFor('r16',b)];}
-    if(rk==='sf') {const[a,b]=SFB[mi]; return [winnerFor('qf',a), winnerFor('qf',b)];}
-    if(rk==='fin')return [winnerFor('sf',0),winnerFor('sf',1)];
+    // ─── ROUND-BY-ROUND: para R16+, los teams padre vienen del admin (winners reales)
+    // El user llenó su R16/QF/etc contra los equipos REALES que avanzaron, no contra
+    // su cascada de predicciones. Mostrar los teams del user cascade sería inconsistente
+    // (nombre del team en display ≠ pick.w del user).
+    function adminWinnerFor(rkD,miD){
+      if(!S.adminR||!S.adminR.bracketE2)return '';
+      const e2=S.adminR.bracketE2;
+      if(rkD==='fin')return (e2.finV2&&e2.finV2.w)||'';
+      if(rkD==='thr')return (e2.thrV2&&e2.thrV2.w)||'';
+      const raw=e2[rkD+'V2'];
+      if(!raw)return '';
+      const arr=Array.isArray(raw)?raw:Object.values(raw);
+      return (arr[miD]&&arr[miD].w)||'';
+    }
+    if(rk==='r16'){const[a,b]=R16B[mi];return [adminWinnerFor('r32',a),adminWinnerFor('r32',b)];}
+    if(rk==='qf') {const[a,b]=QFB[mi]; return [adminWinnerFor('r16',a),adminWinnerFor('r16',b)];}
+    if(rk==='sf') {const[a,b]=SFB[mi]; return [adminWinnerFor('qf',a), adminWinnerFor('qf',b)];}
+    if(rk==='fin')return [adminWinnerFor('sf',0),adminWinnerFor('sf',1)];
     if(rk==='thr'){
       const sf0=teams('sf',0),sf1=teams('sf',1);
-      const w0=winnerFor('sf',0),w1=winnerFor('sf',1);
+      const w0=adminWinnerFor('sf',0),w1=adminWinnerFor('sf',1);
       return [sf0.find(t=>t&&t!==w0)||'',sf1.find(t=>t&&t!==w1)||''];
     }
     return ['',''];
