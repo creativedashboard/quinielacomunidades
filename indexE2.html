@@ -4878,12 +4878,16 @@ function rBracketE2Recent(members){
 }
 
 // Modal: predicciones de la comunidad para un partido específico del bracket
-window.openBracketMatchPredictions=function(rk,mi){
+window.openBracketMatchPredictions=async function(rk,mi){
   const info=rk==='fin'?MATCH_INFO.fin:(rk==='thr'?MATCH_INFO.thr:MATCH_INFO[rk][mi]);
   const[t1,t2]=getMatchTeamsV2(rk,mi,true);
   const admPick=getAdminPickV2(rk,mi);
   const hasResult=admPick&&admPick.a!=null&&admPick.b!=null;
   const members=myCommunityMembers();
+  // ─── Refresca picks de TODOS los miembros desde Firebase (evita race conditions
+  // donde el cache local está stale y aparecen users como "SIN PREDICCIÓN" cuando
+  // en realidad sí llenaron). Se paraleliza para no bloquear la UI mucho tiempo.
+  try{await Promise.all(members.map(m=>_refreshUserPicksFromDB(m.uid)));}catch(e){console.warn('refresh members fail:',e);}
   // ── HEADER (estilo modal estandar mdm-*) ──
   const dateLbl=`${info.d} · ${info.t}${info.c?' · 📍 '+esc(info.c):''}`;
   const headerInfo=`${_bracketRoundLabel(rk)} · M${info.m} · ${dateLbl}`;
@@ -6874,6 +6878,7 @@ function rAdmCommunities(){
             <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
               <button onclick="resetStage2('${js(cid)}','${js(c.name)}')" style="padding:6px 12px;background:#fff;border:1.5px solid #16a34a;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#14532d;font-family:'DM Sans',sans-serif">🔒 Cerrar Etapa 2</button>
               <button onclick="downloadPicksE2('${js(cid)}','${js(c.name)}')" style="padding:6px 12px;background:#fff;border:1.5px solid #2563eb;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#1e40af;font-family:'DM Sans',sans-serif">📥 Descargar picks E2 (JSON)</button>
+              <button onclick="openPicksAudit('${js(cid)}','${js(c.name)}')" style="padding:6px 12px;background:#fff;border:1.5px solid #7c3aed;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#5b21b6;font-family:'DM Sans',sans-serif">📋 Auditoría de picks</button>
             </div>
             ${rbrHTML}
           </div>`;
@@ -7108,9 +7113,29 @@ function moveMember(uid,name){
 // ══════════════════════════════════════════════════════
 // BRACKET OVERLAY
 // ══════════════════════════════════════════════════════
-function openBracket(uid){
+// ─── Helper: forzar lectura fresca de picks de un user desde Firebase ───
+// Evita race conditions donde S.picks cache está stale y el bracket se ve vacío
+// aunque los picks sí existen en la DB.
+async function _refreshUserPicksFromDB(uid){
+  if(!uid||!db)return;
+  try{
+    // Beta Test Com: los picks viven en localStorage — no hay nada que refetch
+    if(typeof isBetaTestCom==='function'&&isBetaTestCom(uid))return;
+    const snap=await db.ref('picks/'+uid+'/bracketE2').once('value');
+    const fresh=snap.val();
+    if(!S.picks)S.picks={};
+    if(!S.picks[uid])S.picks[uid]={};
+    S.picks[uid].bracketE2=fresh||null;
+    // Si es el user actual, refrescar MY_BRACKET también
+    if(uid===ME.uid)MY_BRACKET=fresh||{};
+  }catch(e){console.warn('refresh picks fail for',uid,e);}
+}
+
+async function openBracket(uid){
   const u=S.users[uid];if(!u)return;
   const ov=document.getElementById('bracket-overlay');
+  // Refresh picks desde Firebase antes de renderizar (evita race conditions)
+  await _refreshUserPicksFromDB(uid);
   const col=UCOLORS.find(c=>c.id===u.color);
   if(col){ov.style.setProperty('--uc',col.ac);ov.style.setProperty('--uc-l',col.acl);}
   // Vista por defecto: si terminó la fase de grupos → 'desglose' (los puntos son lo más interesante);
@@ -9039,6 +9064,115 @@ window.downloadPicksE2=async function(cid,commName){
     a.click();
     setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},100);
   }catch(e){alert('Error generando el JSON: '+(e.message||e));}
+};
+
+// ═══════════════════════════════════════════════════════════════
+// AUDITORÍA DE PICKS — Tabla admin de completación por user y ronda.
+// Lee DIRECTO de Firebase (no del state cacheado) para tener certeza total.
+// ═══════════════════════════════════════════════════════════════
+window.openPicksAudit=async function(cid,commName){
+  const isCommAdm=S.community_admins&&S.community_admins[cid]&&S.community_admins[cid][ME.uid]===true;
+  if(!ME.isSuperAdmin&&!isCommAdm){alert('Solo el admin de esta comunidad puede ver la auditoría.');return;}
+  // Recopila miembros de la comunidad
+  const members=[];
+  for(const uid in S.users){
+    const u=S.users[uid];
+    if(u&&u.communityId===cid)members.push({uid,name:u.name||'?',photo:u.photo||'',color:u.color||''});
+  }
+  members.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  // Modal loading
+  if(!document.getElementById('audit-modal')){
+    const st=document.createElement('style');
+    st.textContent=`
+      #audit-modal{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:930;display:none;align-items:center;justify-content:center;padding:12px;transition:background .22s}
+      #audit-modal.on{display:flex;background:rgba(0,0,0,.65)}
+      .audit-box{background:var(--card);border-radius:14px;max-width:900px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden}
+      .audit-hdr{padding:14px 16px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+      .audit-hdr-ttl{font-family:'Outfit',sans-serif;font-weight:800;font-size:14px}
+      .audit-close{background:rgba(255,255,255,.22);border:none;color:#fff;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:15px;font-weight:700}
+      .audit-body{flex:1;overflow:auto;padding:10px}
+      .audit-t{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
+      .audit-t th,.audit-t td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}
+      .audit-t th{background:var(--bg);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--mt);position:sticky;top:0;z-index:2}
+      .audit-cell{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:3px 8px;border-radius:6px;font-family:'Outfit',sans-serif;font-weight:800;font-size:11.5px}
+      .audit-cell.full{background:#dcfce7;color:#166534}
+      .audit-cell.part{background:#fef3c7;color:#92400e}
+      .audit-cell.zero{background:#fee2e2;color:#991b1b}
+      .audit-cell.na  {background:#f3f4f6;color:#9ca3af}
+      .audit-user{display:flex;align-items:center;gap:8px}
+      .audit-avatar{width:26px;height:26px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;background-size:cover;background-position:center}
+      .audit-info{padding:9px 12px;background:#fef3c7;color:#78350f;font-size:11px;border-bottom:1px solid #fde68a;line-height:1.5}
+    `;
+    document.head.appendChild(st);
+    const m=document.createElement('div');m.id='audit-modal';document.body.appendChild(m);
+  }
+  const mod=document.getElementById('audit-modal');
+  mod.innerHTML=`<div class="audit-box"><div class="audit-hdr"><div class="audit-hdr-ttl">📋 Auditoría de picks · ${esc(commName)}</div><button class="audit-close" onclick="document.getElementById('audit-modal').classList.remove('on')">✕</button></div><div class="audit-body" style="text-align:center;padding:40px"><div style="font-size:12px;color:var(--mt)">Cargando datos directo de Firebase…</div></div></div>`;
+  mod.classList.add('on');
+  // Fetch DIRECTO de la DB para máxima certeza (no del cache S.picks)
+  const rows=[];
+  try{
+    for(const m of members){
+      let bracketE2=null;
+      try{
+        const snap=await db.ref('picks/'+m.uid+'/bracketE2').once('value');
+        bracketE2=snap.val()||{};
+      }catch(e){bracketE2={};}
+      function countRound(rk){
+        if(rk==='fin'){
+          const filled=(bracketE2.finV2&&bracketE2.finV2.w?1:0)+(bracketE2.thrV2&&bracketE2.thrV2.w?1:0);
+          return{filled,total:2};
+        }
+        const arr=bracketE2[rk+'V2'];
+        const total={r32:16,r16:8,qf:4,sf:2}[rk]||0;
+        if(!arr)return{filled:0,total};
+        const items=Array.isArray(arr)?arr:Object.values(arr);
+        let filled=0;
+        for(const p of items)if(p&&p.w)filled++;
+        return{filled,total};
+      }
+      rows.push({...m,r32:countRound('r32'),r16:countRound('r16'),qf:countRound('qf'),sf:countRound('sf'),fin:countRound('fin')});
+    }
+  }catch(e){alert('Error leyendo picks: '+(e.message||e));return;}
+  // Estado de cada ronda en la comunidad
+  const c=S.communities[cid]||{};
+  const br=c.bracketRounds||{};
+  function isRoundActive(rk){
+    if(rk==='r32')return c.stage2Unlocked===true;
+    const st=(br[rk]&&br[rk].state)||'pending';
+    return st!=='pending';
+  }
+  function cell(rk,cnt){
+    if(!isRoundActive(rk))return `<span class="audit-cell na" title="Ronda no abierta">—</span>`;
+    if(cnt.filled===0)return `<span class="audit-cell zero">0/${cnt.total}</span>`;
+    if(cnt.filled<cnt.total)return `<span class="audit-cell part">${cnt.filled}/${cnt.total}</span>`;
+    return `<span class="audit-cell full">${cnt.filled}/${cnt.total} ✓</span>`;
+  }
+  // Ordena: los INCOMPLETOS de la ronda más reciente activa suben arriba
+  const activeRounds=['fin','sf','qf','r16','r32'].filter(isRoundActive);
+  const focusRk=activeRounds[0]||'r32';
+  rows.sort((a,b)=>{
+    const av=a[focusRk].filled/a[focusRk].total;
+    const bv=b[focusRk].filled/b[focusRk].total;
+    if(av!==bv)return av-bv;
+    return (a.name||'').localeCompare(b.name||'');
+  });
+  let table='<table class="audit-t"><thead><tr><th>Usuario</th><th>16avos</th><th>Octavos</th><th>Cuartos</th><th>Semis</th><th>Final+3°</th></tr></thead><tbody>';
+  for(const r of rows){
+    const pic=userPic({name:r.name,color:r.color,photo:r.photo},26).replace('class="lbpic"','class="audit-avatar"');
+    table+=`<tr><td><div class="audit-user">${pic}<span>${esc(r.name)}</span></div></td><td>${cell('r32',r.r32)}</td><td>${cell('r16',r.r16)}</td><td>${cell('qf',r.qf)}</td><td>${cell('sf',r.sf)}</td><td>${cell('fin',r.fin)}</td></tr>`;
+  }
+  table+='</tbody></table>';
+  const focusLbl={r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',fin:'Final'}[focusRk];
+  mod.innerHTML=`<div class="audit-box">
+    <div class="audit-hdr">
+      <div class="audit-hdr-ttl">📋 Auditoría de picks · ${esc(commName)}</div>
+      <button class="audit-close" onclick="document.getElementById('audit-modal').classList.remove('on')">✕</button>
+    </div>
+    <div class="audit-info">💡 Datos leídos DIRECTO de Firebase (no del caché). Ordenados por menor completación en <b>${esc(focusLbl)}</b> — los que no llenaron aparecen arriba. Verde = completo · Amarillo = parcial · Rojo = 0 picks · Gris = ronda no abierta.</div>
+    <div class="audit-body">${table}</div>
+  </div>`;
+  if(typeof parseTwemoji==='function')parseTwemoji(mod);
 };
 </script>
 </body>
