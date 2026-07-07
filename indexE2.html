@@ -6281,11 +6281,25 @@ function isRoundFullyCapturedInAdmin(rk,adminBracketE2){
 // que el admin abrió una ronda nueva. Esto evita que el admin tenga que escribir
 // en los picks de otros users (Firebase rules) y funciona en localStorage también.
 // Comparamos community.bracketRounds.<rk>.openedAt con un ack en localStorage.
+// ─── SAFETY 2026-07-04: si el user YA tiene picks guardados en esa ronda, NO se borran.
+// Esto previene pérdida de datos cuando el user cambia de dispositivo, limpia cache,
+// o el admin reabre por error. Solo se hace ack silencioso.
 async function autoResetPicksOnRoundOpenV2(){
   if(!ME.uid||!ME.communityId)return;
   const c=S.communities&&S.communities[ME.communityId];
   if(!c||!c.bracketRounds)return;
   if(typeof MY_BRACKET==='undefined'||!MY_BRACKET)return;
+  // Helper: ¿el user tiene ALGÚN pick guardado en esta ronda?
+  function _userHasDataInRound(rk){
+    if(rk==='fin'){
+      const f=MY_BRACKET.finV2,t=MY_BRACKET.thrV2;
+      return !!((f&&(f.w||f.a!=null||f.b!=null))||(t&&(t.w||t.a!=null||t.b!=null)));
+    }
+    const arr=MY_BRACKET[rk+'V2'];
+    if(!arr)return false;
+    const items=Array.isArray(arr)?arr:Object.values(arr);
+    return items.some(p=>p&&(p.w||p.a!=null||p.b!=null));
+  }
   let changed=false;
   for(const rk of ['r16','qf','sf','fin']){
     const rcfg=c.bracketRounds[rk];
@@ -6296,6 +6310,11 @@ async function autoResetPicksOnRoundOpenV2(){
     let lastAck=0;
     try{lastAck=parseInt(localStorage.getItem(ackKey)||'0',10)||0;}catch(e){}
     if(opened>lastAck){
+      // ─── PROTECCIÓN: si ya hay picks, ack silencioso sin borrar ───
+      if(_userHasDataInRound(rk)){
+        try{localStorage.setItem(ackKey,String(opened));}catch(e){}
+        continue;
+      }
       // Reset this round's picks for THIS user
       const empty={a:null,b:null,w:'',pen:''};
       if(rk==='fin'){
