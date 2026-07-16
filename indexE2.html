@@ -3656,13 +3656,27 @@ function buildBracketV2ReadOnly(uid){
   if(!isOther){userBracket=(typeof MY_BRACKET!=='undefined'&&MY_BRACKET)||{};}
   else if(isBetaTestCom(uid)){userBracket=_readLocalBracketE2(uid)||{};}
   else{userBracket=(S.picks[uid]||{}).bracketE2||{};}
+  // ─── PRIVACIDAD: si estoy viendo a OTRO user y el partido de Final/3er lugar NO tiene
+  // resultado oficial, oculto los picks. Solo el dueño ve los suyos.
+  function _finalOrThirdIsPrivate(rk){
+    if(rk!=='fin'&&rk!=='thr')return false;
+    if(!isOther)return false;
+    const admE2=(S.adminR&&S.adminR.bracketE2)||{};
+    const adm=rk==='fin'?admE2.finV2:admE2.thrV2;
+    const hasResult=!!(adm&&adm.a!=null&&adm.b!=null);
+    return !hasResult;
+  }
   // Pick V2 helpers parametrizados para este user
   function pickFor(rk,mi){
+    if(_finalOrThirdIsPrivate(rk))return null; // ocultar pick de otros hasta que haya resultado
     if(rk==='fin')return userBracket.finV2||null;
     if(rk==='thr')return userBracket.thrV2||null;
     return (userBracket[rk+'V2']||[])[mi]||null;
   }
-  function winnerFor(rk,mi){const p=pickFor(rk,mi);return (p&&p.w)||'';}
+  function winnerFor(rk,mi){
+    if(_finalOrThirdIsPrivate(rk))return '';
+    const p=pickFor(rk,mi);return (p&&p.w)||'';
+  }
   // Helper: devuelve [t1, t2] para un partido del bracket
   // R32: viene de adminR (Etapa 2 abierta) o de los picks del user en grupos
   // R16+: cascada de ganadores del bracket V2 DE ESE USUARIO
@@ -4912,6 +4926,8 @@ window.openBracketMatchPredictions=async function(rk,mi){
         <span style="font-size:20px">${flag(t2)||''}</span>
       </div>
     </div>`;
+  // ─── PRIVACIDAD: Final + 3er lugar antes del partido → picks de otros ocultos ───
+  const isPrivateMatch=(rk==='fin'||rk==='thr')&&!hasResult;
   // ── BODY (filas estilo mdm-row, secciones mdm-divider) ──
   const rows=[];
   for(const m of members){
@@ -4919,8 +4935,11 @@ window.openBracketMatchPredictions=async function(rk,mi){
     const hasPick=!!(pk&&pk.a!=null&&pk.b!=null);
     let pts=0;
     if(hasResult&&hasPick)pts=calcMatchV2Points(pk,admPick);
-    const pkStr=hasPick?`${pk.a} - ${pk.b}${pk.a===pk.b&&pk.pen?` (pen ${esc(abbr(pk.pen))})`:''}`:'—';
-    rows.push({u:m,pk,hasPick,pts,pkStr});
+    const isOwnPick=(m.uid===ME.uid);
+    const hidePick=isPrivateMatch&&!isOwnPick;
+    const pkStrReal=hasPick?`${pk.a} - ${pk.b}${pk.a===pk.b&&pk.pen?` (pen ${esc(abbr(pk.pen))})`:''}`:'—';
+    const pkStr=hidePick?(hasPick?'🔒 Privado':'—'):pkStrReal;
+    rows.push({u:m,pk,hasPick,pts,pkStr,hidePick,isOwnPick});
   }
   function renderRowMdm(r,cls,lbl){
     const pic=userPic(r.u,28).replace('class="lbpic"','class="mdm-avatar"');
@@ -4964,8 +4983,39 @@ window.openBracketMatchPredictions=async function(rk,mi){
     if(buckets.exactWrongPen.length){body+=`<div class="mdm-divider">😩 Marcador exacto · ganador erróneo via pen · ${buckets.exactWrongPen.length}</div>`;body+=buckets.exactWrongPen.map(r=>renderRowMdm(r,'mdm-pts-zero','0')).join('');}
     if(buckets.zero.length){body+=`<div class="mdm-divider">❌ No acertaron · ${buckets.zero.length}</div>`;body+=buckets.zero.map(r=>renderRowMdm(r,'mdm-pts-zero','0')).join('');}
     if(buckets.nopred.length){body+=`<div class="mdm-divider">— Sin predicción · ${buckets.nopred.length}</div>`;body+=buckets.nopred.map(r=>renderRowMdm(r,'mdm-pts-none','—')).join('');}
+  }else if(isPrivateMatch){
+    // ─── MODO PRIVACIDAD (Final + 3er lugar antes del partido) ───
+    // Solo mostrar el pick propio prominentemente. Los demás salen como "🔒 Privado".
+    // Los conteos siguen visibles para ver cuántos ya llenaron.
+    body+=`<div style="font-size:11px;color:#5b21b6;padding:9px 12px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #ddd6fe;border-radius:8px;margin:0 4px 12px;line-height:1.5"><b>🔒 Predicciones privadas</b> — Los picks de la Final y 3er lugar son secretos hasta que se juegue el partido. Solo puedes ver el tuyo. Después del resultado, se revelan todos.</div>`;
+    const myRow=rows.find(r=>r.isOwnPick);
+    const othersFilled=rows.filter(r=>!r.isOwnPick&&r.hasPick);
+    const othersNoPred=rows.filter(r=>!r.isOwnPick&&!r.hasPick);
+    // Tu predicción
+    if(myRow){
+      body+=`<div class="mdm-divider">🎯 Tu predicción</div>`;
+      if(myRow.hasPick){
+        // Mostrar tu pick con score real (bypass hidePick para tu propio row)
+        const myPkStr=`${myRow.pk.a} - ${myRow.pk.b}${myRow.pk.a===myRow.pk.b&&myRow.pk.pen?` (pen ${esc(abbr(myRow.pk.pen))})`:''}`;
+        const pic=userPic(myRow.u,28).replace('class="lbpic"','class="mdm-avatar"');
+        body+=`<div class="mdm-row">${pic}<div class="mdm-name">${esc(myRow.u.name||'?')}</div><div class="mdm-pred">${esc(myPkStr)}</div></div>`;
+      }else{
+        const pic=userPic(myRow.u,28).replace('class="lbpic"','class="mdm-avatar"');
+        body+=`<div class="mdm-row" style="background:#fef2f2">${pic}<div class="mdm-name">${esc(myRow.u.name||'?')}</div><div class="mdm-pred" style="color:#dc2626">⏳ Aún no llenas</div></div>`;
+      }
+    }
+    // Otros que ya llenaron (privado)
+    if(othersFilled.length){
+      body+=`<div class="mdm-divider">🔒 Otros participantes · ${othersFilled.length} ya llenaron</div>`;
+      body+=othersFilled.map(r=>renderRowMdm(r,'','')).join('');
+    }
+    // Sin predicción (visible siempre — no es info sensible)
+    if(othersNoPred.length){
+      body+=`<div class="mdm-divider">— Sin predicción · ${othersNoPred.length}</div>`;
+      body+=othersNoPred.map(r=>renderRowMdm(r,'','')).join('');
+    }
   }else{
-    // Modo pre-partido: secciones por GANADOR FINAL predicho (en eliminatorias el pen cuenta).
+    // Modo pre-partido normal: secciones por GANADOR FINAL predicho (en eliminatorias el pen cuenta).
     // Si user predijo "1-1 pen BEL", su ganador final es BEL → va con los que dicen "Gana BEL".
     function predictedFinalWinner(pk){
       if(!pk||pk.a==null||pk.b==null)return null;
