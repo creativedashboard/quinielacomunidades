@@ -3658,9 +3658,11 @@ function buildBracketV2ReadOnly(uid){
   else{userBracket=(S.picks[uid]||{}).bracketE2||{};}
   // ─── PRIVACIDAD: si estoy viendo a OTRO user y el partido de Final/3er lugar NO tiene
   // resultado oficial, oculto los picks. Solo el dueño ve los suyos.
+  // ADMIN BYPASS: admin/super-admin ve los picks aunque sean privados.
   function _finalOrThirdIsPrivate(rk){
     if(rk!=='fin'&&rk!=='thr')return false;
     if(!isOther)return false;
+    if(ME.isAdmin)return false; // admin ve todo
     const admE2=(S.adminR&&S.adminR.bracketE2)||{};
     const adm=rk==='fin'?admE2.finV2:admE2.thrV2;
     const hasResult=!!(adm&&adm.a!=null&&adm.b!=null);
@@ -4927,7 +4929,8 @@ window.openBracketMatchPredictions=async function(rk,mi){
       </div>
     </div>`;
   // ─── PRIVACIDAD: Final + 3er lugar antes del partido → picks de otros ocultos ───
-  const isPrivateMatch=(rk==='fin'||rk==='thr')&&!hasResult;
+  // ADMIN BYPASS: si soy admin/super-admin, veo todos los picks aunque sean privados.
+  const isPrivateMatch=(rk==='fin'||rk==='thr')&&!hasResult&&!ME.isAdmin;
   // ── BODY (filas estilo mdm-row, secciones mdm-divider) ──
   const rows=[];
   for(const m of members){
