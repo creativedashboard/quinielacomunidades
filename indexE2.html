@@ -6996,7 +6996,12 @@ function rAdmCommunities(){
           <div style="font-size:10.5px;color:#14532d;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">💾 Respaldo de esta comunidad</div>
           <button onclick="communityAdminDownloadBackup('${js(cid)}')" style="padding:7px 12px;background:#15803d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif" title="Descarga JSON con todos los picks y datos de tu comunidad (sin correos)">📥 Descargar respaldo (JSON)</button>
           <div style="font-size:10px;color:#166534;margin-top:6px;line-height:1.4">💡 Incluye comunidad, miembros (sin correos), sus picks, resultados oficiales y terceros. Por privacidad NO incluye correos electrónicos.</div>
-        </div>`;
+        </div>
+        ${ME.isSuperAdmin?`<div style="background:linear-gradient(135deg,#fef2f2,#fee2e2);border:2px solid #dc2626;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:10.5px;color:#7f1d1d;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">☠️ Zona peligrosa · super-admin</div>
+          <div style="font-size:10.5px;color:#991b1b;margin-bottom:8px;line-height:1.4">Elimina PERMANENTEMENTE esta comunidad, sus resultados y los picks de sus miembros. Los users quedan huérfanos (pueden unirse a otra). <b>Descarga el respaldo ANTES.</b></div>
+          <button onclick="deleteCommunityCompletely('${js(cid)}','${js(c.name)}')" style="padding:7px 12px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif" title="Borra la comunidad completa. NO se puede deshacer sin respaldo.">🗑️ Eliminar comunidad</button>
+        </div>`:''}`;
       if(members.length>0){
         h+=`<div style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px;margin-bottom:10px">`;
         members.forEach((m,i)=>{
@@ -8149,6 +8154,54 @@ async function communityAdminDownloadBackup(cid){
   const pickCount=Object.keys(picks).length;
   alert(`✓ Respaldo descargado.\n\n📊 Resumen:\n• ${memberCount} miembros\n• ${pickCount} picks\n• Resultados oficiales: ${crR.ok?'sí':'no'}\n\n🔒 NO incluye correos (por privacidad).${skipped.length?`\n\n⚠️ Saltadas: ${skipped.length} ruta(s).`:''}`);
 }
+
+// ─── SUPER-ADMIN: Eliminar comunidad completa (con doble confirmación) ───
+// Borra: communities/{cid}, community_admins/{cid}, community_results/{cid},
+// community_thirds_bracket/{cid}, y para cada miembro: quita communityId + borra picks.
+// Los users quedan "huérfanos" (mantienen su cuenta y pueden unirse a otra comunidad).
+window.deleteCommunityCompletely=async function(cid,commName){
+  if(!ME.isSuperAdmin){alert('Solo el super-admin puede eliminar comunidades.');return;}
+  if(!cid){alert('CID inválido.');return;}
+  // Paso 1: alertar sobre el respaldo
+  const step1=confirm(`⚠️ VAS A ELIMINAR "${commName}" PERMANENTEMENTE\n\n¿Ya descargaste el respaldo (JSON) de esta comunidad?\n\n• Si NO → cancela y descárgalo primero con "📥 Descargar respaldo".\n• Si SÍ → continúa.\n\n¿Ya tienes el respaldo?`);
+  if(!step1)return;
+  // Paso 2: pedir escritura literal del nombre
+  const typed=prompt(`⚠️ CONFIRMACIÓN FINAL\n\nEsto BORRARÁ para siempre:\n• La comunidad "${commName}"\n• Sus resultados oficiales\n• Los picks de todos sus miembros\n• Los admins asignados\n\nLos users quedarán huérfanos (podrán unirse a otra comunidad después).\n\nPara confirmar, escribe exactamente el nombre de la comunidad:\n\n${commName}`);
+  if(typed===null)return;
+  if(typed.trim()!==commName.trim()){
+    alert('❌ El nombre no coincide. Operación cancelada.');
+    return;
+  }
+  // Paso 3: contar miembros para info
+  const memberUids=[];
+  for(const uid in (S.users||{})){
+    if(S.users[uid]&&S.users[uid].communityId===cid)memberUids.push(uid);
+  }
+  showConfirm({
+    title:'☠️ ÚLTIMA CONFIRMACIÓN',
+    msg:`Se van a borrar:\n• "${commName}"\n• ${memberUids.length} miembros → quedan huérfanos\n• Todos sus picks (E1 grupos + E2 bracket)\n• Resultados oficiales\n• Terceros ranking\n• Community admins\n\nNO SE PUEDE DESHACER (sin respaldo).\n\n¿Ejecutar ahora?`,
+    okText:'💀 SÍ, ELIMINAR TODO',
+    danger:true,
+    onOk:async()=>{
+      try{
+        const updates={};
+        // 1) Borrar nodos de la comunidad
+        updates['communities/'+cid]=null;
+        updates['community_admins/'+cid]=null;
+        updates['community_results/'+cid]=null;
+        updates['community_thirds_bracket/'+cid]=null;
+        // 2) Orfanato de miembros: quitar communityId + borrar picks
+        for(const uid of memberUids){
+          updates['users/'+uid+'/communityId']=null;
+          updates['picks/'+uid]=null;
+        }
+        await db.ref().update(updates);
+        alert(`✅ Comunidad "${commName}" eliminada.\n\n• ${memberUids.length} miembros ahora son huérfanos (pueden unirse a otra)\n• Todos los picks borrados\n• Resultados y admins borrados\n\nSi necesitas restaurarla, usa tu JSON de respaldo con Firebase Console → Import JSON.`);
+        render();
+      }catch(e){alert('Error eliminando: '+(e.message||e));}
+    }
+  });
+};
 
 // ─── ADMIN: Restore from JSON ───
 function adminRestoreBackup(){
